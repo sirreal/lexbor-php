@@ -75,6 +75,10 @@ final class Serializer
             );
         }
 
+        if (VoidElements::is($element->tagName)) {
+            return sprintf('<%s%s>', $element->tagName, $attributes);
+        }
+
         return sprintf('<%s%s>%s</%s>', $element->tagName, $attributes, self::serializeDeepChildren($element), $element->tagName);
     }
 

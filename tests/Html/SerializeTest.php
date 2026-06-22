@@ -4,14 +4,80 @@ declare(strict_types=1);
 
 namespace Lexbor\Tests\Html;
 
+use Lexbor\Core\Status;
 use Lexbor\Dom\Text;
 use Lexbor\Html\Document;
 use Lexbor\Html\Serializer;
 use Lexbor\Html\Tag;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
 final class SerializeTest extends TestCase
 {
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function upstreamSerializeExtElementProvider(): iterable
+    {
+        yield 'element.ton #1 div' => ['<div></div>', '<div></div>'];
+        yield 'element.ton #2 span' => ['<span></span>', '<span></span>'];
+        yield 'element.ton #3 self-closing div' => ['<div/>', '<div></div>'];
+        yield 'element.ton #4 br' => ['<br>', '<br>'];
+        yield 'element.ton #5 hr' => ['<hr>', '<hr>'];
+        yield 'element.ton #6 img' => ['<img src="x.png">', '<img src="x.png">'];
+        yield 'element.ton #7 input' => ['<input type="text">', '<input type="text">'];
+        yield 'element.ton #8 area' => ['<area shape="rect">', '<area shape="rect">'];
+        yield 'element.ton #10 embed' => ['<embed type="text/plain">', '<embed type="text/plain">'];
+        yield 'element.ton #11 source' => ['<video><source src="a.mp3"></video>', '<video><source src="a.mp3"></video>'];
+        yield 'element.ton #12 track' => ['<video><track src="t.vtt"></video>', '<video><track src="t.vtt"></video>'];
+        yield 'element.ton #13 wbr' => ['<wbr>', '<wbr>'];
+        yield 'element.ton #14 nested voids' => ['<div><br><hr><wbr><br></div>', '<div><br><hr><wbr><br></div>'];
+        yield 'element.ton #15 img attributes' => ['<img src="a.png" alt="" width="100" height="50">', '<img src="a.png" alt="" width="100" height="50">'];
+        yield 'element.ton #16 deep sectioning' => [
+            '<div><section><article><main><aside><nav><header><footer>x</footer></header></nav></aside></main></article></section></div>',
+            '<div><section><article><main><aside><nav><header><footer>x</footer></header></nav></aside></main></article></section></div>',
+        ];
+        yield 'element.ton #17 sibling phrasing' => [
+            '<a href="#">a</a><b>b</b><i>i</i><u>u</u><s>s</s>',
+            '<a href="#">a</a><b>b</b><i>i</i><u>u</u><s>s</s>',
+        ];
+        yield 'element.ton #18 mixed text and element' => [
+            '<div>before<span>middle</span>after</div>',
+            '<div>before<span>middle</span>after</div>',
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function upstreamLegacyVoidElementProvider(): iterable
+    {
+        yield 'node.h basefont' => ['basefont'];
+        yield 'node.h bgsound' => ['bgsound'];
+        yield 'node.h frame' => ['frame'];
+        yield 'node.h keygen' => ['keygen'];
+        yield 'node.h param' => ['param'];
+    }
+
+    #[DataProvider('upstreamSerializeExtElementProvider')]
+    public function testUpstreamSerializeExtElementFixtures(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('upstreamLegacyVoidElementProvider')]
+    public function testUpstreamLegacyVoidElementSerializesWithoutClosingTag(string $tagName): void
+    {
+        $document = new Document();
+        $element = $document->createElement($tagName);
+        $element->appendChild($document->createTextNode('ignored'));
+
+        self::assertSame(sprintf('<%s>', $tagName), Serializer::serialize($element));
+    }
+
     public function testTextNodeWithoutParent(): void
     {
         $document = new Document();
@@ -73,5 +139,14 @@ final class SerializeTest extends TestCase
         $document->setScriptingEnabled(true);
 
         self::assertSame('<noscript>a < b</noscript>', Serializer::serialize($noscript));
+    }
+
+    public function testProgrammaticVoidElementSerializesWithoutClosingTag(): void
+    {
+        $document = new Document();
+        $br = $document->createElement('br');
+        $br->appendChild($document->createTextNode('ignored'));
+
+        self::assertSame('<br>', Serializer::serialize($br));
     }
 }

@@ -174,7 +174,7 @@ final class Document extends Node
             $stack[count($stack) - 1]->appendChild($element);
             $offset = $tagEnd;
 
-            if ($selfClosing || $this->isVoidElement($tagName)) {
+            if ($selfClosing || VoidElements::is($tagName)) {
                 continue;
             }
 
@@ -308,22 +308,4 @@ final class Document extends Node
         return $attributes;
     }
 
-    private function isVoidElement(string $tagName): bool
-    {
-        return in_array($tagName, [
-            'area',
-            'base',
-            'br',
-            'col',
-            'embed',
-            'hr',
-            'img',
-            'input',
-            'link',
-            'meta',
-            'source',
-            'track',
-            'wbr',
-        ], true);
-    }
 }
