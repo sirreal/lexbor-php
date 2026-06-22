@@ -14,7 +14,7 @@ final class Tokenizer
     /**
      * @return list<Token>
      */
-    public function tokenize(string $css): array
+    public function tokenize(string $css, bool $withUnicodeRange = false): array
     {
         $tokens = [];
         $offset = 0;
@@ -80,6 +80,17 @@ final class Tokenizer
                 if ($hash !== null) {
                     [$value, $tokenLength] = $hash;
                     $tokens[] = new Token('hash', $value, $tokenLength);
+                    $offset += $tokenLength;
+                    continue;
+                }
+            }
+
+            if ($withUnicodeRange) {
+                $unicodeRange = self::consumeUnicodeRange($css, $offset);
+
+                if ($unicodeRange !== null) {
+                    [$value, $tokenLength] = $unicodeRange;
+                    $tokens[] = new Token('unicode-range', $value, $tokenLength);
                     $offset += $tokenLength;
                     continue;
                 }
@@ -369,6 +380,65 @@ final class Tokenizer
     }
 
     /**
+     * @return array{string, int}|null
+     */
+    private static function consumeUnicodeRange(string $css, int $offset): ?array
+    {
+        $length = strlen($css);
+
+        if (
+            $offset + 2 >= $length
+            || (($css[$offset] !== 'U') && ($css[$offset] !== 'u'))
+            || $css[$offset + 1] !== '+'
+            || (! self::isHexDigit($css[$offset + 2]) && $css[$offset + 2] !== '?')
+        ) {
+            return null;
+        }
+
+        $cursor = $offset + 2;
+        $codePoint = 0;
+        $remainingDigits = 6;
+
+        while ($cursor < $length && $remainingDigits > 0 && self::isHexDigit($css[$cursor])) {
+            $codePoint = ($codePoint * 16) + self::hexValue($css[$cursor]);
+            $cursor++;
+            $remainingDigits--;
+        }
+
+        if ($cursor < $length && $remainingDigits > 0 && $css[$cursor] === '?') {
+            $questionMarks = 0;
+
+            while ($cursor < $length && $remainingDigits > 0 && $css[$cursor] === '?') {
+                $questionMarks++;
+                $cursor++;
+                $remainingDigits--;
+            }
+
+            $start = $codePoint << (4 * $questionMarks);
+            $end = $start | ((1 << (4 * $questionMarks)) - 1);
+
+            return [self::serializeUnicodeRange($start, $end), $cursor - $offset];
+        }
+
+        $start = $codePoint;
+        $end = $start;
+
+        if (($css[$cursor] ?? '') === '-' && self::isHexDigit($css[$cursor + 1] ?? '')) {
+            $cursor++;
+            $end = 0;
+            $remainingDigits = 6;
+
+            while ($cursor < $length && $remainingDigits > 0 && self::isHexDigit($css[$cursor])) {
+                $end = ($end * 16) + self::hexValue($css[$cursor]);
+                $cursor++;
+                $remainingDigits--;
+            }
+        }
+
+        return [self::serializeUnicodeRange($start, $end), $cursor - $offset];
+    }
+
+    /**
      * @return array{string, int}
      */
     private static function consumeIdentifier(string $css, int $offset): array
@@ -626,6 +696,19 @@ final class Tokenizer
             || ($char >= 'a' && $char <= 'f');
     }
 
+    private static function hexValue(string $char): int
+    {
+        if ($char >= '0' && $char <= '9') {
+            return ord($char) - ord('0');
+        }
+
+        if ($char >= 'A' && $char <= 'F') {
+            return ord($char) - ord('A') + 10;
+        }
+
+        return ord($char) - ord('a') + 10;
+    }
+
     private static function isDigit(string $char): bool
     {
         return $char >= '0' && $char <= '9';
@@ -740,6 +823,11 @@ final class Tokenizer
     private static function serializeStringValue(string $value): string
     {
         return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
+    }
+
+    private static function serializeUnicodeRange(int $start, int $end): string
+    {
+        return 'U+' . strtoupper(dechex($start)) . '-' . strtoupper(dechex($end));
     }
 
     /**

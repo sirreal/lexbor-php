@@ -649,6 +649,51 @@ final class TokenizerTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{string, string, int}>, bool}>
+     */
+    public static function upstreamUnicodeRangeProvider(): iterable
+    {
+        yield 'unicode_range.ton #1 max scalar-like range' => ['U+FFFFFF', [['unicode-range', 'U+FFFFFF-FFFFFF', 8]], true];
+        yield 'unicode_range.ton #2 all wildcard digits' => ['U+??????', [['unicode-range', 'U+0-FFFFFF', 8]], true];
+        yield 'unicode_range.ton #3 one hex five wildcards' => ['U+1?????', [['unicode-range', 'U+100000-1FFFFF', 8]], true];
+        yield 'unicode_range.ton #4 two hex four wildcards' => ['U+12????', [['unicode-range', 'U+120000-12FFFF', 8]], true];
+        yield 'unicode_range.ton #5 three hex three wildcards' => ['U+123???', [['unicode-range', 'U+123000-123FFF', 8]], true];
+        yield 'unicode_range.ton #6 four hex two wildcards' => ['U+1234??', [['unicode-range', 'U+123400-1234FF', 8]], true];
+        yield 'unicode_range.ton #7 five hex one wildcard' => ['U+12345?', [['unicode-range', 'U+123450-12345F', 8]], true];
+        yield 'unicode_range.ton #8 exact six hex digits' => ['U+123456', [['unicode-range', 'U+123456-123456', 8]], true];
+        yield 'unicode_range.ton #9 explicit range' => ['U+20-ff', [['unicode-range', 'U+20-FF', 7]], true];
+        yield 'unicode_range.ton #10 seventh digit remains dimension' => ['U+1234567-ff', [
+            ['unicode-range', 'U+123456-123456', 8],
+            ['dimension', '7-ff', 4],
+        ], true];
+        yield 'unicode_range.ton #11 end range stops after six digits' => ['U+123456-abcdefabc', [
+            ['unicode-range', 'U+123456-ABCDEF', 15],
+            ['ident', 'abc', 3],
+        ], true];
+        yield 'unicode_range.ton #12 trailing hyphen delimiter' => ['U+123456-', [
+            ['unicode-range', 'U+123456-123456', 8],
+            ['delim', '-', 1],
+        ], true];
+        yield 'unicode_range.ton #13 trailing hyphen ident' => ['U+123456-x', [
+            ['unicode-range', 'U+123456-123456', 8],
+            ['ident', '-x', 2],
+        ], true];
+        yield 'unicode_range.ton #15 ident after partial hex range' => ['U+123xyz', [
+            ['unicode-range', 'U+123-123', 5],
+            ['ident', 'xyz', 3],
+        ], true];
+        yield 'unicode_range.ton #16 missing range start' => ['U+', [
+            ['ident', 'U', 1],
+            ['delim', '+', 1],
+        ], true];
+        yield 'unicode_range.ton #17 invalid range start' => ['U+x', [
+            ['ident', 'U', 1],
+            ['delim', '+', 1],
+            ['ident', 'x', 1],
+        ], true];
+    }
+
+    /**
      * @return iterable<string, array{string, list<array{string, string, int}>}>
      */
     public static function upstreamOtherProvider(): iterable
@@ -702,11 +747,12 @@ final class TokenizerTest extends TestCase
     #[DataProvider('upstreamNumberProvider')]
     #[DataProvider('upstreamStringProvider')]
     #[DataProvider('upstreamCdoCdcProvider')]
+    #[DataProvider('upstreamUnicodeRangeProvider')]
     #[DataProvider('upstreamOtherProvider')]
     #[DataProvider('upstreamBrokenUtf8Provider')]
-    public function testUpstreamTokenizerFixtures(string $css, array $expected): void
+    public function testUpstreamTokenizerFixtures(string $css, array $expected, bool $withUnicodeRange = false): void
     {
-        $tokens = (new Tokenizer())->tokenize($css);
+        $tokens = (new Tokenizer())->tokenize($css, $withUnicodeRange);
 
         self::assertCount(count($expected), $tokens);
 
