@@ -397,6 +397,120 @@ final class ParserTest extends TestCase
                 ],
             ],
         ]];
+        yield 'qualified.ton #25 at-rule with nested qualified block' => ['#id {@Naruto Orochimaru {Sasuke Uchiha}}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'at-rule',
+                        'name' => '@Naruto',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Orochimaru'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                        ],
+                        'block' => [
+                            [
+                                'type' => 'qualified-rule',
+                                'prelude' => [
+                                    ['type' => 'ident', 'value' => 'Sasuke'],
+                                    ['type' => 'whitespace', 'value' => ' '],
+                                    ['type' => 'ident', 'value' => 'Uchiha'],
+                                ],
+                                'block' => [],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #26 at-rule terminated by semicolon in block' => ['#id {@Naruto Orochimaru;}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'at-rule',
+                        'name' => '@Naruto',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Orochimaru'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #27 at-rule terminated by block end' => ['#id {@Naruto Orochimaru}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'at-rule',
+                        'name' => '@Naruto',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Orochimaru'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #28 at-rule semicolon then declaration' => ['#id {@Naruto Orochimaru; width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'at-rule',
+                        'name' => '@Naruto',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Orochimaru'],
+                        ],
+                    ],
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #29 at-rule adjacent declaration' => ['#id {@Naruto Orochimaru;width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'at-rule',
+                        'name' => '@Naruto',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Orochimaru'],
+                        ],
+                    ],
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
     }
 
     /**

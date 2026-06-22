@@ -89,8 +89,9 @@ final class Parser
      * @param list<Token> $tokens
      * @return list<array<string, mixed>>
      */
-    private function consumeBlock(array $tokens, int &$offset): array
+    private function consumeBlock(array $tokens, int &$offset, bool $includeNestedQualifiedEmptyBlock = false): array
     {
+        $items = [];
         $declarations = [];
 
         while ($offset < count($tokens)) {
@@ -106,24 +107,75 @@ final class Parser
                 continue;
             }
 
+            if ($token->type === 'at-keyword') {
+                self::appendDeclarations($items, $declarations);
+                $items[] = $this->consumeAtRule($tokens, $offset);
+                continue;
+            }
+
             if ($token->type === 'ident' && $this->hasDeclarationColon($tokens, $offset)) {
                 $declarations[] = $this->consumeDeclaration($tokens, $offset);
                 continue;
             }
 
+            self::appendDeclarations($items, $declarations);
+            $items[] = $this->consumeNestedQualifiedRule($tokens, $offset, $includeNestedQualifiedEmptyBlock);
+        }
+
+        self::appendDeclarations($items, $declarations);
+
+        return $items;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array<string, mixed>
+     */
+    private function consumeAtRule(array $tokens, int &$offset): array
+    {
+        $rule = [
+            'type' => 'at-rule',
+            'name' => $tokens[$offset]->value,
+            'prelude' => [],
+        ];
+
+        $offset++;
+
+        if (($tokens[$offset] ?? null)?->type === 'whitespace') {
             $offset++;
         }
 
-        if ($declarations === []) {
-            return [];
+        $blockEndStack = [];
+
+        while ($offset < count($tokens)) {
+            $token = $tokens[$offset];
+
+            if ($blockEndStack === []) {
+                if ($token->type === 'semicolon') {
+                    $offset++;
+                    return $rule;
+                }
+
+                if ($token->type === 'right-curly-bracket') {
+                    return $rule;
+                }
+
+                if ($token->type === 'left-curly-bracket') {
+                    $offset++;
+                    $rule['block'] = $this->consumeBlock($tokens, $offset, true);
+                    return $rule;
+                }
+            }
+
+            if ($token->type !== 'comment') {
+                $rule['prelude'][] = self::serializeToken($token);
+                $this->updateBlockEndStack($blockEndStack, $token);
+            }
+
+            $offset++;
         }
 
-        return [
-            [
-                'type' => 'declarations',
-                'declarations' => $declarations,
-            ],
-        ];
+        return $rule;
     }
 
     /**
@@ -138,6 +190,42 @@ final class Parser
         }
 
         return ($tokens[$offset] ?? null)?->type === 'colon';
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array<string, mixed>
+     */
+    private function consumeNestedQualifiedRule(array $tokens, int &$offset, bool $includeEmptyBlock): array
+    {
+        $prelude = [];
+        $blockEndStack = [];
+
+        while ($offset < count($tokens)) {
+            $token = $tokens[$offset];
+
+            if ($blockEndStack === [] && ($token->type === 'right-curly-bracket' || $token->type === 'semicolon')) {
+                break;
+            }
+
+            if ($token->type !== 'comment') {
+                $prelude[] = self::serializeToken($token);
+                $this->updateBlockEndStack($blockEndStack, $token);
+            }
+
+            $offset++;
+        }
+
+        $rule = [
+            'type' => 'qualified-rule',
+            'prelude' => $prelude,
+        ];
+
+        if ($includeEmptyBlock) {
+            $rule['block'] = [];
+        }
+
+        return $rule;
     }
 
     /**
@@ -221,6 +309,24 @@ final class Parser
             'type' => $token->type,
             'value' => $token->value,
         ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $items
+     * @param list<array{name: string, value: string, important: bool}> $declarations
+     */
+    private static function appendDeclarations(array &$items, array &$declarations): void
+    {
+        if ($declarations === []) {
+            return;
+        }
+
+        $items[] = [
+            'type' => 'declarations',
+            'declarations' => $declarations,
+        ];
+
+        $declarations = [];
     }
 
     /**
