@@ -18,6 +18,21 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
+    public static function upstreamSerializeExtAttributeEntityProvider(): iterable
+    {
+        yield 'attributes.ton #6 ampersand' => ['<div title="a&amp;b"></div>', '<div title="a&amp;b"></div>'];
+        yield 'attributes.ton #7 less-than' => ['<div title="a&lt;b"></div>', '<div title="a&lt;b"></div>'];
+        yield 'attributes.ton #8 greater-than' => ['<div title="a&gt;b"></div>', '<div title="a&gt;b"></div>'];
+        yield 'attributes.ton #9 quote' => ['<div title="a&quot;b"></div>', '<div title="a&quot;b"></div>'];
+        yield 'attributes.ton #10 no-break space' => ["<div title=\"a\u{00A0}b\"></div>", '<div title="a&nbsp;b"></div>'];
+        yield 'attributes.ton #11 mixed entities' => ['<div title="&amp;&lt;&gt;&quot;"></div>', '<div title="&amp;&lt;&gt;&quot;"></div>'];
+        yield 'attributes.ton #12 entity at edges' => ['<div title="&amp;hello&amp;"></div>', '<div title="&amp;hello&amp;"></div>'];
+        yield 'attributes.ton #13 ampersand only' => ['<div title="&amp;"></div>', '<div title="&amp;"></div>'];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function upstreamSerializeExtCommentProvider(): iterable
     {
         yield 'comment.ton #1 simple comment' => ['<div><!-- hello --></div>', '<div><!-- hello --></div>'];
@@ -37,6 +52,42 @@ final class SerializeTest extends TestCase
             '<div><!-- L1 --><p><!-- L2 --><span><!-- L3 --></span></p></div>',
             '<div><!-- L1 --><p><!-- L2 --><span><!-- L3 --></span></p></div>',
         ];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function upstreamSerializeExtTextEntityProvider(): iterable
+    {
+        yield 'text.ton #1 paragraph text' => ['<p>hello</p>', '<p>hello</p>'];
+        yield 'text.ton #2 paragraph words' => ['<p>hello world</p>', '<p>hello world</p>'];
+        yield 'text.ton #3 top-level text' => ['just text', 'just text'];
+        yield 'text.ton #4 ampersand' => ['<p>a &amp; b</p>', '<p>a &amp; b</p>'];
+        yield 'text.ton #5 less-than' => ['<p>a &lt; b</p>', '<p>a &lt; b</p>'];
+        yield 'text.ton #6 greater-than' => ['<p>a &gt; b</p>', '<p>a &gt; b</p>'];
+        yield 'text.ton #7 no-break space' => ["<p>a\u{00A0}b</p>", '<p>a&nbsp;b</p>'];
+        yield 'text.ton #8 spaced entities' => ['<p>&amp; &lt; &gt;</p>', '<p>&amp; &lt; &gt;</p>'];
+        yield 'text.ton #9 adjacent entities' => ['<p>&amp;&lt;&gt;</p>', '<p>&amp;&lt;&gt;</p>'];
+        yield 'text.ton #10 edge no-break spaces' => ["<p>\u{00A0}hello\u{00A0}</p>", '<p>&nbsp;hello&nbsp;</p>'];
+        yield 'text.ton #11 only no-break spaces' => ["<p>\u{00A0}\u{00A0}\u{00A0}</p>", '<p>&nbsp;&nbsp;&nbsp;</p>'];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function tokenizerCharacterReferenceProvider(): iterable
+    {
+        yield 'uppercase ampersand alias with semicolon' => ['<p>&AMP;</p>', '<p>&amp;</p>'];
+        yield 'uppercase less-than alias with semicolon' => ['<p>&LT;</p>', '<p>&lt;</p>'];
+        yield 'multi-codepoint named reference' => ['<p>&NotEqualTilde;</p>', '<p>≂̸</p>'];
+        yield 'text ampersand without semicolon' => ['<p>&amp</p>', '<p>&amp;</p>'];
+        yield 'text copyright without semicolon' => ['<p>&copy </p>', '<p>© </p>'];
+        yield 'text windows-1252 numeric replacement' => ['<p>&#x80;</p>', '<p>€</p>'];
+        yield 'text failed semicolon name falls back to amp prefix' => ['<p>&ampx;</p>', '<p>&amp;x;</p>'];
+        yield 'text failed semicolon name falls back to copy prefix' => ['<p>&copyx;</p>', '<p>©x;</p>'];
+        yield 'text failed semicolon name falls back to not prefix' => ['<p>&notit;</p>', '<p>¬it;</p>'];
+        yield 'attribute ampersand without semicolon' => ['<div title="&amp"></div>', '<div title="&amp;"></div>'];
+        yield 'attribute ambiguous ampersand' => ['<div title="&ampx"></div>', '<div title="&amp;ampx"></div>'];
     }
 
     /**
@@ -84,8 +135,35 @@ final class SerializeTest extends TestCase
         yield 'node.h param' => ['param'];
     }
 
+    #[DataProvider('upstreamSerializeExtAttributeEntityProvider')]
+    public function testUpstreamSerializeExtAttributeEntityFixtures(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
     #[DataProvider('upstreamSerializeExtCommentProvider')]
     public function testUpstreamSerializeExtCommentFixtures(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('upstreamSerializeExtTextEntityProvider')]
+    public function testUpstreamSerializeExtTextEntityFixtures(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('tokenizerCharacterReferenceProvider')]
+    public function testTokenizerCharacterReferenceRegressions(string $html, string $expected): void
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
@@ -155,6 +233,14 @@ final class SerializeTest extends TestCase
         $body->appendChild($document->createTextNode('a < b & c > d'));
 
         self::assertSame('a &lt; b &amp; c &gt; d', Serializer::serializeDeep($body));
+    }
+
+    public function testRawTextParserKeepsCharacterReferencesLiteral(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<script>a &amp; b</script>'));
+
+        self::assertSame('<script>a &amp; b</script>', Serializer::serializeDeep($document->bodyElement()));
     }
 
     public function testTextNodeSerializesNoBreakSpaceAsEntity(): void

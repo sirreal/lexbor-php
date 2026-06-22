@@ -96,7 +96,11 @@ final class Document extends Node
         }
 
         if ($this->isTextOnlyFragmentContext($context)) {
-            $fragment->appendChild($this->createTextNode($html));
+            $fragment->appendChild($this->createTextNode(
+                $this->shouldDecodeTextOnlyElementContent($context)
+                    ? $this->decodeCharacterReferences($html)
+                    : $html,
+            ));
             return $fragment;
         }
 
@@ -209,17 +213,19 @@ final class Document extends Node
         $parent->appendChild($this->createComment($data));
     }
 
-    private function appendText(Node $parent, string $data): void
+    private function appendText(Node $parent, string $data, bool $decodeCharacterReferences = true): void
     {
         if ($data !== '') {
-            $parent->appendChild($this->createTextNode($data));
+            $parent->appendChild($this->createTextNode(
+                $decodeCharacterReferences ? $this->decodeCharacterReferences($data) : $data,
+            ));
         }
     }
 
     private function appendTextOnlyElementContent(Element $element, string $html, int $offset): int
     {
         if ($element->tagName === 'plaintext') {
-            $this->appendText($element, substr($html, $offset));
+            $this->appendText($element, substr($html, $offset), false);
 
             return strlen($html);
         }
@@ -227,12 +233,12 @@ final class Document extends Node
         $pattern = sprintf('~<\s*/\s*%s\s*>~i', preg_quote($element->tagName, '~'));
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE, $offset) !== 1) {
-            $this->appendText($element, substr($html, $offset));
+            $this->appendText($element, substr($html, $offset), $this->shouldDecodeTextOnlyElementContent($element));
             return strlen($html);
         }
 
         $closeStart = $match[0][1];
-        $this->appendText($element, substr($html, $offset, $closeStart - $offset));
+        $this->appendText($element, substr($html, $offset, $closeStart - $offset), $this->shouldDecodeTextOnlyElementContent($element));
 
         return $closeStart + strlen($match[0][0]);
     }
@@ -305,6 +311,11 @@ final class Document extends Node
             || ($context->tagName === 'noscript' && $this->isScriptingEnabled());
     }
 
+    private function shouldDecodeTextOnlyElementContent(Element $element): bool
+    {
+        return in_array($element->tagName, ['textarea', 'title'], true);
+    }
+
     /**
      * @return array<string, string>
      */
@@ -318,7 +329,7 @@ final class Document extends Node
                 $name = strtolower($match[1]);
 
                 if (!array_key_exists($name, $attributes)) {
-                    $attributes[$name] = $match[2] ?? $match[3] ?? $match[4] ?? '';
+                    $attributes[$name] = $this->decodeCharacterReferences($match[2] ?? $match[3] ?? $match[4] ?? '', true);
                 }
             }
         }
@@ -326,4 +337,306 @@ final class Document extends Node
         return $attributes;
     }
 
+    private function decodeCharacterReferences(string $data, bool $attribute = false): string
+    {
+        $decoded = '';
+        $offset = 0;
+        $length = strlen($data);
+
+        while ($offset < $length) {
+            $referenceStart = strpos($data, '&', $offset);
+            if ($referenceStart === false) {
+                $decoded .= substr($data, $offset);
+                break;
+            }
+
+            $decoded .= substr($data, $offset, $referenceStart - $offset);
+
+            $reference = ($data[$referenceStart + 1] ?? '') === '#'
+                ? $this->consumeNumericCharacterReference($data, $referenceStart)
+                : $this->consumeNamedCharacterReference($data, $referenceStart, $attribute);
+
+            if ($reference === null) {
+                $decoded .= '&';
+                $offset = $referenceStart + 1;
+                continue;
+            }
+
+            $decoded .= $reference['data'];
+            $offset = $reference['offset'];
+        }
+
+        return $decoded;
+    }
+
+    /**
+     * @return array{data: string, offset: int}|null
+     */
+    private function consumeNamedCharacterReference(string $data, int $referenceStart, bool $attribute): ?array
+    {
+        $nameStart = $referenceStart + 1;
+        $offset = $nameStart;
+        $length = strlen($data);
+
+        while ($offset < $length && preg_match('/[A-Za-z0-9]/', $data[$offset]) === 1) {
+            $offset++;
+        }
+
+        if ($offset === $nameStart) {
+            return null;
+        }
+
+        $name = substr($data, $nameStart, $offset - $nameStart);
+        $hasSemicolon = ($data[$offset] ?? '') === ';';
+
+        if ($hasSemicolon) {
+            $reference = self::decodeNamedCharacterReferenceName($name);
+            if ($reference !== null) {
+                return ['data' => $reference, 'offset' => $offset + 1];
+            }
+        }
+
+        $legacyReferences = self::legacyNamedCharacterReferences();
+        for ($nameLength = strlen($name); $nameLength > 0; $nameLength--) {
+            $candidate = substr($name, 0, $nameLength);
+
+            if (!isset($legacyReferences[$candidate])) {
+                continue;
+            }
+
+            $nextOffset = $nameStart + $nameLength;
+            $next = $data[$nextOffset] ?? '';
+            if ($attribute && ($next === '=' || preg_match('/[A-Za-z0-9]/', $next) === 1)) {
+                return null;
+            }
+
+            return ['data' => $legacyReferences[$candidate], 'offset' => $nextOffset];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{data: string, offset: int}|null
+     */
+    private function consumeNumericCharacterReference(string $data, int $referenceStart): ?array
+    {
+        $offset = $referenceStart + 2;
+        $length = strlen($data);
+        $hexadecimal = false;
+
+        if (($data[$offset] ?? '') === 'x' || ($data[$offset] ?? '') === 'X') {
+            $hexadecimal = true;
+            $offset++;
+        }
+
+        $digitsStart = $offset;
+        while ($offset < $length && ($hexadecimal ? ctype_xdigit($data[$offset]) : ctype_digit($data[$offset]))) {
+            $offset++;
+        }
+
+        if ($offset === $digitsStart) {
+            return null;
+        }
+
+        $digits = substr($data, $digitsStart, $offset - $digitsStart);
+        $codePoint = intval($digits, $hexadecimal ? 16 : 10);
+
+        if (($data[$offset] ?? '') === ';') {
+            $offset++;
+        }
+
+        return [
+            'data' => self::codePointToUtf8(self::normalizeCharacterReferenceCodePoint($codePoint)),
+            'offset' => $offset,
+        ];
+    }
+
+    private static function decodeNamedCharacterReferenceName(string $name): ?string
+    {
+        $reference = sprintf('&%s;', $name);
+        $decoded = html_entity_decode($reference, ENT_QUOTES | ENT_HTML5 | ENT_SUBSTITUTE, 'UTF-8');
+
+        return $decoded === $reference ? null : $decoded;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function legacyNamedCharacterReferences(): array
+    {
+        static $references = null;
+        if ($references !== null) {
+            return $references;
+        }
+
+        return $references = [
+            'AElig' => 'Æ',
+            'AMP' => '&',
+            'Aacute' => 'Á',
+            'Acirc' => 'Â',
+            'Agrave' => 'À',
+            'Aring' => 'Å',
+            'Atilde' => 'Ã',
+            'Auml' => 'Ä',
+            'COPY' => '©',
+            'Ccedil' => 'Ç',
+            'ETH' => 'Ð',
+            'Eacute' => 'É',
+            'Ecirc' => 'Ê',
+            'Egrave' => 'È',
+            'Euml' => 'Ë',
+            'GT' => '>',
+            'Iacute' => 'Í',
+            'Icirc' => 'Î',
+            'Igrave' => 'Ì',
+            'Iuml' => 'Ï',
+            'LT' => '<',
+            'Ntilde' => 'Ñ',
+            'Oacute' => 'Ó',
+            'Ocirc' => 'Ô',
+            'Ograve' => 'Ò',
+            'Oslash' => 'Ø',
+            'Otilde' => 'Õ',
+            'Ouml' => 'Ö',
+            'QUOT' => '"',
+            'REG' => '®',
+            'THORN' => 'Þ',
+            'Uacute' => 'Ú',
+            'Ucirc' => 'Û',
+            'Ugrave' => 'Ù',
+            'Uuml' => 'Ü',
+            'Yacute' => 'Ý',
+            'aacute' => 'á',
+            'acirc' => 'â',
+            'acute' => '´',
+            'aelig' => 'æ',
+            'agrave' => 'à',
+            'amp' => '&',
+            'aring' => 'å',
+            'atilde' => 'ã',
+            'auml' => 'ä',
+            'brvbar' => '¦',
+            'ccedil' => 'ç',
+            'cedil' => '¸',
+            'cent' => '¢',
+            'copy' => '©',
+            'curren' => '¤',
+            'deg' => '°',
+            'divide' => '÷',
+            'eacute' => 'é',
+            'ecirc' => 'ê',
+            'egrave' => 'è',
+            'eth' => 'ð',
+            'euml' => 'ë',
+            'frac12' => '½',
+            'frac14' => '¼',
+            'frac34' => '¾',
+            'gt' => '>',
+            'iacute' => 'í',
+            'icirc' => 'î',
+            'iexcl' => '¡',
+            'igrave' => 'ì',
+            'iquest' => '¿',
+            'iuml' => 'ï',
+            'laquo' => '«',
+            'lt' => '<',
+            'macr' => '¯',
+            'micro' => 'µ',
+            'middot' => '·',
+            'nbsp' => ' ',
+            'not' => '¬',
+            'ntilde' => 'ñ',
+            'oacute' => 'ó',
+            'ocirc' => 'ô',
+            'ograve' => 'ò',
+            'ordf' => 'ª',
+            'ordm' => 'º',
+            'oslash' => 'ø',
+            'otilde' => 'õ',
+            'ouml' => 'ö',
+            'para' => '¶',
+            'plusmn' => '±',
+            'pound' => '£',
+            'quot' => '"',
+            'raquo' => '»',
+            'reg' => '®',
+            'sect' => '§',
+            'shy' => '­',
+            'sup1' => '¹',
+            'sup2' => '²',
+            'sup3' => '³',
+            'szlig' => 'ß',
+            'thorn' => 'þ',
+            'times' => '×',
+            'uacute' => 'ú',
+            'ucirc' => 'û',
+            'ugrave' => 'ù',
+            'uml' => '¨',
+            'uuml' => 'ü',
+            'yacute' => 'ý',
+            'yen' => '¥',
+            'yuml' => 'ÿ',
+        ];
+    }
+
+    private static function normalizeCharacterReferenceCodePoint(int $codePoint): int
+    {
+        if ($codePoint === 0 || $codePoint > 0x10FFFF || ($codePoint >= 0xD800 && $codePoint <= 0xDFFF)) {
+            return 0xFFFD;
+        }
+
+        return [
+            0x80 => 0x20AC,
+            0x82 => 0x201A,
+            0x83 => 0x0192,
+            0x84 => 0x201E,
+            0x85 => 0x2026,
+            0x86 => 0x2020,
+            0x87 => 0x2021,
+            0x88 => 0x02C6,
+            0x89 => 0x2030,
+            0x8A => 0x0160,
+            0x8B => 0x2039,
+            0x8C => 0x0152,
+            0x8E => 0x017D,
+            0x91 => 0x2018,
+            0x92 => 0x2019,
+            0x93 => 0x201C,
+            0x94 => 0x201D,
+            0x95 => 0x2022,
+            0x96 => 0x2013,
+            0x97 => 0x2014,
+            0x98 => 0x02DC,
+            0x99 => 0x2122,
+            0x9A => 0x0161,
+            0x9B => 0x203A,
+            0x9C => 0x0153,
+            0x9E => 0x017E,
+            0x9F => 0x0178,
+        ][$codePoint] ?? $codePoint;
+    }
+
+    private static function codePointToUtf8(int $codePoint): string
+    {
+        if ($codePoint <= 0x7F) {
+            return chr($codePoint);
+        }
+
+        if ($codePoint <= 0x7FF) {
+            return chr(0xC0 | ($codePoint >> 6))
+                . chr(0x80 | ($codePoint & 0x3F));
+        }
+
+        if ($codePoint <= 0xFFFF) {
+            return chr(0xE0 | ($codePoint >> 12))
+                . chr(0x80 | (($codePoint >> 6) & 0x3F))
+                . chr(0x80 | ($codePoint & 0x3F));
+        }
+
+        return chr(0xF0 | ($codePoint >> 18))
+            . chr(0x80 | (($codePoint >> 12) & 0x3F))
+            . chr(0x80 | (($codePoint >> 6) & 0x3F))
+            . chr(0x80 | ($codePoint & 0x3F));
+    }
 }

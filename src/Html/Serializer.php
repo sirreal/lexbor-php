@@ -84,7 +84,7 @@ final class Serializer
             $attributes .= sprintf(
                 ' %s="%s"',
                 htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-                htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                self::escapeAttributeValue($value),
             );
         }
 
@@ -123,6 +123,11 @@ final class Serializer
     private static function escapeText(string $data): string
     {
         return str_replace("\u{00A0}", '&nbsp;', htmlspecialchars($data, ENT_NOQUOTES | ENT_SUBSTITUTE, 'UTF-8'));
+    }
+
+    private static function escapeAttributeValue(string $data): string
+    {
+        return str_replace("\u{00A0}", '&nbsp;', htmlspecialchars($data, ENT_COMPAT | ENT_SUBSTITUTE, 'UTF-8'));
     }
 
     private static function hasRawTextParent(Text $text): bool

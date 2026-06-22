@@ -7,6 +7,7 @@ namespace Lexbor\Tests\Html;
 use Lexbor\Core\Status;
 use Lexbor\Dom\Attr;
 use Lexbor\Html\Document;
+use Lexbor\Html\Serializer;
 use PHPUnit\Framework\TestCase;
 
 final class AttributesTest extends TestCase
@@ -73,6 +74,27 @@ final class AttributesTest extends TestCase
         $element = $document->bodyElement()->elementsByTagName('div')[0];
 
         self::assertSame('first', $element->getAttribute('id'));
+    }
+
+    public function testParserFixtureDecodesCharacterReferencesInAttributeValues(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse("<div title=\"&amp;&lt;&gt;&quot;\u{00A0}\"></div>"));
+
+        $element = $document->bodyElement()->elementsByTagName('div')[0];
+
+        self::assertSame("&<>\"\u{00A0}", $element->getAttribute('title'));
+    }
+
+    public function testAttributeSerializationDoesNotEscapeSingleQuote(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<div title="&apos;"></div>'));
+
+        $element = $document->bodyElement()->elementsByTagName('div')[0];
+
+        self::assertSame("'", $element->getAttribute('title'));
+        self::assertSame('<div title="\'"></div>', Serializer::serialize($element));
     }
 
     public function testDetachedAttrDoesNotRecreateRemovedAttribute(): void
