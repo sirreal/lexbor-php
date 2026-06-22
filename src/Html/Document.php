@@ -44,6 +44,8 @@ final class Document extends Node
             }
 
             $html = $bodyFragment['content'];
+        } else {
+            $html = $this->stripLeadingDoctype($html);
         }
 
         $this->parseFragmentInto($this->body, $html);
@@ -66,6 +68,24 @@ final class Document extends Node
     public function createDocumentFragment(): DocumentFragment
     {
         return new DocumentFragment($this);
+    }
+
+    public function createFragmentForElement(Element $context, string $html): DocumentFragment
+    {
+        $fragment = $this->createDocumentFragment();
+
+        if ($html === '') {
+            return $fragment;
+        }
+
+        if ($this->isTextOnlyFragmentContext($context)) {
+            $fragment->appendChild($this->createTextNode($html));
+            return $fragment;
+        }
+
+        $this->parseFragmentInto($fragment, $html);
+
+        return $fragment;
     }
 
     public function createTextNode(string $data): Text
@@ -102,34 +122,80 @@ final class Document extends Node
     {
         $stack = [$root];
         $pattern = '~<\s*(/)?\s*([A-Za-z][A-Za-z0-9:-]*)((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>~s';
+        $offset = 0;
 
-        if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER) !== false) {
-            foreach ($matches as $match) {
-                $tagName = strtolower($match[2]);
-
-                if ($match[1] === '/') {
-                    $this->closeElement($stack, $tagName);
-                    continue;
-                }
-
-                $attributeSource = rtrim($match[3]);
-                $selfClosing = str_ends_with($attributeSource, '/');
-                if ($selfClosing) {
-                    $attributeSource = rtrim(substr($attributeSource, 0, -1));
-                }
-
-                $element = $this->createElement($tagName);
-                foreach ($this->parseAttributes($attributeSource) as $name => $value) {
-                    $element->setAttribute($name, $value);
-                }
-
-                $stack[count($stack) - 1]->appendChild($element);
-
-                if (!$selfClosing && !$this->isVoidElement($tagName)) {
-                    $stack[] = $element;
-                }
+        while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE, $offset) === 1) {
+            $tagStart = $match[0][1];
+            if ($tagStart > $offset) {
+                $this->appendText($stack[count($stack) - 1], substr($html, $offset, $tagStart - $offset));
             }
+
+            $tagEnd = $tagStart + strlen($match[0][0]);
+            $tagName = strtolower($match[2][0]);
+
+            if ($match[1][0] === '/') {
+                $this->closeElement($stack, $tagName);
+                $offset = $tagEnd;
+                continue;
+            }
+
+            $attributeSource = rtrim($match[3][0]);
+            $selfClosing = str_ends_with($attributeSource, '/');
+            if ($selfClosing) {
+                $attributeSource = rtrim(substr($attributeSource, 0, -1));
+            }
+
+            $element = $this->createElement($tagName);
+            foreach ($this->parseAttributes($attributeSource) as $name => $value) {
+                $element->setAttribute($name, $value);
+            }
+
+            $stack[count($stack) - 1]->appendChild($element);
+            $offset = $tagEnd;
+
+            if ($selfClosing || $this->isVoidElement($tagName)) {
+                continue;
+            }
+
+            if ($this->isTextOnlyFragmentContext($element)) {
+                $offset = $this->appendTextOnlyElementContent($element, $html, $offset);
+                continue;
+            }
+
+            $stack[] = $element;
         }
+
+        if ($offset < strlen($html)) {
+            $this->appendText($stack[count($stack) - 1], substr($html, $offset));
+        }
+    }
+
+    private function appendText(Node $parent, string $data): void
+    {
+        if ($data !== '') {
+            $parent->appendChild($this->createTextNode($data));
+        }
+    }
+
+    private function appendTextOnlyElementContent(Element $element, string $html, int $offset): int
+    {
+        if ($element->tagName === 'plaintext') {
+            $this->appendText($element, substr($html, $offset));
+
+            return strlen($html);
+        }
+
+        $pattern = sprintf('~<\s*/\s*%s\s*>~i', preg_quote($element->tagName, '~'));
+
+        if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE, $offset) !== 1) {
+            $this->appendText($element, substr($html, $offset));
+            return strlen($html);
+        }
+
+        $closeStart = $match[0][1];
+        $this->appendText($element, substr($html, $offset, $closeStart - $offset));
+
+        return $closeStart + strlen($match[0][0]);
     }
 
     /**
@@ -177,6 +243,27 @@ final class Document extends Node
     private function startsWithHtmlDoctype(string $html): bool
     {
         return preg_match('~^\s*<!doctype\s+html\s*>~i', $html) === 1;
+    }
+
+    private function stripLeadingDoctype(string $html): string
+    {
+        return preg_replace('~^\s*<!doctype\b[^>]*>~i', '', $html, 1) ?? $html;
+    }
+
+    private function isTextOnlyFragmentContext(Element $context): bool
+    {
+        return in_array($context->tagName, [
+            'textarea',
+            'title',
+            'style',
+            'script',
+            'xmp',
+            'iframe',
+            'noembed',
+            'noframes',
+            'plaintext',
+        ], true)
+            || ($context->tagName === 'noscript' && $this->isScriptingEnabled());
     }
 
     /**

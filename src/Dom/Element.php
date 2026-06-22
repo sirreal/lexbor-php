@@ -80,6 +80,31 @@ final class Element extends Node
         }
     }
 
+    public function setInnerHtml(string $html): self
+    {
+        while ($this->firstChild !== null) {
+            $this->firstChild->remove();
+        }
+
+        $document = $this->ownerDocument;
+
+        if (is_object($document) && method_exists($document, 'createFragmentForElement')) {
+            $fragment = $document->createFragmentForElement($this, $html);
+
+            while ($fragment->firstChild !== null) {
+                $this->appendChild($fragment->firstChild);
+            }
+
+            return $this;
+        }
+
+        if ($html !== '') {
+            $this->appendChild(new Text($html, $this->ownerDocument));
+        }
+
+        return $this;
+    }
+
     public function setAttributeFromAttr(Attr $attr, string $value): void
     {
         if (($this->attributeNodes[$attr->name] ?? null) !== $attr) {
