@@ -6,6 +6,7 @@ namespace Lexbor\Html;
 
 use Lexbor\Core\Status;
 use Lexbor\Dom\DocumentFragment;
+use Lexbor\Dom\DocumentType;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
 use Lexbor\Dom\NodeType;
@@ -68,6 +69,21 @@ final class Document extends Node
     public function createDocumentFragment(): DocumentFragment
     {
         return new DocumentFragment($this);
+    }
+
+    public function createDocumentType(string $name, ?string $publicId = null, ?string $systemId = null): ?DocumentType
+    {
+        if (!DocumentType::isValidName($name)) {
+            return null;
+        }
+
+        return new DocumentType(
+            strtolower($name),
+            $publicId === '' ? null : $publicId,
+            $systemId === '' ? null : $systemId,
+            $this,
+            Tag::EM_DOCTYPE,
+        );
     }
 
     public function createFragmentForElement(Element $context, string $html): DocumentFragment
