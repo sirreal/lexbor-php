@@ -31,6 +31,15 @@ class Node
         return $this->preInsert($node, $child);
     }
 
+    public function insertAfter(Node $node): ExceptionCode
+    {
+        if ($this->parent === null) {
+            return ExceptionCode::NotFoundError;
+        }
+
+        return $this->parent->preInsert($node, $this->next);
+    }
+
     public function removeChild(Node $child): ExceptionCode
     {
         if ($child->parent !== $this) {
@@ -72,6 +81,21 @@ class Node
         }
 
         return ExceptionCode::Ok;
+    }
+
+    public function cloneNode(bool $deep = false, ?object $ownerDocument = null): Node
+    {
+        $clone = $this->cloneSingle($ownerDocument ?? $this->ownerDocument);
+
+        if (!$deep) {
+            return $clone;
+        }
+
+        for ($child = $this->firstChild; $child !== null; $child = $child->next) {
+            $clone->appendChild($child->cloneNode(true, $ownerDocument ?? $this->ownerDocument));
+        }
+
+        return $clone;
     }
 
     public function remove(): void
@@ -424,5 +448,32 @@ class Node
         }
 
         return false;
+    }
+
+    private function cloneSingle(?object $ownerDocument): Node
+    {
+        if ($this instanceof Element) {
+            $clone = new Element($this->tagName, tagId: $this->tagId, ownerDocument: $ownerDocument);
+
+            foreach ($this->attributes as $name => $value) {
+                $clone->setAttribute($name, $value);
+            }
+
+            return $clone;
+        }
+
+        if ($this instanceof Text) {
+            return new Text($this->data, $ownerDocument, $this->localName);
+        }
+
+        if ($this instanceof DocumentType) {
+            return new DocumentType($this->name(), $this->publicId(), $this->systemId(), $ownerDocument, $this->localName);
+        }
+
+        if ($this instanceof DocumentFragment) {
+            return new DocumentFragment($ownerDocument);
+        }
+
+        return new Node($this->type, $ownerDocument, $this->localName);
     }
 }

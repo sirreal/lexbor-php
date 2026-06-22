@@ -114,6 +114,11 @@ final class Document extends Node
         return InterfaceFactory::create($this, $tagId);
     }
 
+    public function importNode(Node $node, bool $deep = false): Node
+    {
+        return $node->cloneNode($deep, $this);
+    }
+
     public function tags(): TagRegistry
     {
         return $this->tags;
