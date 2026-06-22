@@ -7,6 +7,11 @@ namespace Lexbor\Dom;
 final class Element extends Node
 {
     /**
+     * @var array<string, Attr>
+     */
+    private array $attributeNodes = [];
+
+    /**
      * @param array<string, string> $attributes
      */
     public function __construct(
@@ -20,11 +25,60 @@ final class Element extends Node
 
     public function getAttribute(string $name): ?string
     {
-        return $this->attributes[$name] ?? null;
+        return $this->attributes[strtolower($name)] ?? null;
     }
 
-    public function setAttribute(string $name, string $value): void
+    public function setAttribute(string $name, string $value): Attr
     {
-        $this->attributes[$name] = $value;
+        $normalized = strtolower($name);
+        $this->attributes[$normalized] = $value;
+
+        if (isset($this->attributeNodes[$normalized])) {
+            $this->attributeNodes[$normalized]->value = $value;
+            return $this->attributeNodes[$normalized];
+        }
+
+        return $this->attributeNodes[$normalized] = new Attr($this, $normalized, $value);
+    }
+
+    public function hasAttribute(string $name): bool
+    {
+        return array_key_exists(strtolower($name), $this->attributes);
+    }
+
+    public function attrByName(string $name): ?Attr
+    {
+        $normalized = strtolower($name);
+
+        if (!array_key_exists($normalized, $this->attributes)) {
+            return null;
+        }
+
+        if (!isset($this->attributeNodes[$normalized])) {
+            $this->attributeNodes[$normalized] = new Attr($this, $normalized, $this->attributes[$normalized]);
+        }
+
+        return $this->attributeNodes[$normalized];
+    }
+
+    public function removeAttribute(string $name): void
+    {
+        $normalized = strtolower($name);
+
+        if (isset($this->attributeNodes[$normalized])) {
+            $this->attributeNodes[$normalized]->detach();
+            unset($this->attributeNodes[$normalized]);
+        }
+
+        unset($this->attributes[$normalized]);
+    }
+
+    public function setAttributeFromAttr(Attr $attr, string $value): void
+    {
+        if (($this->attributeNodes[$attr->name] ?? null) !== $attr) {
+            return;
+        }
+
+        $this->attributes[$attr->name] = $value;
     }
 }

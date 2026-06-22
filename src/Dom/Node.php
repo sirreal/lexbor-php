@@ -114,6 +114,25 @@ class Node
     }
 
     /**
+     * @return list<Element>
+     */
+    public function elementsByTagName(string $tagName): array
+    {
+        $matches = [];
+        $normalized = strtolower($tagName);
+
+        for ($node = $this->firstChild; $node !== null; $node = $node->next) {
+            if ($node instanceof Element && ($normalized === '*' || $node->tagName === $normalized)) {
+                $matches[] = $node;
+            }
+
+            array_push($matches, ...$node->elementsByTagName($normalized));
+        }
+
+        return $matches;
+    }
+
+    /**
      * @return list<Node>
      */
     public function childNodes(): array

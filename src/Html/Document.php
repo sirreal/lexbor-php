@@ -70,12 +70,14 @@ final class Document extends Node
     private function parseTopLevelElements(string $html): array
     {
         $elements = [];
-        $pattern = '~<([A-Za-z][A-Za-z0-9:-]*)([^>]*)>.*?</\1>~si';
+        $pattern = '~<([A-Za-z][A-Za-z0-9:-]*)((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>.*?</\1>~si';
 
         if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER) !== false) {
             foreach ($matches as $match) {
                 $element = $this->createElement($match[1]);
-                $element->attributes = $this->parseAttributes($match[2]);
+                foreach ($this->parseAttributes($match[2]) as $name => $value) {
+                    $element->setAttribute($name, $value);
+                }
 
                 $elements[] = $element;
             }
@@ -90,11 +92,15 @@ final class Document extends Node
     private function parseAttributes(string $source): array
     {
         $attributes = [];
-        $pattern = '#([A-Za-z_:][A-Za-z0-9_:.~-]*)\s*=\s*([\'"])(.*?)\2#';
+        $pattern = '#([A-Za-z_:][A-Za-z0-9_:.~-]*)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+)))?#';
 
-        if (preg_match_all($pattern, $source, $matches, PREG_SET_ORDER) !== false) {
+        if (preg_match_all($pattern, $source, $matches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) !== false) {
             foreach ($matches as $match) {
-                $attributes[strtolower($match[1])] = $match[3];
+                $name = strtolower($match[1]);
+
+                if (!array_key_exists($name, $attributes)) {
+                    $attributes[$name] = $match[2] ?? $match[3] ?? $match[4] ?? '';
+                }
             }
         }
 
