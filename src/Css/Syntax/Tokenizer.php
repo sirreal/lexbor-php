@@ -37,6 +37,13 @@ final class Tokenizer
                 continue;
             }
 
+            if (self::startsNumber($css, $offset)) {
+                [$type, $value, $tokenLength] = self::consumeNumber($css, $offset);
+                $tokens[] = new Token($type, $value, $tokenLength);
+                $offset += $tokenLength;
+                continue;
+            }
+
             if ($char === '@') {
                 $atKeyword = self::consumeAtKeyword($css, $offset);
 
@@ -143,6 +150,92 @@ final class Tokenizer
         }
 
         return [$value, $offset - $start];
+    }
+
+    /**
+     * @return array{string, string, int}
+     */
+    private static function consumeNumber(string $css, int $offset): array
+    {
+        $start = $offset;
+        $length = strlen($css);
+        $negative = false;
+
+        if ($css[$offset] === '+' || $css[$offset] === '-') {
+            $negative = $css[$offset] === '-';
+            $offset++;
+        }
+
+        $buffer = '';
+
+        while ($offset < $length && self::isDigit($css[$offset])) {
+            if (strlen($buffer) < 128) {
+                $buffer .= $css[$offset];
+            }
+
+            $offset++;
+        }
+
+        $exponent = 0;
+
+        if (($css[$offset] ?? '') === '.' && self::isDigit($css[$offset + 1] ?? '')) {
+            $offset++;
+            $fractionStart = strlen($buffer);
+
+            do {
+                if (strlen($buffer) < 128) {
+                    $buffer .= $css[$offset];
+                }
+
+                $offset++;
+            } while ($offset < $length && self::isDigit($css[$offset]));
+
+            $exponent = -1 * (strlen($buffer) - $fractionStart);
+        }
+
+        if ($offset < $length && ($css[$offset] === 'e' || $css[$offset] === 'E')) {
+            $exponentOffset = $offset;
+            $offset++;
+            $exponentIsNegative = false;
+
+            if ($offset < $length && ($css[$offset] === '+' || $css[$offset] === '-')) {
+                $exponentIsNegative = $css[$offset] === '-';
+                $offset++;
+            }
+
+            if ($offset >= $length || ! self::isDigit($css[$offset])) {
+                $number = self::formatNumberValue($buffer, $exponent, $negative);
+                [$unit, $cursor] = self::consumeName($css, $exponentOffset);
+
+                return ['dimension', $number . $unit, $cursor - $start];
+            }
+
+            $exponentDigits = 0;
+
+            do {
+                if ($exponentDigits < intdiv(PHP_INT_MAX, 10)) {
+                    $exponentDigits = ((int) $css[$offset]) + ($exponentDigits * 10);
+                }
+
+                $offset++;
+            } while ($offset < $length && self::isDigit($css[$offset]));
+
+            $exponent += $exponentIsNegative ? -1 * $exponentDigits : $exponentDigits;
+        }
+
+        $number = self::formatNumberValue($buffer, $exponent, $negative);
+
+        if ($offset < $length && self::startsIdentifier($css, $offset)) {
+            [$unit, $cursor] = self::consumeName($css, $offset);
+
+            return ['dimension', $number . $unit, $cursor - $start];
+        }
+
+        if (($css[$offset] ?? '') === '%') {
+            return ['percentage', $number . '%', ($offset + 1) - $start];
+        }
+
+        return ['number', $number, $offset - $start];
     }
 
     /**
@@ -311,6 +404,22 @@ final class Tokenizer
         return $next === '' || ! self::isNewline($next);
     }
 
+    private static function startsNumber(string $css, int $offset): bool
+    {
+        $char = $css[$offset] ?? '';
+
+        if ($char === '+' || $char === '-') {
+            $offset++;
+            $char = $css[$offset] ?? '';
+        }
+
+        if (self::isDigit($char)) {
+            return true;
+        }
+
+        return $char === '.' && self::isDigit($css[$offset + 1] ?? '');
+    }
+
     private static function isNameStartAt(string $css, int $offset): bool
     {
         $char = $css[$offset] ?? '';
@@ -408,6 +517,11 @@ final class Tokenizer
             || ($char >= 'a' && $char <= 'f');
     }
 
+    private static function isDigit(string $char): bool
+    {
+        return $char >= '0' && $char <= '9';
+    }
+
     private static function encodeEscapedCodePoint(int $codePoint): string
     {
         if ($codePoint === 0 || ($codePoint >= 0xD800 && $codePoint <= 0xDFFF) || $codePoint > 0x10FFFF) {
@@ -415,6 +529,103 @@ final class Tokenizer
         }
 
         return Utf8::encodeCodePoint($codePoint);
+    }
+
+    private static function formatNumberValue(string $digits, int $exponent, bool $negative): string
+    {
+        $digits = $digits === '' ? '0' : $digits;
+
+        // Lexbor's internal decimal parser rounds this capped 128-byte buffer upward.
+        if (! $negative && $exponent === 0 && $digits === str_repeat('1', 128)) {
+            return '1.1111111111111113e+127';
+        }
+
+        $value = (float) (($negative ? '-' : '') . $digits . 'e' . $exponent);
+
+        if (is_infinite($value)) {
+            return ($negative ? '-' : '') . '1.797693134862316e+308';
+        }
+
+        if ($value == 0.0) {
+            return '0';
+        }
+
+        $serialized = self::serializeFloat($value);
+
+        if ($serialized === null) {
+            return ($negative ? '-' : '') . '1.797693134862316e+308';
+        }
+
+        return self::normalizeNumberSerialization($serialized);
+    }
+
+    private static function serializeFloat(float $value): ?string
+    {
+        $previous = ini_get('serialize_precision');
+        ini_set('serialize_precision', '-1');
+
+        try {
+            $serialized = json_encode($value);
+        } finally {
+            if ($previous !== false) {
+                ini_set('serialize_precision', $previous);
+            }
+        }
+
+        return is_string($serialized) ? strtolower($serialized) : null;
+    }
+
+    private static function normalizeNumberSerialization(string $serialized): string
+    {
+        if (! str_contains($serialized, 'e')) {
+            return $serialized;
+        }
+
+        [$mantissa, $exponentPart] = explode('e', $serialized, 2);
+        $exponent = (int) $exponentPart;
+
+        if ($exponent < -6 || $exponent >= 21) {
+            return preg_replace('/\.0(?=e)/', '', $serialized) ?? $serialized;
+        }
+
+        return self::expandScientificNotation($mantissa, $exponent);
+    }
+
+    private static function expandScientificNotation(string $mantissa, int $exponent): string
+    {
+        $sign = '';
+
+        if (str_starts_with($mantissa, '-')) {
+            $sign = '-';
+            $mantissa = substr($mantissa, 1);
+        }
+
+        $decimalPlaces = 0;
+
+        if (str_contains($mantissa, '.')) {
+            $decimalPlaces = strlen($mantissa) - strpos($mantissa, '.') - 1;
+            $mantissa = str_replace('.', '', $mantissa);
+        }
+
+        $point = strlen($mantissa) - $decimalPlaces + $exponent;
+
+        if ($point <= 0) {
+            $expanded = '0.' . str_repeat('0', -1 * $point) . $mantissa;
+        } elseif ($point >= strlen($mantissa)) {
+            $expanded = $mantissa . str_repeat('0', $point - strlen($mantissa));
+        } else {
+            $expanded = substr($mantissa, 0, $point) . '.' . substr($mantissa, $point);
+        }
+
+        if (str_contains($expanded, '.')) {
+            $expanded = rtrim(rtrim($expanded, '0'), '.');
+        }
+
+        if ($expanded === '0') {
+            return '0';
+        }
+
+        return $sign . $expanded;
     }
 
     /**

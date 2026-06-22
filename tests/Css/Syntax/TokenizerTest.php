@@ -270,6 +270,204 @@ final class TokenizerTest extends TestCase
         ]];
         yield 'at.ton #20 hyphen null' => ["@-\0", [['at-keyword', "@-\u{FFFD}", 3]]];
         yield 'at.ton #21 repeated null name' => ["@\0", [['at-keyword', "@\u{FFFD}", 2]]];
+        yield 'at.ton #22 dimension after invalid at-keyword' => ['@-1F', [
+            ['delim', '@', 1],
+            ['dimension', '-1F', 3],
+        ]];
+        yield 'at.ton #23 positive dimension after invalid at-keyword' => ['@+1F', [
+            ['delim', '@', 1],
+            ['dimension', '1F', 3],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamNumberProvider(): iterable
+    {
+        yield 'number.ton #1 integer' => ['1', [['number', '1', 1]]];
+        yield 'number.ton #2 two digits' => ['10', [['number', '10', 2]]];
+        yield 'number.ton #3 large integer' => ['1000000', [['number', '1000000', 7]]];
+        yield 'number.ton #4 negative integer' => ['-1', [['number', '-1', 2]]];
+        yield 'number.ton #5 negative three digits' => ['-123', [['number', '-123', 4]]];
+        yield 'number.ton #6 decimal below one' => ['0.1234', [['number', '0.1234', 6]]];
+        yield 'number.ton #7 decimal' => ['1.5678', [['number', '1.5678', 6]]];
+        yield 'number.ton #8 large decimal' => ['1234.5678', [['number', '1234.5678', 9]]];
+        yield 'number.ton #9 negative decimal below one' => ['-0.1234', [['number', '-0.1234', 7]]];
+        yield 'number.ton #10 negative decimal' => ['-1.5678', [['number', '-1.5678', 7]]];
+        yield 'number.ton #11 negative large decimal' => ['-1234.5678', [['number', '-1234.5678', 10]]];
+        yield 'number.ton #12 positive signed decimal below one' => ['+0.1234', [['number', '0.1234', 7]]];
+        yield 'number.ton #13 positive signed decimal' => ['+1.5678', [['number', '1.5678', 7]]];
+        yield 'number.ton #14 positive signed large decimal' => ['+1234.5678', [['number', '1234.5678', 10]]];
+        yield 'number.ton #15 leading dot decimal' => ['.5678', [['number', '0.5678', 5]]];
+        yield 'number.ton #16 positive leading dot decimal' => ['+.5678', [['number', '0.5678', 6]]];
+        yield 'number.ton #17 negative leading dot decimal' => ['-.5678', [['number', '-0.5678', 6]]];
+        yield 'number.ton #18 positive exponent' => ['1.5678e+12', [['number', '1567800000000', 10]]];
+        yield 'number.ton #19 leading dot positive exponent' => ['.5678e+12', [['number', '567800000000', 9]]];
+        yield 'number.ton #20 signed leading dot positive exponent' => ['+.5678e+12', [['number', '567800000000', 10]]];
+        yield 'number.ton #21 negative leading dot positive exponent' => ['-.5678e+12', [['number', '-567800000000', 10]]];
+        yield 'number.ton #22 negative exponent' => ['1.5678e-12', [['number', '1.5678e-12', 10]]];
+        yield 'number.ton #23 exponent without sign' => ['1.5678e12', [['number', '1567800000000', 9]]];
+        yield 'number.ton #24 zero' => ['0', [['number', '0', 1]]];
+        yield 'number.ton #25 negative zero' => ['-0', [['number', '0', 2]]];
+        yield 'number.ton #26 dot zero' => ['.0', [['number', '0', 2]]];
+        yield 'number.ton #27 decimal tenth' => ['0.1', [['number', '0.1', 3]]];
+        yield 'number.ton #28 leading dot nine' => ['.9', [['number', '0.9', 2]]];
+        yield 'number.ton #29 negative leading dot hundredth' => ['-.01', [['number', '-0.01', 4]]];
+        yield 'number.ton #30 one millionth' => ['0.000001', [['number', '0.000001', 8]]];
+        yield 'number.ton #31 fractional precision' => ['0.00000123456', [['number', '0.00000123456', 13]]];
+        yield 'number.ton #32 scientific threshold' => ['0.0000001', [['number', '1e-7', 9]]];
+        yield 'number.ton #33 trailing zeros' => ['1.1000000', [['number', '1.1', 9]]];
+        yield 'number.ton #34 rounded 20 digit integer' => ['99999999999999999999', [['number', '100000000000000000000', 20]]];
+        yield 'number.ton #35 rounded 20 digit decimal' => ['99999999999999999999.111', [['number', '100000000000000000000', 24]]];
+        yield 'number.ton #36 exponent notation threshold' => ['999999999999999999999', [['number', '1e+21', 21]]];
+        yield 'number.ton #37 signed 64-bit boundary' => ['9223372036854775808', [['number', '9223372036854776000', 19]]];
+        yield 'number.ton #38 unsigned 64-bit boundary' => ['18446744073709551616', [['number', '18446744073709552000', 20]]];
+        yield 'number.ton #39 max double' => ['1.7976931348623157E+308', [['number', '1.7976931348623157e+308', 23]]];
+        yield 'number.ton #40 negative exponent decimal' => ['-5.7e-1', [['number', '-0.57', 7]]];
+        yield 'number.ton #41 padded negative exponent' => ['1.1e-01', [['number', '0.11', 7]]];
+        yield 'number.ton #42 invalid exponent before hash' => ['1.1e#hash', [
+            ['dimension', '1.1e', 4],
+            ['hash', '#hash', 5],
+        ]];
+        yield 'number.ton #43 number before hash' => ['1.1#hash', [
+            ['number', '1.1', 3],
+            ['hash', '#hash', 5],
+        ]];
+        yield 'number.ton #44 integer dot before hash' => ['1.#hash', [
+            ['number', '1', 1],
+            ['delim', '.', 1],
+            ['hash', '#hash', 5],
+        ]];
+        yield 'number.ton #45 repeated integer dot before hash' => ['1.#hash', [
+            ['number', '1', 1],
+            ['delim', '.', 1],
+            ['hash', '#hash', 5],
+        ]];
+        yield 'number.ton #46 positive dot fallback' => ['+.', [
+            ['delim', '+', 1],
+            ['delim', '.', 1],
+        ]];
+        yield 'number.ton #47 positive dot before hash' => ['+.#hash', [
+            ['delim', '+', 1],
+            ['delim', '.', 1],
+            ['hash', '#hash', 5],
+        ]];
+        yield 'number.ton #48 plus fallback' => ['+', [['delim', '+', 1]]];
+        yield 'number.ton #49 negative dot fallback' => ['-.', [
+            ['delim', '-', 1],
+            ['delim', '.', 1],
+        ]];
+        yield 'number.ton #50 negative dot before hash' => ['-.#hash', [
+            ['delim', '-', 1],
+            ['delim', '.', 1],
+            ['hash', '#hash', 5],
+        ]];
+        yield 'number.ton #51 minus fallback' => ['-', [['delim', '-', 1]]];
+        yield 'number.ton #52 double hyphen ident' => ['--', [['ident', '--', 2]]];
+        yield 'number.ton #53 minus trailing reverse solidus' => ['-\\', [['ident', "-\u{FFFD}", 2]]];
+        yield 'number.ton #54 double hyphen trailing reverse solidus' => ['--\\', [['ident', "--\u{FFFD}", 3]]];
+        yield 'number.ton #55 minus escaped hash' => ['-\\#id', [['ident', '-#id', 5]]];
+        yield 'number.ton #56 double hyphen escaped hash' => ['--\\#id', [['ident', '--#id', 6]]];
+        yield 'number.ton #57 minus null' => ["-\0", [['ident', "-\u{FFFD}", 2]]];
+        yield 'number.ton #58 double hyphen null' => ["--\0", [['ident', "--\u{FFFD}", 3]]];
+        yield 'number.ton #59 triple hyphen ident' => ['---', [['ident', '---', 3]]];
+        yield 'number.ton #60 double hyphen escaped letter' => ['--\\77', [['ident', '--w', 5]]];
+        yield 'number.ton #61 ident then hash' => ['--\\77#id', [
+            ['ident', '--w', 5],
+            ['hash', '#id', 3],
+        ]];
+        yield 'number.ton #62 capped 256 digit integer' => [str_repeat('1', 256), [['number', '1.1111111111111113e+127', 256]]];
+        yield 'number.ton #63 capped long decimal' => ['1.' . str_repeat('1', 255), [['number', '1.1111111111111112', 257]]];
+        yield 'number.ton #64 invalid exponent at EOF' => ['1.1e', [['dimension', '1.1e', 4]]];
+        yield 'number.ton #65 integer dot at EOF' => ['1.', [
+            ['number', '1', 1],
+            ['delim', '.', 1],
+        ]];
+        yield 'number.ton #66 invalid positive exponent' => ['1.1e+', [
+            ['dimension', '1.1e', 4],
+            ['delim', '+', 1],
+        ]];
+        yield 'number.ton #67 invalid negative exponent' => ['1.1e-', [['dimension', '1.1e-', 5]]];
+        yield 'number.ton #68 escaped dimension unit' => ['1.1\\77', [['dimension', '1.1w', 6]]];
+        yield 'number.ton #69 invalid escape before CR' => ["1.1\\\r", [
+            ['number', '1.1', 3],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'number.ton #70 invalid escape before CRLF' => ["1.1\\\r\n", [
+            ['number', '1.1', 3],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 2],
+        ]];
+        yield 'number.ton #71 invalid escape before LF' => ["1.1\\\n", [
+            ['number', '1.1', 3],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'number.ton #72 invalid escape before FF' => ["1.1\\\f", [
+            ['number', '1.1', 3],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'number.ton #73 dimension then invalid escape before CR' => ["1.1w\\\r", [
+            ['dimension', '1.1w', 4],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'number.ton #74 dimension then invalid escape before CRLF' => ["1.1w\\\r\n", [
+            ['dimension', '1.1w', 4],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 2],
+        ]];
+        yield 'number.ton #75 dimension then invalid escape before LF' => ["1.1w\\\n", [
+            ['dimension', '1.1w', 4],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'number.ton #76 dimension then invalid escape before FF' => ["1.1w\\\f", [
+            ['dimension', '1.1w', 4],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'number.ton #77 number then negative zero dimension' => ['0-00F', [
+            ['number', '0', 1],
+            ['dimension', '0F', 4],
+        ]];
+        yield 'number.ton #78 number then positive zero dimension' => ['0+00F', [
+            ['number', '0', 1],
+            ['dimension', '0F', 4],
+        ]];
+        yield 'number.ton #79 invalid exponent dimension' => ['0.1e-F', [['dimension', '0.1e-F', 6]]];
+        yield 'number.ton #80 number then positive dimension' => ['0.1+0F', [
+            ['number', '0.1', 3],
+            ['dimension', '0F', 3],
+        ]];
+        yield 'number.ton #81 number then negative dimension' => ['0.1-0F', [
+            ['number', '0.1', 3],
+            ['dimension', '0F', 3],
+        ]];
+        yield 'number.ton #82 dimension with double hyphen unit' => ['0.1--0F', [['dimension', '0.1--0F', 7]]];
+        yield 'number.ton #83 invalid exponent then dot dimension' => ['0.1e+.0F', [
+            ['dimension', '0.1e', 4],
+            ['dimension', '0F', 4],
+        ]];
+        yield 'number.ton #84 escaped dimension unit after hyphen' => ['123-\\47', [['dimension', '123-G', 7]]];
+        yield 'number.ton #85 double hyphen digit ident' => ['--1F', [['ident', '--1F', 4]]];
+        yield 'number.ton #86 repeated invalid positive exponent' => ['1.1e+', [
+            ['dimension', '1.1e', 4],
+            ['delim', '+', 1],
+        ]];
+        yield 'number.ton #87 leading dot invalid exponent' => ['.1e', [['dimension', '0.1e', 3]]];
+        yield 'number.ton #88 chained negative dimensions' => ['-3-2-d\\', [
+            ['number', '-3', 2],
+            ['dimension', '-2-d' . "\u{FFFD}", 5],
+        ]];
+        yield 'number.ton #89 exponent one' => ['1e+1', [['number', '10', 4]]];
+        yield 'number.ton #90 exponent two' => ['1e+2', [['number', '100', 4]]];
+        yield 'number.ton #91 negative exponent one' => ['1e-1', [['number', '0.1', 4]]];
+        yield 'number.ton #92 negative exponent two' => ['1e-2', [['number', '0.01', 4]]];
+        yield 'number.ton #93 exponent overflow clamp' => ['1e999999999999999999999', [['number', '1.797693134862316e+308', 23]]];
     }
 
     #[DataProvider('upstreamSingleTokenProvider')]
@@ -279,6 +477,7 @@ final class TokenizerTest extends TestCase
     #[DataProvider('upstreamReverseSolidusProvider')]
     #[DataProvider('upstreamIdentProvider')]
     #[DataProvider('upstreamAtKeywordProvider')]
+    #[DataProvider('upstreamNumberProvider')]
     public function testUpstreamTokenizerFixtures(string $css, array $expected): void
     {
         $tokens = (new Tokenizer())->tokenize($css);
@@ -290,5 +489,25 @@ final class TokenizerTest extends TestCase
             self::assertSame($value, $tokens[$index]->value);
             self::assertSame($length, $tokens[$index]->length);
         }
+    }
+
+    public function testNumberSerializationIgnoresSerializePrecision(): void
+    {
+        $previous = ini_get('serialize_precision');
+        ini_set('serialize_precision', '17');
+
+        try {
+            $tokens = (new Tokenizer())->tokenize('0.1 1.5678 1.1e#hash 9223372036854775808');
+        } finally {
+            if ($previous !== false) {
+                ini_set('serialize_precision', $previous);
+            }
+        }
+
+        self::assertCount(8, $tokens);
+        self::assertSame('0.1', $tokens[0]->value);
+        self::assertSame('1.5678', $tokens[2]->value);
+        self::assertSame('1.1e', $tokens[4]->value);
+        self::assertSame('9223372036854776000', $tokens[7]->value);
     }
 }
