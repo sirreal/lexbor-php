@@ -37,6 +37,17 @@ final class Tokenizer
                 continue;
             }
 
+            if ($char === '@') {
+                $atKeyword = self::consumeAtKeyword($css, $offset);
+
+                if ($atKeyword !== null) {
+                    [$value, $tokenLength] = $atKeyword;
+                    $tokens[] = new Token('at-keyword', $value, $tokenLength);
+                    $offset += $tokenLength;
+                    continue;
+                }
+            }
+
             if ($char === '#') {
                 $hash = self::consumeHash($css, $offset);
 
@@ -132,6 +143,22 @@ final class Tokenizer
         }
 
         return [$value, $offset - $start];
+    }
+
+    /**
+     * @return array{string, int}|null
+     */
+    private static function consumeAtKeyword(string $css, int $offset): ?array
+    {
+        $cursor = $offset + 1;
+
+        if (! self::startsIdentifier($css, $cursor)) {
+            return null;
+        }
+
+        [$name, $cursor] = self::consumeName($css, $cursor);
+
+        return ['@' . $name, $cursor - $offset];
     }
 
     /**
@@ -257,6 +284,10 @@ final class Tokenizer
 
     private static function startsIdentifier(string $css, int $offset): bool
     {
+        if ($offset >= strlen($css)) {
+            return false;
+        }
+
         $char = $css[$offset];
 
         if ($char === '-') {

@@ -236,12 +236,49 @@ final class TokenizerTest extends TestCase
         ]];
     }
 
+    /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamAtKeywordProvider(): iterable
+    {
+        yield 'at.ton #1 ascii at-keyword' => ['@war', [['at-keyword', '@war', 4]]];
+        yield 'at.ton #2 short at-keyword' => ['@w', [['at-keyword', '@w', 2]]];
+        yield 'at.ton #3 leading hex escape' => ['@\\77 ar', [['at-keyword', '@war', 7]]];
+        yield 'at.ton #4 embedded hex escape' => ['@w\\61r', [['at-keyword', '@war', 6]]];
+        yield 'at.ton #5 trailing hex escape' => ['@wa\\72', [['at-keyword', '@war', 6]]];
+        yield 'at.ton #6 all escaped' => ['@\\77\\61\\72', [['at-keyword', '@war', 10]]];
+        yield 'at.ton #7 two escaped letters' => ['@\\77\\61', [['at-keyword', '@wa', 7]]];
+        yield 'at.ton #8 one escaped letter' => ['@\\77', [['at-keyword', '@w', 4]]];
+        yield 'at.ton #9 double hyphen' => ['@--', [['at-keyword', '@--', 3]]];
+        yield 'at.ton #10 hyphen underscore' => ['@-_', [['at-keyword', '@-_', 3]]];
+        yield 'at.ton #11 hyphen escaped letter' => ['@-\\77', [['at-keyword', '@-w', 5]]];
+        yield 'at.ton #12 invalid hash start' => ['@#', [
+            ['delim', '@', 1],
+            ['delim', '#', 1],
+        ]];
+        yield 'at.ton #13 replacement character' => ['@�', [['at-keyword', '@�', 4]]];
+        yield 'at.ton #14 null name' => ["@\0", [['at-keyword', "@\u{FFFD}", 2]]];
+        yield 'at.ton #15 escaped null' => ["@\\\0", [['at-keyword', "@\u{FFFD}", 3]]];
+        yield 'at.ton #16 embedded escaped null' => ["@w\\\0ar", [['at-keyword', "@w\u{FFFD}ar", 6]]];
+        yield 'at.ton #17 embedded null' => ["@w\0ar", [['at-keyword', "@w\u{FFFD}ar", 5]]];
+        yield 'at.ton #18 trailing null' => ["@war\0", [['at-keyword', "@war\u{FFFD}", 5]]];
+        yield 'at.ton #19 invalid escape after hyphen' => ["@-\\\n", [
+            ['delim', '@', 1],
+            ['delim', '-', 1],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'at.ton #20 hyphen null' => ["@-\0", [['at-keyword', "@-\u{FFFD}", 3]]];
+        yield 'at.ton #21 repeated null name' => ["@\0", [['at-keyword', "@\u{FFFD}", 2]]];
+    }
+
     #[DataProvider('upstreamSingleTokenProvider')]
     #[DataProvider('upstreamWhitespaceProvider')]
     #[DataProvider('upstreamCommentProvider')]
     #[DataProvider('upstreamHashProvider')]
     #[DataProvider('upstreamReverseSolidusProvider')]
     #[DataProvider('upstreamIdentProvider')]
+    #[DataProvider('upstreamAtKeywordProvider')]
     public function testUpstreamTokenizerFixtures(string $css, array $expected): void
     {
         $tokens = (new Tokenizer())->tokenize($css);
