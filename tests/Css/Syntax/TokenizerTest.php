@@ -39,8 +39,32 @@ final class TokenizerTest extends TestCase
         yield 'whitespace.ton #6 mixed whitespace' => ["\f\f\r\t\r\n\n \r", [['whitespace', "\n\n\n\t\n\n \n", 9]]];
     }
 
+    /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamCommentProvider(): iterable
+    {
+        yield 'comment.ton #1 simple comment' => ['/* Comment */', [['comment', '/* Comment */', 13]]];
+        yield 'comment.ton #2 unclosed comment' => ['/* Comment ', [['comment', '/* Comment */', 11]]];
+        yield 'comment.ton #3 spaced close marker' => ['/* Comment * / */', [['comment', '/* Comment * / */', 17]]];
+        yield 'comment.ton #4 repeated spaced close marker' => ['/* Comment * / */', [['comment', '/* Comment * / */', 17]]];
+        yield 'comment.ton #5 nested opener text' => ['/* Comment * /* */', [['comment', '/* Comment * /* */', 18]]];
+        yield 'comment.ton #6 null replacement' => ["/* \0 */", [['comment', "/* \u{FFFD} */", 7]]];
+        yield 'comment.ton #7 literal escape text' => ['/* \\72 */', [['comment', '/* \\72 */', 9]]];
+        yield 'comment.ton #8 CRLF normalization' => ["/* \r\n */", [['comment', "/* \n */", 8]]];
+        yield 'comment.ton #9 form feed normalization' => ["/* \f */", [['comment', "/* \n */", 7]]];
+        yield 'comment.ton #10 mixed newline normalization' => ["/* \f\n\r\r\n */", [['comment', "/* \n\n\n\n */", 11]]];
+        yield 'comment.ton #11 trailing asterisk' => ['/* Comment *', [['comment', '/* Comment **/', 12]]];
+        yield 'comment.ton #12 comment followed by hash' => ['/* Comment */#id', [
+            ['comment', '/* Comment */', 13],
+            ['hash', '#id', 3],
+        ]];
+        yield 'comment.ton #13 bare opener' => ['/*', [['comment', '/**/', 2]]];
+    }
+
     #[DataProvider('upstreamSingleTokenProvider')]
     #[DataProvider('upstreamWhitespaceProvider')]
+    #[DataProvider('upstreamCommentProvider')]
     public function testUpstreamTokenizerFixtures(string $css, array $expected): void
     {
         $tokens = (new Tokenizer())->tokenize($css);
