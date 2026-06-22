@@ -37,6 +37,18 @@ final class Tokenizer
                 continue;
             }
 
+            if (substr($css, $offset, 4) === '<!--') {
+                $tokens[] = new Token('CDO', '<!--', 4);
+                $offset += 4;
+                continue;
+            }
+
+            if (substr($css, $offset, 3) === '-->') {
+                $tokens[] = new Token('CDC', '-->', 3);
+                $offset += 3;
+                continue;
+            }
+
             if ($char === '"' || $char === "'") {
                 [$type, $value, $tokenLength] = self::consumeString($css, $offset);
                 $tokens[] = new Token($type, $value, $tokenLength);

@@ -518,6 +518,152 @@ final class TokenizerTest extends TestCase
         yield 'string.ton #33 escaped reverse solidus' => ['"Onim\\\\usha"', [['string', '"Onim\\\\usha"', 12]]];
     }
 
+    /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamCdoCdcProvider(): iterable
+    {
+        yield 'CDO-CDC.ton #1 CDO' => ['<!--', [['CDO', '<!--', 4]]];
+        yield 'CDO-CDC.ton #2 split CDO' => ['<!- -', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['delim', '-', 1],
+            ['whitespace', ' ', 1],
+            ['delim', '-', 1],
+        ]];
+        yield 'CDO-CDC.ton #3 space before CDC tail' => ['<! --', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['whitespace', ' ', 1],
+            ['ident', '--', 2],
+        ]];
+        yield 'CDO-CDC.ton #4 space after less-than' => ['< !--', [
+            ['delim', '<', 1],
+            ['whitespace', ' ', 1],
+            ['delim', '!', 1],
+            ['ident', '--', 2],
+        ]];
+        yield 'CDO-CDC.ton #5 null after bang hyphen' => ["<!-\0", [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['ident', "-\u{FFFD}", 2],
+        ]];
+        yield 'CDO-CDC.ton #6 trailing reverse solidus after bang hyphen' => ['<!-\\', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['ident', "-\u{FFFD}", 2],
+        ]];
+        yield 'CDO-CDC.ton #7 escaped hash after bang hyphen' => ['<!-\\#id', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['ident', '-#id', 5],
+        ]];
+        yield 'CDO-CDC.ton #8 escaped phrase after bang hyphen' => ['<!-\\47\\6f\\64\\20\\6f\\66\\20\\57\\61\\72', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['ident', '-God of War', 31],
+        ]];
+        yield 'CDO-CDC.ton #9 invalid escape before LF' => ["<!-\\\n", [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['delim', '-', 1],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'CDO-CDC.ton #10 invalid escape before CR' => ["<!-\\\r", [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['delim', '-', 1],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'CDO-CDC.ton #11 invalid escape before CRLF' => ["<!-\\\r\n", [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['delim', '-', 1],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 2],
+        ]];
+        yield 'CDO-CDC.ton #12 invalid escape before FF' => ["<!-\\\f", [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['delim', '-', 1],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'CDO-CDC.ton #13 hash after bang hyphen' => ['<!-#id', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['delim', '-', 1],
+            ['hash', '#id', 3],
+        ]];
+        yield 'CDO-CDC.ton #14 CDC' => ['-->', [['CDC', '-->', 3]]];
+        yield 'CDO-CDC.ton #15 split CDC' => ['- ->', [
+            ['delim', '-', 1],
+            ['whitespace', ' ', 1],
+            ['delim', '-', 1],
+            ['delim', '>', 1],
+        ]];
+        yield 'CDO-CDC.ton #16 space before greater-than' => ['-- >', [
+            ['ident', '--', 2],
+            ['whitespace', ' ', 1],
+            ['delim', '>', 1],
+        ]];
+        yield 'CDO-CDC.ton #17 three hyphens before greater-than' => ['--- >', [
+            ['ident', '---', 3],
+            ['whitespace', ' ', 1],
+            ['delim', '>', 1],
+        ]];
+        yield 'CDO-CDC.ton #18 less-than before negative dimension' => ['<-1F', [
+            ['delim', '<', 1],
+            ['dimension', '-1F', 3],
+        ]];
+        yield 'CDO-CDC.ton #19 less-than before double-hyphen ident' => ['<--1F', [
+            ['delim', '<', 1],
+            ['ident', '--1F', 4],
+        ]];
+        yield 'CDO-CDC.ton #20 bang before negative dimension' => ['<!-1F', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['dimension', '-1F', 3],
+        ]];
+        yield 'CDO-CDC.ton #21 bang before positive dimension' => ['<!+1F', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['dimension', '1F', 3],
+        ]];
+        yield 'CDO-CDC.ton #22 hyphen before positive dimension' => ['<-+1F', [
+            ['delim', '<', 1],
+            ['delim', '-', 1],
+            ['dimension', '1F', 3],
+        ]];
+        yield 'CDO-CDC.ton #23 less-than before positive dimension' => ['<+1F', [
+            ['delim', '<', 1],
+            ['dimension', '1F', 3],
+        ]];
+        yield 'CDO-CDC.ton #24 bang before negative decimal dimension' => ['<!-.1F', [
+            ['delim', '<', 1],
+            ['delim', '!', 1],
+            ['dimension', '-0.1F', 4],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamOtherProvider(): iterable
+    {
+        yield 'other.ton #1 mixed tokenizer smoke' => ["/* Comment */123.456ident'string'#hash@media \\67mase", [
+            ['comment', '/* Comment */', 13],
+            ['dimension', '123.456ident', 12],
+            ['string', '"string"', 8],
+            ['hash', '#hash', 5],
+            ['at-keyword', '@media', 6],
+            ['whitespace', ' ', 1],
+            ['ident', 'gmase', 7],
+        ]];
+    }
+
     #[DataProvider('upstreamSingleTokenProvider')]
     #[DataProvider('upstreamWhitespaceProvider')]
     #[DataProvider('upstreamCommentProvider')]
@@ -527,6 +673,8 @@ final class TokenizerTest extends TestCase
     #[DataProvider('upstreamAtKeywordProvider')]
     #[DataProvider('upstreamNumberProvider')]
     #[DataProvider('upstreamStringProvider')]
+    #[DataProvider('upstreamCdoCdcProvider')]
+    #[DataProvider('upstreamOtherProvider')]
     public function testUpstreamTokenizerFixtures(string $css, array $expected): void
     {
         $tokens = (new Tokenizer())->tokenize($css);
