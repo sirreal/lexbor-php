@@ -205,7 +205,7 @@
     <main>
         <div class="metrics" aria-label="Project metrics">
             <div class="metric">
-                <strong>14 / 14</strong>
+                <strong>34 / 34</strong>
                 <span>PHPUnit tests passing</span>
             </div>
             <div class="metric">
@@ -213,7 +213,7 @@
                 <span>Passing rate for ported tests</span>
             </div>
             <div class="metric">
-                <strong>1 / 9</strong>
+                <strong>4 / 9</strong>
                 <span>Requested components started</span>
             </div>
             <div class="metric">
@@ -235,6 +235,20 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <tr>
+                        <td>DOM</td>
+                        <td><span class="status done">Implemented slice</span></td>
+                        <td>20 total; 5 ported from upstream exception.c and 7 from node.c</td>
+                        <td><div class="bar" aria-label="100 percent"><span style="width: 100%"></span></div></td>
+                        <td>Exception mapping plus linked-list node append, insert, replace, remove, fragment movement, same-tree moves, adjacent-sibling replacement, cycle prevention, character-data insertion, by-id traversal, and create-by-code edge coverage.</td>
+                    </tr>
+                    <tr>
+                        <td>HTML</td>
+                        <td><span class="status todo">Fixture foundation</span></td>
+                        <td>0 upstream HTML suites ported</td>
+                        <td><div class="bar" aria-label="0 percent"><span style="width: 0%"></span></div></td>
+                        <td>Minimal document fixture parser and serializer added to support upstream DOM tests; full tokenizer/tree builder remains.</td>
+                    </tr>
                     <tr>
                         <td>Punycode</td>
                         <td><span class="status done">Implemented slice</span></td>
@@ -264,11 +278,11 @@
                         <td>Depends on Encoding, Unicode, and Punycode for host handling.</td>
                     </tr>
                     <tr>
-                        <td>DOM, HTML, CSS, Layout, Fonts</td>
+                        <td>CSS, Layout, Fonts</td>
                         <td><span class="status todo">Not started</span></td>
                         <td>0</td>
                         <td><div class="bar" aria-label="0 percent"><span style="width: 0%"></span></div></td>
-                        <td>DOM and HTML should precede selectors/style/layout work.</td>
+                        <td>DOM and HTML foundations should precede selectors/style/layout work.</td>
                     </tr>
                 </tbody>
             </table>
