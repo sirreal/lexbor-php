@@ -181,10 +181,12 @@ final class Parser
             $offset++;
         }
 
+        [$valueTokens, $important] = self::extractImportant($valueTokens);
+
         return [
             'name' => $name,
             'value' => self::serializeComponentValue($valueTokens),
-            'important' => false,
+            'important' => $important,
         ];
     }
 
@@ -245,5 +247,44 @@ final class Parser
         }
 
         return $value;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{list<Token>, bool}
+     */
+    private static function extractImportant(array $tokens): array
+    {
+        while ($tokens !== [] && $tokens[array_key_last($tokens)]->type === 'whitespace') {
+            array_pop($tokens);
+        }
+
+        $importantToken = array_pop($tokens);
+        $bangToken = array_pop($tokens);
+
+        if (
+            $importantToken !== null
+            && $bangToken !== null
+            && $importantToken->type === 'ident'
+            && strcasecmp($importantToken->value, 'important') === 0
+            && $bangToken->type === 'delim'
+            && $bangToken->value === '!'
+        ) {
+            while ($tokens !== [] && $tokens[array_key_last($tokens)]->type === 'whitespace') {
+                array_pop($tokens);
+            }
+
+            return [$tokens, true];
+        }
+
+        if ($bangToken !== null) {
+            $tokens[] = $bangToken;
+        }
+
+        if ($importantToken !== null) {
+            $tokens[] = $importantToken;
+        }
+
+        return [$tokens, false];
     }
 }

@@ -291,6 +291,112 @@ final class ParserTest extends TestCase
                 ],
             ],
         ]];
+        yield 'qualified.ton #19 important declaration before block end' => ['#id {width: 10px !important}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => true],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #20 important declaration with trailing whitespace' => ['#id {width: 10px !important   }', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => true],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #21 important declaration followed by second declaration' => ['#id {width: 10px !important   ; height: 20px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => true],
+                            ['name' => 'height', 'value' => '20px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #22 compact important declaration followed by second declaration' => ['#id {width: 10px!important; height: 20px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => true],
+                            ['name' => 'height', 'value' => '20px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #23 important with trailing ident stays value text' => ['#id {width: 10px !important x; height: 20px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px !important x', 'important' => false],
+                            ['name' => 'height', 'value' => '20px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #24 spaced important marker stays value text' => ['#id {width: 10px ! important; height: 20px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px ! important', 'important' => false],
+                            ['name' => 'height', 'value' => '20px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
     }
 
     /**
