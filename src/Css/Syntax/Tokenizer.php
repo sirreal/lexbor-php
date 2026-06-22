@@ -37,6 +37,13 @@ final class Tokenizer
                 continue;
             }
 
+            if ($char === '"' || $char === "'") {
+                [$type, $value, $tokenLength] = self::consumeString($css, $offset);
+                $tokens[] = new Token($type, $value, $tokenLength);
+                $offset += $tokenLength;
+                continue;
+            }
+
             if (self::startsNumber($css, $offset)) {
                 [$type, $value, $tokenLength] = self::consumeNumber($css, $offset);
                 $tokens[] = new Token($type, $value, $tokenLength);
@@ -150,6 +157,82 @@ final class Tokenizer
         }
 
         return [$value, $offset - $start];
+    }
+
+    /**
+     * @return array{string, string, int}
+     */
+    private static function consumeString(string $css, int $offset): array
+    {
+        $mark = $css[$offset];
+        $value = '';
+        $start = $offset;
+        $offset++;
+        $length = strlen($css);
+
+        while ($offset < $length) {
+            $char = $css[$offset];
+
+            if ($char === $mark) {
+                $offset++;
+
+                return ['string', self::serializeStringValue($value), $offset - $start];
+            }
+
+            if (self::isNewline($char)) {
+                return ['bad-string', self::serializeStringValue($value), $offset - $start];
+            }
+
+            if ($char === '\\') {
+                if ($offset + 1 >= $length) {
+                    $value .= self::REPLACEMENT_CHARACTER;
+                    $offset++;
+                    continue;
+                }
+
+                $next = $css[$offset + 1];
+
+                if (self::isNewline($next)) {
+                    $offset += 1 + self::whitespaceLength($css, $offset + 1);
+                    continue;
+                }
+
+                [$escaped, $offset] = self::consumeEscapedCodePoint($css, $offset);
+                $value .= $escaped;
+                continue;
+            }
+
+            if ($char === "\0") {
+                $value .= self::REPLACEMENT_CHARACTER;
+                $offset++;
+                continue;
+            }
+
+            if (ord($char) >= 0x80) {
+                [$codePoint, $sequence, $sequenceLength] = self::consumeUtf8CodePoint($css, $offset);
+
+                if ($codePoint === self::ERROR_CODE_POINT) {
+                    $value .= self::REPLACEMENT_CHARACTER;
+                    $offset++;
+                    continue;
+                }
+
+                if ($codePoint >= 0xD800 && $codePoint <= 0xDFFF) {
+                    $value .= self::REPLACEMENT_CHARACTER;
+                    $offset += $sequenceLength;
+                    continue;
+                }
+
+                $value .= $sequence;
+                $offset += $sequenceLength;
+                continue;
+            }
+
+            $value .= $char;
+            $offset++;
+        }
+
+        return ['string', self::serializeStringValue($value), $offset - $start];
     }
 
     /**
@@ -370,6 +453,20 @@ final class Tokenizer
 
         if ($css[$cursor] === "\0") {
             return [self::REPLACEMENT_CHARACTER, $cursor + 1];
+        }
+
+        if (ord($css[$cursor]) >= 0x80) {
+            [$codePoint, $sequence, $sequenceLength] = self::consumeUtf8CodePoint($css, $cursor);
+
+            if ($codePoint === self::ERROR_CODE_POINT) {
+                return [self::REPLACEMENT_CHARACTER, $cursor + 1];
+            }
+
+            if ($codePoint >= 0xD800 && $codePoint <= 0xDFFF) {
+                return [self::REPLACEMENT_CHARACTER, $cursor + $sequenceLength];
+            }
+
+            return [$sequence, $cursor + $sequenceLength];
         }
 
         return [$css[$cursor], $cursor + 1];
@@ -626,6 +723,11 @@ final class Tokenizer
         }
 
         return $sign . $expanded;
+    }
+
+    private static function serializeStringValue(string $value): string
+    {
+        return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
     }
 
     /**

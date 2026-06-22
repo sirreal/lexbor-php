@@ -470,6 +470,54 @@ final class TokenizerTest extends TestCase
         yield 'number.ton #93 exponent overflow clamp' => ['1e999999999999999999999', [['number', '1.797693134862316e+308', 23]]];
     }
 
+    /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamStringProvider(): iterable
+    {
+        $replacement = "\u{FFFD}";
+        $noisy = "ode >>stream x\x01ЭY\x0B|Ф≈µ?3ун#!ПMА<\tя\x17ЦЁ@6!\x0F\t\t\x10…ЈyЙF @іYРЇ\x01“В/R\x13@Q\x01Q.ЄшИѕ[KХА%†®|ўELxHФkѓµZ∞VЛёґжґhЂЕ+Јjн•Рљ€Щ/";
+
+        yield 'string.ton #1 double quoted string' => ['"Onimusha"', [['string', '"Onimusha"', 10]]];
+        yield 'string.ton #2 single quoted string' => ["'Onimusha'", [['string', '"Onimusha"', 10]]];
+        yield 'string.ton #3 newline in string' => ["\"Onimu\nsha\"", [
+            ['bad-string', '"Onimu"', 6],
+            ['whitespace', "\n", 1],
+            ['ident', 'sha', 3],
+            ['string', '""', 1],
+        ]];
+        yield 'string.ton #4 EOF in string' => ['"Onimusha', [['string', '"Onimusha"', 9]]];
+        yield 'string.ton #5 EOF after reverse solidus' => ["\"Onimusha\\", [['string', "\"Onimusha{$replacement}\"", 10]]];
+        yield 'string.ton #6 escaped LF continuation' => ['"' . "Onim\\\nusha" . '"', [['string', '"Onimusha"', 12]]];
+        yield 'string.ton #7 escaped CRLF continuation' => ['"' . "Onim\\\r\nusha" . '"', [['string', '"Onimusha"', 13]]];
+        yield 'string.ton #8 leading hex escape' => ['"\\67odofwar"', [['string', '"godofwar"', 12]]];
+        yield 'string.ton #9 leading hex escape with terminator' => ['"\\67 odofwar"', [['string', '"godofwar"', 13]]];
+        yield 'string.ton #10 escaped letter then space' => ['"\\67  odofwar"', [['string', '"g odofwar"', 14]]];
+        yield 'string.ton #11 all escaped' => ['"\\67\\6F\\64\\6F\\66\\77\\61\\72"', [['string', '"godofwar"', 26]]];
+        yield 'string.ton #12 all escaped with terminators' => ['"\\67 \\6F \\64 \\6F \\66 \\77 \\61 \\72"', [['string', '"godofwar"', 33]]];
+        yield 'string.ton #13 hex escape CRLF terminator' => ['"\\67' . "\r\n" . 'odofwar"', [['string', '"godofwar"', 14]]];
+        yield 'string.ton #14 hex escape CR terminator' => ['"\\67' . "\r" . 'odofwar"', [['string', '"godofwar"', 13]]];
+        yield 'string.ton #15 hex escape LF terminator' => ['"\\67' . "\n" . 'odofwar"', [['string', '"godofwar"', 13]]];
+        yield 'string.ton #16 hex escape CRLF at EOF' => ['"\\67' . "\r\n" . '"', [['string', '"g"', 7]]];
+        yield 'string.ton #17 hex escape CR at EOF' => ['"\\67' . "\r" . '"', [['string', '"g"', 6]]];
+        yield 'string.ton #18 hex escape LF at EOF' => ['"\\67' . "\n" . '"', [['string', '"g"', 6]]];
+        yield 'string.ton #19 escaped quote at EOF' => ['"resident-evil\"', [['string', '"resident-evil\""', 16]]];
+        yield 'string.ton #20 escaped LF before close' => ['"resident-evil\\' . "\n" . '"', [['string', '"resident-evil"', 17]]];
+        yield 'string.ton #21 hex escape then escaped FF' => ['"\\67\\' . "\f" . 'odofwar"', [['string', '"godofwar"', 14]]];
+        yield 'string.ton #22 hex escape FF terminator' => ['"\\67' . "\f" . 'odofwar"', [['string', '"godofwar"', 13]]];
+        yield 'string.ton #23 mixed binary and UTF-8 string' => ['"' . $noisy . '"', [['string', '"' . $noisy . '"', 163]]];
+        yield 'string.ton #24 single quotes inside double quoted string' => ['"\'Final \' Fantasy\'"', [['string', '"\'Final \' Fantasy\'"', 19]]];
+        yield 'string.ton #25 double quotes inside single quoted string' => ['\'"Final " Fantasy"\'', [['string', '"\"Final \" Fantasy\""', 19]]];
+        yield 'string.ton #26 escaped FF continuation' => ['"g\\' . "\f" . 'odofwar"', [['string', '"godofwar"', 12]]];
+        yield 'string.ton #27 escaped FF before hex escape' => ['"\\' . "\f" . '\\67' . "\r\n" . 'odofwar"', [['string', '"godofwar"', 16]]];
+        yield 'string.ton #28 escaped FF after hex escape' => ['"\\67' . "\r\n" . 'odofwar\\' . "\f" . '"', [['string', '"godofwar"', 16]]];
+        yield 'string.ton #29 null replacement' => ['"' . "\0Sidewalks\0and\0Skeletons\0" . '"', [['string', "\"{$replacement}Sidewalks{$replacement}and{$replacement}Skeletons{$replacement}\"", 27]]];
+        yield 'string.ton #30 escaped null replacement' => ['"\\' . "\0" . 'Sidewalks\\' . "\0" . 'and\\' . "\0" . 'Skeletons\\' . "\0" . '"', [['string', "\"{$replacement}Sidewalks{$replacement}and{$replacement}Skeletons{$replacement}\"", 31]]];
+        yield 'string.ton #31 escaped null' => ['"\\' . "\0" . '"', [['string', "\"{$replacement}\"", 4]]];
+        yield 'string.ton #32 null' => ['"' . "\0" . '"', [['string', "\"{$replacement}\"", 3]]];
+        yield 'string.ton #33 escaped reverse solidus' => ['"Onim\\\\usha"', [['string', '"Onim\\\\usha"', 12]]];
+    }
+
     #[DataProvider('upstreamSingleTokenProvider')]
     #[DataProvider('upstreamWhitespaceProvider')]
     #[DataProvider('upstreamCommentProvider')]
@@ -478,6 +526,7 @@ final class TokenizerTest extends TestCase
     #[DataProvider('upstreamIdentProvider')]
     #[DataProvider('upstreamAtKeywordProvider')]
     #[DataProvider('upstreamNumberProvider')]
+    #[DataProvider('upstreamStringProvider')]
     public function testUpstreamTokenizerFixtures(string $css, array $expected): void
     {
         $tokens = (new Tokenizer())->tokenize($css);
@@ -509,5 +558,19 @@ final class TokenizerTest extends TestCase
         self::assertSame('1.5678', $tokens[2]->value);
         self::assertSame('1.1e', $tokens[4]->value);
         self::assertSame('9223372036854776000', $tokens[7]->value);
+    }
+
+    public function testEscapedNonAsciiPreservesFullUtf8CodePoint(): void
+    {
+        $tokens = (new Tokenizer())->tokenize("\"\\Э\" \\Э");
+
+        self::assertCount(3, $tokens);
+        self::assertSame('string', $tokens[0]->type);
+        self::assertSame('"Э"', $tokens[0]->value);
+        self::assertSame(5, $tokens[0]->length);
+        self::assertSame('whitespace', $tokens[1]->type);
+        self::assertSame('ident', $tokens[2]->type);
+        self::assertSame('Э', $tokens[2]->value);
+        self::assertSame(3, $tokens[2]->length);
     }
 }
