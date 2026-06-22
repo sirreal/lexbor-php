@@ -664,6 +664,34 @@ final class TokenizerTest extends TestCase
         ]];
     }
 
+    /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamBrokenUtf8Provider(): iterable
+    {
+        $replacement = "\u{FFFD}";
+        $surrogateStart = "\xED\xA0\x80";
+        $surrogateHighEnd = "\xED\xAF\xBF";
+        $surrogateLowStart = "\xED\xB0\x80";
+        $surrogateEnd = "\xED\xBF\xBF";
+        $truncatedSurrogate = "\xED\xA0";
+
+        yield 'broken-utf-8.ton #1 invalid continuation in ident' => ["wor\x9Fld", [['ident', "wor{$replacement}ld", 6]]];
+        yield 'broken-utf-8.ton #2 surrogate start in ident' => ['wor' . $surrogateStart . 'ld', [['ident', "wor{$replacement}ld", 8]]];
+        yield 'broken-utf-8.ton #3 surrogate high end in ident' => ['wor' . $surrogateHighEnd . 'ld', [['ident', "wor{$replacement}ld", 8]]];
+        yield 'broken-utf-8.ton #4 surrogate low start in ident' => ['wor' . $surrogateLowStart . 'ld', [['ident', "wor{$replacement}ld", 8]]];
+        yield 'broken-utf-8.ton #5 surrogate end in ident' => ['wor' . $surrogateEnd . 'ld', [['ident', "wor{$replacement}ld", 8]]];
+        yield 'broken-utf-8.ton #6 non-surrogate before surrogate range' => ['wor' . "\u{D7FF}" . 'ld', [['ident', 'wor' . "\u{D7FF}" . 'ld', 8]]];
+        yield 'broken-utf-8.ton #7 valid non-surrogate code point' => ['wor' . "\u{C000}" . 'ld', [['ident', 'wor' . "\u{C000}" . 'ld', 8]]];
+        yield 'broken-utf-8.ton #8 surrogate in string' => ['"wor' . $surrogateStart . 'ld"', [['string', "\"wor{$replacement}ld\"", 10]]];
+        yield 'broken-utf-8.ton #9 invalid bytes in string' => ["\"wor\xA0\x80ld\"", [['string', "\"wor{$replacement}{$replacement}ld\"", 9]]];
+        yield 'broken-utf-8.ton #10 truncated surrogate then text in string' => ['"wor' . $truncatedSurrogate . 'ld"', [['string', "\"wor{$replacement}{$replacement}ld\"", 9]]];
+        yield 'broken-utf-8.ton #11 truncated surrogate at EOF in string' => ['"wor' . $truncatedSurrogate, [['string', "\"wor{$replacement}{$replacement}\"", 6]]];
+        yield 'broken-utf-8.ton #12 truncated surrogate at EOF in ident' => ['wor' . $truncatedSurrogate, [['ident', "wor{$replacement}{$replacement}", 5]]];
+        yield 'broken-utf-8.ton #13 truncated surrogate then text in ident' => ['wor' . $truncatedSurrogate . 'ld', [['ident', "wor{$replacement}{$replacement}ld", 7]]];
+        yield 'broken-utf-8.ton #14 micro sign delimiter' => ['µ', [['delim', 'µ', 2]]];
+    }
+
     #[DataProvider('upstreamSingleTokenProvider')]
     #[DataProvider('upstreamWhitespaceProvider')]
     #[DataProvider('upstreamCommentProvider')]
@@ -675,6 +703,7 @@ final class TokenizerTest extends TestCase
     #[DataProvider('upstreamStringProvider')]
     #[DataProvider('upstreamCdoCdcProvider')]
     #[DataProvider('upstreamOtherProvider')]
+    #[DataProvider('upstreamBrokenUtf8Provider')]
     public function testUpstreamTokenizerFixtures(string $css, array $expected): void
     {
         $tokens = (new Tokenizer())->tokenize($css);
