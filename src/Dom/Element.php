@@ -73,6 +73,13 @@ final class Element extends Node
         unset($this->attributes[$normalized]);
     }
 
+    public function clearAttributes(): void
+    {
+        foreach (array_keys($this->attributes) as $name) {
+            $this->removeAttribute($name);
+        }
+    }
+
     public function setAttributeFromAttr(Attr $attr, string $value): void
     {
         if (($this->attributeNodes[$attr->name] ?? null) !== $attr) {

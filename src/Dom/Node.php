@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Lexbor\Dom;
 
+use Lexbor\Core\Status;
+
 class Node
 {
     public ?Node $next = null;
@@ -132,6 +134,60 @@ class Node
         return $matches;
     }
 
+    public function collectElementsByClassName(Collection $collection, ?string $className): Status
+    {
+        if ($className === null || $className === '') {
+            return Status::Ok;
+        }
+
+        $caseInsensitive = $this->ownerDocumentIsQuirksMode();
+
+        $this->walkDescendantElements(static function (Element $element) use ($collection, $className, $caseInsensitive): void {
+            $class = $element->getAttribute('class');
+
+            if ($class !== null && self::classAttributeContains($class, $className, $caseInsensitive)) {
+                $collection->append($element);
+            }
+        });
+
+        return Status::Ok;
+    }
+
+    public function collectElementsByAttr(
+        Collection $collection,
+        string $qualifiedName,
+        ?string $value,
+        bool $caseInsensitive = false,
+    ): Status {
+        $name = strtolower($qualifiedName);
+        $expected = $value ?? '';
+
+        $this->walkDescendantElements(
+            static function (Element $element) use ($collection, $name, $expected, $caseInsensitive): void {
+                $actual = $element->getAttribute($name);
+
+                if ($actual === null) {
+                    return;
+                }
+
+                if ($expected === '' && $actual === '') {
+                    $collection->append($element);
+                    return;
+                }
+
+                $matches = $caseInsensitive
+                    ? strcasecmp($actual, $expected) === 0
+                    : $actual === $expected;
+
+                if ($matches) {
+                    $collection->append($element);
+                }
+            },
+        );
+
+        return Status::Ok;
+    }
+
     /**
      * @return list<Node>
      */
@@ -144,6 +200,38 @@ class Node
         }
 
         return $nodes;
+    }
+
+    /**
+     * @param callable(Element): void $callback
+     */
+    private function walkDescendantElements(callable $callback): void
+    {
+        for ($node = $this->firstChild; $node !== null; $node = $node->next) {
+            if ($node instanceof Element) {
+                $callback($node);
+            }
+
+            $node->walkDescendantElements($callback);
+        }
+    }
+
+    private static function classAttributeContains(string $classAttribute, string $className, bool $caseInsensitive): bool
+    {
+        foreach (preg_split('/[\t\n\f\r ]+/', $classAttribute, -1, PREG_SPLIT_NO_EMPTY) ?: [] as $token) {
+            if ($caseInsensitive ? strcasecmp($token, $className) === 0 : $token === $className) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function ownerDocumentIsQuirksMode(): bool
+    {
+        $document = $this->ownerDocument;
+
+        return is_object($document) && method_exists($document, 'isQuirksMode') && $document->isQuirksMode();
     }
 
     private function preInsert(Node $node, ?Node $child): ExceptionCode

@@ -14,6 +14,7 @@ final class Document extends Node
 {
     private Element $body;
     private TagRegistry $tags;
+    private bool $quirksMode = false;
 
     public function __construct()
     {
@@ -26,13 +27,24 @@ final class Document extends Node
 
     public function parse(string $html): Status
     {
+        $this->quirksMode = !$this->startsWithHtmlDoctype($html);
+
         while ($this->body->firstChild !== null) {
             $this->body->firstChild->remove();
         }
 
-        foreach ($this->parseTopLevelElements($html) as $element) {
-            $this->body->appendChild($element);
+        $this->body->clearAttributes();
+
+        $bodyFragment = $this->bodyFragment($html);
+        if ($bodyFragment !== null) {
+            foreach ($this->parseAttributes($bodyFragment['attributes']) as $name => $value) {
+                $this->body->setAttribute($name, $value);
+            }
+
+            $html = $bodyFragment['content'];
         }
+
+        $this->parseFragmentInto($this->body, $html);
 
         return Status::Ok;
     }
@@ -64,26 +76,90 @@ final class Document extends Node
         return $this->tags;
     }
 
-    /**
-     * @return list<Element>
-     */
-    private function parseTopLevelElements(string $html): array
+    public function isQuirksMode(): bool
     {
-        $elements = [];
-        $pattern = '~<([A-Za-z][A-Za-z0-9:-]*)((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>.*?</\1>~si';
+        return $this->quirksMode;
+    }
+
+    private function parseFragmentInto(Node $root, string $html): void
+    {
+        $stack = [$root];
+        $pattern = '~<\s*(/)?\s*([A-Za-z][A-Za-z0-9:-]*)((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>~s';
 
         if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER) !== false) {
             foreach ($matches as $match) {
-                $element = $this->createElement($match[1]);
-                foreach ($this->parseAttributes($match[2]) as $name => $value) {
+                $tagName = strtolower($match[2]);
+
+                if ($match[1] === '/') {
+                    $this->closeElement($stack, $tagName);
+                    continue;
+                }
+
+                $attributeSource = rtrim($match[3]);
+                $selfClosing = str_ends_with($attributeSource, '/');
+                if ($selfClosing) {
+                    $attributeSource = rtrim(substr($attributeSource, 0, -1));
+                }
+
+                $element = $this->createElement($tagName);
+                foreach ($this->parseAttributes($attributeSource) as $name => $value) {
                     $element->setAttribute($name, $value);
                 }
 
-                $elements[] = $element;
+                $stack[count($stack) - 1]->appendChild($element);
+
+                if (!$selfClosing && !$this->isVoidElement($tagName)) {
+                    $stack[] = $element;
+                }
             }
         }
+    }
 
-        return $elements;
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeElement(array &$stack, string $tagName): void
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+
+            if ($node instanceof Element && $node->tagName === $tagName) {
+                array_splice($stack, $index);
+                return;
+            }
+        }
+    }
+
+    /**
+     * @return array{attributes: string, content: string}|null
+     */
+    private function bodyFragment(string $html): ?array
+    {
+        $pattern = '~<\s*body\b((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>~si';
+
+        if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE) !== 1) {
+            return null;
+        }
+
+        $start = $match[0][1] + strlen($match[0][0]);
+        $closePattern = '~<\s*/\s*body\s*>~i';
+
+        if (preg_match($closePattern, $html, $close, PREG_OFFSET_CAPTURE, $start) !== 1) {
+            return [
+                'attributes' => $match[1][0],
+                'content' => substr($html, $start),
+            ];
+        }
+
+        return [
+            'attributes' => $match[1][0],
+            'content' => substr($html, $start, $close[0][1] - $start),
+        ];
+    }
+
+    private function startsWithHtmlDoctype(string $html): bool
+    {
+        return preg_match('~^\s*<!doctype\s+html\s*>~i', $html) === 1;
     }
 
     /**
@@ -105,5 +181,24 @@ final class Document extends Node
         }
 
         return $attributes;
+    }
+
+    private function isVoidElement(string $tagName): bool
+    {
+        return in_array($tagName, [
+            'area',
+            'base',
+            'br',
+            'col',
+            'embed',
+            'hr',
+            'img',
+            'input',
+            'link',
+            'meta',
+            'source',
+            'track',
+            'wbr',
+        ], true);
     }
 }
