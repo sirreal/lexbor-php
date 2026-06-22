@@ -97,8 +97,8 @@ final class Tokenizer
             }
 
             if (self::startsIdentifier($css, $offset)) {
-                [$value, $tokenLength] = self::consumeIdentifier($css, $offset);
-                $tokens[] = new Token('ident', $value, $tokenLength);
+                [$type, $value, $tokenLength] = self::consumeIdentLike($css, $offset);
+                $tokens[] = new Token($type, $value, $tokenLength);
                 $offset += $tokenLength;
                 continue;
             }
@@ -439,13 +439,197 @@ final class Tokenizer
     }
 
     /**
-     * @return array{string, int}
+     * @return array{string, string, int}
      */
-    private static function consumeIdentifier(string $css, int $offset): array
+    private static function consumeIdentLike(string $css, int $offset): array
     {
         [$name, $cursor] = self::consumeName($css, $offset);
 
-        return [$name, $cursor - $offset];
+        if (($css[$cursor] ?? '') !== '(') {
+            return ['ident', $name, $cursor - $offset];
+        }
+
+        $functionEnd = $cursor + 1;
+
+        if (strtolower($name) !== 'url') {
+            return ['function', $name . '(', $functionEnd - $offset];
+        }
+
+        $scan = $functionEnd;
+        $length = strlen($css);
+
+        while ($scan < $length) {
+            if (! self::isWhitespace($css[$scan])) {
+                if ($css[$scan] === '"' || $css[$scan] === "'") {
+                    break;
+                }
+
+                return self::consumeUrl($css, $offset, $scan);
+            }
+
+            $scan++;
+        }
+
+        return ['function', $name . '(', $functionEnd - $offset];
+    }
+
+    /**
+     * @return array{string, string, int}
+     */
+    private static function consumeUrl(string $css, int $tokenStart, int $offset): array
+    {
+        $value = '';
+        $segmentStart = $offset;
+        $cursor = $offset;
+        $length = strlen($css);
+
+        while ($cursor < $length) {
+            $char = $css[$cursor];
+
+            if ($char === "\0") {
+                $value .= substr($css, $segmentStart, $cursor - $segmentStart) . self::REPLACEMENT_CHARACTER;
+                $cursor++;
+                $segmentStart = $cursor;
+                continue;
+            }
+
+            if ($char === ')') {
+                $value .= substr($css, $segmentStart, $cursor - $segmentStart);
+                $cursor++;
+
+                return ['url', self::serializeUrlValue($value), $cursor - $tokenStart];
+            }
+
+            if ($char === '"' || $char === "'" || $char === '(' || $char === "\x0B" || $char === "\x7F") {
+                $value .= substr($css, $segmentStart, $cursor - $segmentStart);
+
+                return self::consumeBadUrl($css, $tokenStart, $cursor, $value);
+            }
+
+            if ($char === '\\') {
+                $value .= substr($css, $segmentStart, $cursor - $segmentStart);
+
+                if (! self::isValidEscape($css, $cursor)) {
+                    return self::consumeBadUrl($css, $tokenStart, $cursor + 1, $value);
+                }
+
+                [$escaped, $cursor] = self::consumeEscapedCodePoint($css, $cursor);
+                $value .= $escaped;
+                $segmentStart = $cursor;
+                continue;
+            }
+
+            if (self::isWhitespace($char)) {
+                $value .= substr($css, $segmentStart, $cursor - $segmentStart);
+                $cursor++;
+
+                while ($cursor < $length) {
+                    if (! self::isWhitespace($css[$cursor])) {
+                        if ($css[$cursor] === ')') {
+                            $cursor++;
+
+                            return ['url', self::serializeUrlValue($value), $cursor - $tokenStart];
+                        }
+
+                        return self::consumeBadUrl($css, $tokenStart, $cursor, $value);
+                    }
+
+                    $cursor++;
+                }
+
+                return ['url', self::serializeUrlValue($value), $cursor - $tokenStart];
+            }
+
+            if (ord($char) >= 0x80) {
+                [$codePoint, $sequence, $sequenceLength] = self::consumeUtf8CodePoint($css, $cursor);
+
+                if ($codePoint === self::ERROR_CODE_POINT) {
+                    $value .= substr($css, $segmentStart, $cursor - $segmentStart) . self::REPLACEMENT_CHARACTER;
+                    $cursor++;
+                    $segmentStart = $cursor;
+                    continue;
+                }
+
+                if ($codePoint >= 0xD800 && $codePoint <= 0xDFFF) {
+                    $value .= substr($css, $segmentStart, $cursor - $segmentStart) . self::REPLACEMENT_CHARACTER;
+                    $cursor += $sequenceLength;
+                    $segmentStart = $cursor;
+                    continue;
+                }
+
+                $cursor += $sequenceLength;
+                continue;
+            }
+
+            $byte = ord($char);
+
+            if ($byte <= 0x08 || ($byte >= 0x0E && $byte <= 0x1F)) {
+                $value .= substr($css, $segmentStart, $cursor - $segmentStart);
+
+                return self::consumeBadUrl($css, $tokenStart, $cursor, $value);
+            }
+
+            $cursor++;
+        }
+
+        $value .= substr($css, $segmentStart, $cursor - $segmentStart);
+
+        return ['url', self::serializeUrlValue($value), $cursor - $tokenStart];
+    }
+
+    /**
+     * @return array{string, string, int}
+     */
+    private static function consumeBadUrl(string $css, int $tokenStart, int $offset, string $valuePrefix): array
+    {
+        $value = $valuePrefix;
+        $segmentStart = $offset;
+        $cursor = $offset;
+        $length = strlen($css);
+
+        while ($cursor < $length) {
+            if ($css[$cursor] === ')') {
+                $value .= substr($css, $segmentStart, $cursor - $segmentStart);
+                $cursor++;
+
+                return ['bad-url', self::serializeUrlValue($value), $cursor - $tokenStart];
+            }
+
+            if ($css[$cursor] === '\\') {
+                $cursor++;
+
+                if ($cursor >= $length) {
+                    break;
+                }
+            }
+
+            if (ord($css[$cursor]) >= 0x80) {
+                [$codePoint, $sequence, $sequenceLength] = self::consumeUtf8CodePoint($css, $cursor);
+
+                if ($codePoint === self::ERROR_CODE_POINT) {
+                    $value .= substr($css, $segmentStart, $cursor - $segmentStart) . self::REPLACEMENT_CHARACTER;
+                    $cursor++;
+                    $segmentStart = $cursor;
+                    continue;
+                }
+
+                if ($codePoint >= 0xD800 && $codePoint <= 0xDFFF) {
+                    $value .= substr($css, $segmentStart, $cursor - $segmentStart) . self::REPLACEMENT_CHARACTER;
+                    $cursor += $sequenceLength;
+                    $segmentStart = $cursor;
+                    continue;
+                }
+
+                $cursor += $sequenceLength;
+                continue;
+            }
+
+            $cursor++;
+        }
+
+        $value .= substr($css, $segmentStart, $cursor - $segmentStart);
+
+        return ['bad-url', self::serializeUrlValue($value), $cursor - $tokenStart];
     }
 
     /**
@@ -823,6 +1007,11 @@ final class Tokenizer
     private static function serializeStringValue(string $value): string
     {
         return '"' . str_replace(['\\', '"'], ['\\\\', '\\"'], $value) . '"';
+    }
+
+    private static function serializeUrlValue(string $value): string
+    {
+        return 'url(' . $value . ')';
     }
 
     private static function serializeUnicodeRange(int $start, int $end): string

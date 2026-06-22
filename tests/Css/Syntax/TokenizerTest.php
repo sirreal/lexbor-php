@@ -649,6 +649,85 @@ final class TokenizerTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamUrlFunctionProvider(): iterable
+    {
+        yield 'url-function.ton #1 bare url' => ['url(http://lexbor.com/)', [['url', 'url(http://lexbor.com/)', 23]]];
+        yield 'url-function.ton #2 url with trim spaces' => ['url(  http://lexbor.com/  )', [['url', 'url(http://lexbor.com/)', 27]]];
+        yield 'url-function.ton #3 escaped url name' => ['\\75\\72\\6C(http://lexbor.com/)', [['url', 'url(http://lexbor.com/)', 29]]];
+        yield 'url-function.ton #4 partially escaped url name' => ['\\75r\\6C(http://lexbor.com/)', [['url', 'url(http://lexbor.com/)', 27]]];
+        yield 'url-function.ton #5 leading escaped url name' => ['\\75rl(http://lexbor.com/)', [['url', 'url(http://lexbor.com/)', 25]]];
+        yield 'url-function.ton #6 escaped middle url name' => ['u\\72\\6C(http://lexbor.com/)', [['url', 'url(http://lexbor.com/)', 27]]];
+        yield 'url-function.ton #7 escaped r url name' => ['u\\72l(http://lexbor.com/)', [['url', 'url(http://lexbor.com/)', 25]]];
+        yield 'url-function.ton #8 single quoted url is function' => ["url('http://lexbor.com/')", [
+            ['function', 'url(', 4],
+            ['string', '"http://lexbor.com/"', 20],
+            ['right-parenthesis', ')', 1],
+        ]];
+        yield 'url-function.ton #9 spaced single quoted url is function' => ["url( 'http://lexbor.com/')", [
+            ['function', 'url(', 4],
+            ['whitespace', ' ', 1],
+            ['string', '"http://lexbor.com/"', 20],
+            ['right-parenthesis', ')', 1],
+        ]];
+        yield 'url-function.ton #10 escaped url function with single quoted string' => ["\\75\\72\\6C( 'http://lexbor.com/')", [
+            ['function', 'url(', 10],
+            ['whitespace', ' ', 1],
+            ['string', '"http://lexbor.com/"', 20],
+            ['right-parenthesis', ')', 1],
+        ]];
+        yield 'url-function.ton #11 double quoted url is function' => ['url("http://lexbor.com/")', [
+            ['function', 'url(', 4],
+            ['string', '"http://lexbor.com/"', 20],
+            ['right-parenthesis', ')', 1],
+        ]];
+        yield 'url-function.ton #12 spaced double quoted url is function' => ['url( "http://lexbor.com/")', [
+            ['function', 'url(', 4],
+            ['whitespace', ' ', 1],
+            ['string', '"http://lexbor.com/"', 20],
+            ['right-parenthesis', ')', 1],
+        ]];
+        yield 'url-function.ton #13 escaped url function with spaced double quoted string' => ['\\75\\72\\6C( "http://lexbor.com/" )', [
+            ['function', 'url(', 10],
+            ['whitespace', ' ', 1],
+            ['string', '"http://lexbor.com/"', 20],
+            ['whitespace', ' ', 1],
+            ['right-parenthesis', ')', 1],
+        ]];
+        yield 'url-function.ton #14 mixed case url' => ['UrL(http://lexbor.com/)', [['url', 'url(http://lexbor.com/)', 23]]];
+        yield 'url-function.ton #15 url at EOF' => ['url(http://lexbor.com/', [['url', 'url(http://lexbor.com/)', 22]]];
+        yield 'url-function.ton #16 quote in url is bad url' => ['url(http://lexbor".com/)', [['bad-url', 'url(http://lexbor".com/)', 24]]];
+        yield 'url-function.ton #17 apostrophe in url is bad url' => ["url(http://lexbor'.com/)", [['bad-url', "url(http://lexbor'.com/)", 24]]];
+        yield 'url-function.ton #18 left parenthesis in url is bad url' => ['url(http://lexbor(.com/)', [['bad-url', 'url(http://lexbor(.com/)', 24]]];
+        yield 'url-function.ton #19 null replacement in url' => ["url(http://lexbor\0.com/)", [['url', "url(http://lexbor\u{FFFD}.com/)", 24]]];
+        yield 'url-function.ton #20 tab in url enters bad url' => ["url(http://lexbor\t.com/)", [['bad-url', 'url(http://lexbor.com/)', 24]]];
+        yield 'url-function.ton #21 escaped url content' => ['url(http://\\6C e\\78 bo\\72.com/)', [['url', 'url(http://lexbor.com/)', 31]]];
+        yield 'url-function.ton #22 ascii function' => ['_world-set-good-mode(', [['function', '_world-set-good-mode(', 21]]];
+        yield 'url-function.ton #23 non-ascii function' => ['缘木求鱼(', [['function', '缘木求鱼(', 13]]];
+        yield 'url-function.ton #24 number before parenthesis' => ['123(', [
+            ['number', '123', 3],
+            ['left-parenthesis', '(', 1],
+        ]];
+        yield 'url-function.ton #25 escaped url with terminators' => ['\\75 \\72 \\6C (http://lexbor.com/)', [['url', 'url(http://lexbor.com/)', 32]]];
+        yield 'url-function.ton #26 quoted url after mixed whitespace is function' => ["url( \t \t  'http://lexbor.com/')", [
+            ['function', 'url(', 4],
+            ['whitespace', " \t \t  ", 6],
+            ['string', '"http://lexbor.com/"', 20],
+            ['right-parenthesis', ')', 1],
+        ]];
+        yield 'url-function.ton #27 whitespace-only url function at EOF' => ["url( \t \t  ", [
+            ['function', 'url(', 4],
+            ['whitespace', " \t \t  ", 6],
+        ]];
+        yield 'url-function.ton #28 tab-only url function at EOF' => ["url(\t", [
+            ['function', 'url(', 4],
+            ['whitespace', "\t", 1],
+        ]];
+        yield 'url-function.ton #29 url with form feed at EOF' => ["url(1\f", [['url', 'url(1)', 6]]];
+    }
+
+    /**
      * @return iterable<string, array{string, list<array{string, string, int}>, bool}>
      */
     public static function upstreamUnicodeRangeProvider(): iterable
@@ -747,6 +826,7 @@ final class TokenizerTest extends TestCase
     #[DataProvider('upstreamNumberProvider')]
     #[DataProvider('upstreamStringProvider')]
     #[DataProvider('upstreamCdoCdcProvider')]
+    #[DataProvider('upstreamUrlFunctionProvider')]
     #[DataProvider('upstreamUnicodeRangeProvider')]
     #[DataProvider('upstreamOtherProvider')]
     #[DataProvider('upstreamBrokenUtf8Provider')]
