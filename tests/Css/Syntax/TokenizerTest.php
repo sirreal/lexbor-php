@@ -156,11 +156,92 @@ final class TokenizerTest extends TestCase
         ]];
     }
 
+    /**
+     * @return iterable<string, array{string, list<array{string, string, int}>}>
+     */
+    public static function upstreamIdentProvider(): iterable
+    {
+        yield 'ident.ton #1 ascii ident' => ['godofwar', [['ident', 'godofwar', 8]]];
+        yield 'ident.ton #2 leading hex escape' => ['\\67odofwar', [['ident', 'godofwar', 10]]];
+        yield 'ident.ton #3 leading hex escape with terminator' => ['\\67 odofwar', [['ident', 'godofwar', 11]]];
+        yield 'ident.ton #4 escaped ident then whitespace' => ['\\67  odofwar', [
+            ['ident', 'g', 4],
+            ['whitespace', ' ', 1],
+            ['ident', 'odofwar', 7],
+        ]];
+        yield 'ident.ton #5 all escaped' => ['\\67\\6F\\64\\6F\\66\\77\\61\\72', [['ident', 'godofwar', 24]]];
+        yield 'ident.ton #6 escaped CRLF terminator' => ["\\67\r\nodofwar", [['ident', 'godofwar', 12]]];
+        yield 'ident.ton #7 escaped CR terminator' => ["\\67\rodofwar", [['ident', 'godofwar', 11]]];
+        yield 'ident.ton #8 escaped LF terminator' => ["\\67\nodofwar", [['ident', 'godofwar', 11]]];
+        yield 'ident.ton #9 escaped CRLF at EOF' => ["\\67\r\n", [['ident', 'g', 5]]];
+        yield 'ident.ton #10 escaped CR at EOF' => ["\\67\r", [['ident', 'g', 4]]];
+        yield 'ident.ton #11 escaped LF at EOF' => ["\\67\n", [['ident', 'g', 4]]];
+        yield 'ident.ton #12 trailing reverse solidus' => ['resident-evil\\', [['ident', "resident-evil\u{FFFD}", 14]]];
+        yield 'ident.ton #13 invalid escape before LF' => ["resident-evil\\\n", [
+            ['ident', 'resident-evil', 13],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+        ]];
+        yield 'ident.ton #14 delim between identifiers' => ['resident*evil', [
+            ['ident', 'resident', 8],
+            ['delim', '*', 1],
+            ['ident', 'evil', 4],
+        ]];
+        yield 'ident.ton #15 mixed-case hyphenated ident' => ['Silent-Hill', [['ident', 'Silent-Hill', 11]]];
+        yield 'ident.ton #16 case preserving ident' => ['sIlEnt-hIll', [['ident', 'sIlEnt-hIll', 11]]];
+        yield 'ident.ton #17 digits after start' => ['Silent1-Hill5', [['ident', 'Silent1-Hill5', 13]]];
+        yield 'ident.ton #18 double hyphen start' => ['--silent-Hill', [['ident', '--silent-Hill', 13]]];
+        yield 'ident.ton #19 single hyphen start' => ['-Silent-Hill', [['ident', '-Silent-Hill', 12]]];
+        yield 'ident.ton #20 hyphen underscore start' => ['-_Silent-Hill', [['ident', '-_Silent-Hill', 13]]];
+        yield 'ident.ton #21 underscore start' => ['_Silent-Hill', [['ident', '_Silent-Hill', 12]]];
+        yield 'ident.ton #22 repeated hyphen underscore start' => ['-----_Silent-Hill', [['ident', '-----_Silent-Hill', 17]]];
+        yield 'ident.ton #23 repeated hyphen suffix' => ['-----_Silent-Hill-----', [['ident', '-----_Silent-Hill-----', 22]]];
+        yield 'ident.ton #24 repeated hyphen letter start' => ['-----Silent-Hill-----', [['ident', '-----Silent-Hill-----', 21]]];
+        yield 'ident.ton #25 escaped form feed terminator' => ["\\67\fodofwar", [['ident', 'godofwar', 11]]];
+        yield 'ident.ton #26 cyrillic ident' => ['Город', [['ident', 'Город', 10]]];
+        yield 'ident.ton #27 hyphen cyrillic ident' => ['-Город', [['ident', '-Город', 11]]];
+        yield 'ident.ton #28 cyrillic with underscores' => ['--Г_о_р_о_д', [['ident', '--Г_о_р_о_д', 16]]];
+        yield 'ident.ton #29 middle dot ident' => ['·', [['ident', '·', 2]]];
+        yield 'ident.ton #30 latin capital A grave ident' => ['À', [['ident', 'À', 2]]];
+        yield 'ident.ton #31 latin capital O diaeresis ident' => ['Ö', [['ident', 'Ö', 2]]];
+        yield 'ident.ton #32 latin capital O stroke ident' => ['Ø', [['ident', 'Ø', 2]]];
+        yield 'ident.ton #33 latin small O diaeresis ident' => ['ö', [['ident', 'ö', 2]]];
+        yield 'ident.ton #34 latin small O stroke ident' => ['ø', [['ident', 'ø', 2]]];
+        yield 'ident.ton #35 greek lower numeral sign ident' => ['ͽ', [['ident', 'ͽ', 2]]];
+        yield 'ident.ton #36 multiplication sign delim' => ['×x', [
+            ['delim', '×', 2],
+            ['ident', 'x', 1],
+        ]];
+        yield 'ident.ton #37 division sign delim' => ['÷x', [
+            ['delim', '÷', 2],
+            ['ident', 'x', 1],
+        ]];
+        yield 'ident.ton #38 greek question mark delim' => [';x', [
+            ['delim', ';', 2],
+            ['ident', 'x', 1],
+        ]];
+        yield 'ident.ton #39 null ident' => ["\0", [['ident', "\u{FFFD}", 1]]];
+        yield 'ident.ton #40 embedded null' => ["Mass\0Effect", [['ident', "Mass\u{FFFD}Effect", 11]]];
+        yield 'ident.ton #41 trailing null' => ["Mass_Effect\0", [['ident', "Mass_Effect\u{FFFD}", 12]]];
+        yield 'ident.ton #42 invalid escape before FF' => ["Mass\\\fEffect", [
+            ['ident', 'Mass', 4],
+            ['delim', '\\', 1],
+            ['whitespace', "\n", 1],
+            ['ident', 'Effect', 6],
+        ]];
+        yield 'ident.ton #43 form feed between identifiers' => ["Mass\fEffect", [
+            ['ident', 'Mass', 4],
+            ['whitespace', "\n", 1],
+            ['ident', 'Effect', 6],
+        ]];
+    }
+
     #[DataProvider('upstreamSingleTokenProvider')]
     #[DataProvider('upstreamWhitespaceProvider')]
     #[DataProvider('upstreamCommentProvider')]
     #[DataProvider('upstreamHashProvider')]
     #[DataProvider('upstreamReverseSolidusProvider')]
+    #[DataProvider('upstreamIdentProvider')]
     public function testUpstreamTokenizerFixtures(string $css, array $expected): void
     {
         $tokens = (new Tokenizer())->tokenize($css);

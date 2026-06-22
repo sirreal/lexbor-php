@@ -8,6 +8,7 @@ use Lexbor\Encoding\Utf8;
 
 final class Tokenizer
 {
+    private const int ERROR_CODE_POINT = 0x1FFFFF;
     private const string REPLACEMENT_CHARACTER = "\u{FFFD}";
 
     /**
@@ -61,8 +62,9 @@ final class Tokenizer
                 continue;
             }
 
-            $tokens[] = new Token('delim', $char, 1);
-            $offset++;
+            [$value, $tokenLength] = self::consumeDelimiter($css, $offset);
+            $tokens[] = new Token('delim', $value, $tokenLength);
+            $offset += $tokenLength;
         }
 
         return $tokens;
@@ -140,7 +142,7 @@ final class Tokenizer
         $length = strlen($css);
         $cursor = $offset + 1;
 
-        if ($cursor >= $length || (! self::isNameByte($css[$cursor]) && ! self::isValidEscape($css, $cursor))) {
+        if ($cursor >= $length || (! self::isNameAt($css, $cursor) && ! self::isValidEscape($css, $cursor))) {
             return null;
         }
 
@@ -182,7 +184,31 @@ final class Tokenizer
                 continue;
             }
 
-            if (! self::isNameByte($char)) {
+            if (ord($char) >= 0x80) {
+                [$codePoint, $sequence, $sequenceLength] = self::consumeUtf8CodePoint($css, $offset);
+
+                if ($codePoint === self::ERROR_CODE_POINT) {
+                    $value .= self::REPLACEMENT_CHARACTER;
+                    $offset++;
+                    continue;
+                }
+
+                if ($codePoint >= 0xD800 && $codePoint <= 0xDFFF) {
+                    $value .= self::REPLACEMENT_CHARACTER;
+                    $offset += $sequenceLength;
+                    continue;
+                }
+
+                if (! self::isNonAsciiNameCodePoint($codePoint)) {
+                    break;
+                }
+
+                $value .= $sequence;
+                $offset += $sequenceLength;
+                continue;
+            }
+
+            if (! self::isAsciiNameByte($char)) {
                 break;
             }
 
@@ -234,12 +260,13 @@ final class Tokenizer
         $char = $css[$offset];
 
         if ($char === '-') {
-            $next = $css[$offset + 1] ?? '';
+            $nextOffset = $offset + 1;
+            $next = $css[$nextOffset] ?? '';
 
-            return $next === '-' || self::isNameStartByte($next) || self::isValidEscape($css, $offset + 1);
+            return $next === '-' || self::isNameStartAt($css, $nextOffset) || self::isValidEscape($css, $nextOffset);
         }
 
-        return self::isNameStartByte($char) || self::isValidEscape($css, $offset);
+        return self::isNameStartAt($css, $offset) || self::isValidEscape($css, $offset);
     }
 
     private static function isValidEscape(string $css, int $offset): bool
@@ -253,20 +280,94 @@ final class Tokenizer
         return $next === '' || ! self::isNewline($next);
     }
 
-    private static function isNameStartByte(string $char): bool
+    private static function isNameStartAt(string $css, int $offset): bool
+    {
+        $char = $css[$offset] ?? '';
+
+        if ($char === '') {
+            return false;
+        }
+
+        if (ord($char) < 0x80) {
+            return self::isAsciiNameStartByte($char);
+        }
+
+        [$codePoint] = self::consumeUtf8CodePoint($css, $offset);
+
+        return $codePoint === self::ERROR_CODE_POINT || self::isNonAsciiNameCodePoint($codePoint);
+    }
+
+    private static function isNameAt(string $css, int $offset): bool
+    {
+        $char = $css[$offset] ?? '';
+
+        if ($char === '') {
+            return false;
+        }
+
+        if (ord($char) < 0x80) {
+            return self::isAsciiNameByte($char);
+        }
+
+        [$codePoint] = self::consumeUtf8CodePoint($css, $offset);
+
+        return $codePoint === self::ERROR_CODE_POINT || self::isNonAsciiNameCodePoint($codePoint);
+    }
+
+    private static function isAsciiNameStartByte(string $char): bool
     {
         return ($char >= 'A' && $char <= 'Z')
             || ($char >= 'a' && $char <= 'z')
             || $char === '_'
-            || $char === "\0"
-            || ($char !== '' && ord($char) >= 0x80);
+            || $char === "\0";
     }
 
-    private static function isNameByte(string $char): bool
+    private static function isAsciiNameByte(string $char): bool
     {
-        return self::isNameStartByte($char)
+        return self::isAsciiNameStartByte($char)
             || ($char >= '0' && $char <= '9')
             || $char === '-';
+    }
+
+    private static function isNonAsciiNameCodePoint(int $codePoint): bool
+    {
+        if ($codePoint <= 0x218F) {
+            if ($codePoint <= 0x00F6) {
+                if ($codePoint === 0x00B7) {
+                    return true;
+                }
+
+                if ($codePoint >= 0x00C0) {
+                    return $codePoint <= 0x00D6 || $codePoint >= 0x00D8;
+                }
+            } elseif ($codePoint >= 0x00F8) {
+                if ($codePoint <= 0x037D) {
+                    return true;
+                }
+
+                if ($codePoint >= 0x037F) {
+                    return $codePoint <= 0x1FFF || $codePoint >= 0x2070;
+                }
+            }
+        } elseif ($codePoint >= 0x2C00) {
+            if ($codePoint <= 0xFDCF) {
+                if ($codePoint <= 0x2FEF) {
+                    return true;
+                }
+
+                if ($codePoint >= 0x3001) {
+                    return $codePoint <= 0xDFFF || $codePoint >= 0xF900;
+                }
+            } elseif ($codePoint >= 0xFDF0) {
+                if ($codePoint <= 0xFFFD) {
+                    return true;
+                }
+
+                return $codePoint >= 0x10000 && $codePoint <= 0x10FFFF;
+            }
+        }
+
+        return $codePoint === 0x200C || $codePoint === 0x200D || $codePoint === 0x203F || $codePoint === 0x2040;
     }
 
     private static function isHexDigit(string $char): bool
@@ -283,6 +384,100 @@ final class Tokenizer
         }
 
         return Utf8::encodeCodePoint($codePoint);
+    }
+
+    /**
+     * @return array{string, int}
+     */
+    private static function consumeDelimiter(string $css, int $offset): array
+    {
+        if (ord($css[$offset]) < 0x80) {
+            return [$css[$offset], 1];
+        }
+
+        [$codePoint, $sequence, $sequenceLength] = self::consumeUtf8CodePoint($css, $offset);
+
+        return [
+            $codePoint === self::ERROR_CODE_POINT ? self::REPLACEMENT_CHARACTER : $sequence,
+            $codePoint === self::ERROR_CODE_POINT ? 1 : $sequenceLength,
+        ];
+    }
+
+    /**
+     * @return array{int, string, int}
+     */
+    private static function consumeUtf8CodePoint(string $css, int $offset): array
+    {
+        $length = strlen($css);
+        $first = ord($css[$offset]);
+
+        if ($first <= 0xDF) {
+            if ($first < 0xC2 || $offset + 1 >= $length) {
+                return [self::ERROR_CODE_POINT, $css[$offset], 1];
+            }
+
+            $second = ord($css[$offset + 1]);
+
+            if ($second < 0x80 || $second > 0xBF) {
+                return [self::ERROR_CODE_POINT, $css[$offset], 1];
+            }
+
+            return [(($first & 0x1F) << 6) | ($second & 0x3F), substr($css, $offset, 2), 2];
+        }
+
+        if ($first < 0xF0) {
+            if ($offset + 2 >= $length) {
+                return [self::ERROR_CODE_POINT, $css[$offset], 1];
+            }
+
+            $second = ord($css[$offset + 1]);
+            $third = ord($css[$offset + 2]);
+
+            if (
+                ($first === 0xE0 && ($second < 0xA0 || $second > 0xBF))
+                || ($first !== 0xE0 && ($second < 0x80 || $second > 0xBF))
+                || $third < 0x80
+                || $third > 0xBF
+            ) {
+                return [self::ERROR_CODE_POINT, $css[$offset], 1];
+            }
+
+            return [
+                (($first & 0x0F) << 12) | (($second & 0x3F) << 6) | ($third & 0x3F),
+                substr($css, $offset, 3),
+                3,
+            ];
+        }
+
+        if ($first < 0xF5) {
+            if ($offset + 3 >= $length) {
+                return [self::ERROR_CODE_POINT, $css[$offset], 1];
+            }
+
+            $second = ord($css[$offset + 1]);
+            $third = ord($css[$offset + 2]);
+            $fourth = ord($css[$offset + 3]);
+
+            if (
+                ($first === 0xF0 && ($second < 0x90 || $second > 0xBF))
+                || ($first === 0xF4 && ($second < 0x80 || $second > 0x8F))
+                || ($first !== 0xF0 && $first !== 0xF4 && ($second < 0x80 || $second > 0xBF))
+                || $third < 0x80
+                || $third > 0xBF
+                || $fourth < 0x80
+                || $fourth > 0xBF
+            ) {
+                return [self::ERROR_CODE_POINT, $css[$offset], 1];
+            }
+
+            return [
+                (($first & 0x07) << 18) | (($second & 0x3F) << 12) | (($third & 0x3F) << 6) | ($fourth & 0x3F),
+                substr($css, $offset, 4),
+                4,
+            ];
+        }
+
+        return [self::ERROR_CODE_POINT, $css[$offset], 1];
     }
 
     private static function isWhitespace(string $char): bool
