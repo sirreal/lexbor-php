@@ -9,12 +9,14 @@ use Lexbor\Dom\DocumentFragment;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
 use Lexbor\Dom\NodeType;
+use Lexbor\Dom\Text;
 
 final class Document extends Node
 {
     private Element $body;
     private TagRegistry $tags;
     private bool $quirksMode = false;
+    private bool $scripting = false;
 
     public function __construct()
     {
@@ -66,6 +68,11 @@ final class Document extends Node
         return new DocumentFragment($this);
     }
 
+    public function createTextNode(string $data): Text
+    {
+        return new Text($data, $this, Tag::TEXT);
+    }
+
     public function createInterfaceByTagId(int $tagId): Node
     {
         return InterfaceFactory::create($this, $tagId);
@@ -79,6 +86,16 @@ final class Document extends Node
     public function isQuirksMode(): bool
     {
         return $this->quirksMode;
+    }
+
+    public function isScriptingEnabled(): bool
+    {
+        return $this->scripting;
+    }
+
+    public function setScriptingEnabled(bool $scripting): void
+    {
+        $this->scripting = $scripting;
     }
 
     private function parseFragmentInto(Node $root, string $html): void
