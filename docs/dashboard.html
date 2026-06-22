@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Lexbor PHP Port Dashboard</title>
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #1f2933;
+            --muted: #5f6c7b;
+            --line: #d8dee6;
+            --panel: #f7f9fb;
+            --accent: #0f766e;
+            --accent-weak: #d8f3ee;
+            --warn: #9a5b00;
+            --warn-weak: #fff2cc;
+            --empty: #e8edf2;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: var(--ink);
+            background: #ffffff;
+        }
+
+        header,
+        main {
+            width: min(1180px, calc(100% - 32px));
+            margin: 0 auto;
+        }
+
+        header {
+            padding: 28px 0 18px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        h1 {
+            margin: 0 0 6px;
+            font-size: 1.65rem;
+            line-height: 1.2;
+        }
+
+        p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        main {
+            padding: 22px 0 40px;
+            display: grid;
+            gap: 22px;
+        }
+
+        .metrics {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .metric,
+        section {
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: var(--panel);
+        }
+
+        .metric {
+            padding: 14px;
+        }
+
+        .metric strong {
+            display: block;
+            font-size: 1.5rem;
+            line-height: 1.2;
+        }
+
+        .metric span {
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        section {
+            padding: 16px;
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            font-size: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--line);
+            vertical-align: top;
+            font-size: 0.92rem;
+        }
+
+        th {
+            color: #344054;
+            background: #eef3f7;
+            font-weight: 650;
+        }
+
+        tr:last-child td {
+            border-bottom: 0;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            min-height: 24px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 0.82rem;
+            font-weight: 650;
+            white-space: nowrap;
+        }
+
+        .done {
+            color: var(--accent);
+            background: var(--accent-weak);
+        }
+
+        .todo {
+            color: var(--warn);
+            background: var(--warn-weak);
+        }
+
+        .bar {
+            width: 100%;
+            height: 10px;
+            border-radius: 999px;
+            background: var(--empty);
+            overflow: hidden;
+        }
+
+        .bar span {
+            display: block;
+            height: 100%;
+            background: var(--accent);
+        }
+
+        .dependency-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .node {
+            min-height: 74px;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 8px;
+            background: #ffffff;
+        }
+
+        .node strong {
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .node span {
+            color: var(--muted);
+            font-size: 0.86rem;
+            line-height: 1.4;
+        }
+
+        @media (max-width: 760px) {
+            .metrics,
+            .dependency-grid {
+                grid-template-columns: 1fr;
+            }
+
+            th,
+            td {
+                padding: 9px 8px;
+                font-size: 0.86rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Lexbor PHP Port Dashboard</h1>
+        <p>Project tracker for the zero-runtime-dependency PHP implementation. Last updated: 2026-06-22.</p>
+    </header>
+
+    <main>
+        <div class="metrics" aria-label="Project metrics">
+            <div class="metric">
+                <strong>14 / 14</strong>
+                <span>PHPUnit tests passing</span>
+            </div>
+            <div class="metric">
+                <strong>100%</strong>
+                <span>Passing rate for ported tests</span>
+            </div>
+            <div class="metric">
+                <strong>1 / 9</strong>
+                <span>Requested components started</span>
+            </div>
+            <div class="metric">
+                <strong>0</strong>
+                <span>Runtime package dependencies</span>
+            </div>
+        </div>
+
+        <section>
+            <h2>Component Progress</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Status</th>
+                        <th>Tests</th>
+                        <th>Passing</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Punycode</td>
+                        <td><span class="status done">Implemented slice</span></td>
+                        <td>14 total; 7 ported from upstream base.c</td>
+                        <td><div class="bar" aria-label="100 percent"><span style="width: 100%"></span></div></td>
+                        <td>Character, large-buffer, code point, unchanged-flag, delimiter-error, invalid-digit, and Lexbor UTF-8 byte-shape coverage.</td>
+                    </tr>
+                    <tr>
+                        <td>Encoding</td>
+                        <td><span class="status todo">Foundation only</span></td>
+                        <td>0 upstream encoding suites ported</td>
+                        <td><div class="bar" aria-label="0 percent"><span style="width: 0%"></span></div></td>
+                        <td>Lexbor byte-shape UTF-8 helper added for Punycode; full encoding tables remain.</td>
+                    </tr>
+                    <tr>
+                        <td>Unicode</td>
+                        <td><span class="status todo">Not started</span></td>
+                        <td>0</td>
+                        <td><div class="bar" aria-label="0 percent"><span style="width: 0%"></span></div></td>
+                        <td>Needed for normalization and IDNA.</td>
+                    </tr>
+                    <tr>
+                        <td>URL</td>
+                        <td><span class="status todo">Not started</span></td>
+                        <td>0</td>
+                        <td><div class="bar" aria-label="0 percent"><span style="width: 0%"></span></div></td>
+                        <td>Depends on Encoding, Unicode, and Punycode for host handling.</td>
+                    </tr>
+                    <tr>
+                        <td>DOM, HTML, CSS, Layout, Fonts</td>
+                        <td><span class="status todo">Not started</span></td>
+                        <td>0</td>
+                        <td><div class="bar" aria-label="0 percent"><span style="width: 0%"></span></div></td>
+                        <td>DOM and HTML should precede selectors/style/layout work.</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section>
+            <h2>Dependency Map</h2>
+            <div class="dependency-grid">
+                <div class="node"><strong>Encoding</strong><span>Feeds Unicode decoding, HTML prescan, URL parsing, and Punycode UTF-8 boundaries.</span></div>
+                <div class="node"><strong>Unicode</strong><span>Builds on Encoding; required for normalization, IDNA, URL hosts, and selectors.</span></div>
+                <div class="node"><strong>Punycode</strong><span>Uses Encoding UTF-8 helpers; later plugs into URL and Unicode IDNA workflows.</span></div>
+                <div class="node"><strong>DOM</strong><span>Core tree model for HTML, selectors, CSS attachment, layout, and serialization.</span></div>
+                <div class="node"><strong>HTML</strong><span>Depends on DOM and Encoding; provides parser/tokenizer behavior for style and layout.</span></div>
+                <div class="node"><strong>CSS</strong><span>Depends on DOM/HTML for selectors and style application; feeds Layout.</span></div>
+                <div class="node"><strong>URL</strong><span>Depends on Encoding, Unicode, and Punycode for standards-aligned parsing.</span></div>
+                <div class="node"><strong>Fonts</strong><span>Feeds Layout once CSS computed values exist.</span></div>
+                <div class="node"><strong>Layout</strong><span>Depends on DOM, HTML, CSS, URL resource handling, and Fonts.</span></div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>
