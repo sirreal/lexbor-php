@@ -56,7 +56,7 @@ final class Parser
                 return [
                     'type' => 'qualified-rule',
                     'prelude' => $prelude,
-                    'block' => $this->consumeEmptyBlock($tokens, $offset),
+                    'block' => $this->consumeBlock($tokens, $offset),
                 ];
             }
 
@@ -89,28 +89,103 @@ final class Parser
      * @param list<Token> $tokens
      * @return list<array<string, mixed>>
      */
-    private function consumeEmptyBlock(array $tokens, int &$offset): array
+    private function consumeBlock(array $tokens, int &$offset): array
     {
-        $depth = 0;
+        $declarations = [];
 
         while ($offset < count($tokens)) {
             $token = $tokens[$offset];
 
-            if ($token->type === 'left-curly-bracket') {
-                $depth++;
-            } elseif ($token->type === 'right-curly-bracket') {
-                if ($depth === 0) {
-                    $offset++;
-                    break;
-                }
+            if ($token->type === 'right-curly-bracket') {
+                $offset++;
+                break;
+            }
 
-                $depth--;
+            if (in_array($token->type, ['whitespace', 'semicolon', 'comment'], true)) {
+                $offset++;
+                continue;
+            }
+
+            if ($token->type === 'ident' && $this->hasDeclarationColon($tokens, $offset)) {
+                $declarations[] = $this->consumeDeclaration($tokens, $offset);
+                continue;
             }
 
             $offset++;
         }
 
-        return [];
+        if ($declarations === []) {
+            return [];
+        }
+
+        return [
+            [
+                'type' => 'declarations',
+                'declarations' => $declarations,
+            ],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private function hasDeclarationColon(array $tokens, int $offset): bool
+    {
+        $offset++;
+
+        while ($offset < count($tokens) && $tokens[$offset]->type === 'whitespace') {
+            $offset++;
+        }
+
+        return ($tokens[$offset] ?? null)?->type === 'colon';
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{name: string, value: string, important: bool}
+     */
+    private function consumeDeclaration(array $tokens, int &$offset): array
+    {
+        $name = $tokens[$offset]->value;
+        $offset++;
+
+        while ($offset < count($tokens) && $tokens[$offset]->type === 'whitespace') {
+            $offset++;
+        }
+
+        if (($tokens[$offset] ?? null)?->type === 'colon') {
+            $offset++;
+        }
+
+        while ($offset < count($tokens) && $tokens[$offset]->type === 'whitespace') {
+            $offset++;
+        }
+
+        $valueTokens = [];
+        $blockEndStack = [];
+
+        while ($offset < count($tokens)) {
+            $token = $tokens[$offset];
+
+            if ($blockEndStack === [] && $token->type === 'right-curly-bracket') {
+                break;
+            }
+
+            if ($blockEndStack === [] && $token->type === 'semicolon') {
+                $offset++;
+                break;
+            }
+
+            $valueTokens[] = $token;
+            $this->updateBlockEndStack($blockEndStack, $token);
+            $offset++;
+        }
+
+        return [
+            'name' => $name,
+            'value' => self::serializeComponentValue($valueTokens),
+            'important' => false,
+        ];
     }
 
     /**
@@ -144,5 +219,31 @@ final class Parser
             'type' => $token->type,
             'value' => $token->value,
         ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function serializeComponentValue(array $tokens): string
+    {
+        while ($tokens !== [] && $tokens[0]->type === 'whitespace') {
+            array_shift($tokens);
+        }
+
+        while ($tokens !== [] && $tokens[array_key_last($tokens)]->type === 'whitespace') {
+            array_pop($tokens);
+        }
+
+        $value = '';
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'comment') {
+                continue;
+            }
+
+            $value .= $token->value;
+        }
+
+        return $value;
     }
 }

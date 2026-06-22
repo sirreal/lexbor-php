@@ -13,7 +13,7 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, prelude: list<array{type: string, value: string}>, block: list<array<string, mixed>>}>}>
      */
-    public static function upstreamQualifiedPreludeProvider(): iterable
+    public static function upstreamQualifiedProvider(): iterable
     {
         yield 'qualified.ton #1 selector prelude' => ['#id .class', [
             [
@@ -121,13 +121,183 @@ final class ParserTest extends TestCase
                 'block' => [],
             ],
         ]];
+        yield 'qualified.ton #9 simple declaration' => ['#id {width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #10 leading block whitespace before declaration' => ['#id {   width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #11 declaration whitespace before colon' => ['#id {width    : 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #12 declaration without whitespace after colon' => ['#id {width:10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #13 declaration whitespace after colon' => ['#id {width:    10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #14 trailing declaration whitespace before block end' => ['#id {width: 10px    }', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #15 leading semicolon before declaration' => ['#id {;width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #16 bracketed semicolon in declaration value' => ['#id {width: [;] 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '[;] 10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #17 trailing semicolons after declaration' => ['#id {width: 10px;;;;;}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #18 declaration at EOF in block' => ['#id {width: 10px', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
     }
 
     /**
      * @param list<array{type: string, prelude: list<array{type: string, value: string}>, block: list<array<string, mixed>>}> $expected
      */
-    #[DataProvider('upstreamQualifiedPreludeProvider')]
-    public function testUpstreamQualifiedPreludeFixtures(string $css, array $expected): void
+    #[DataProvider('upstreamQualifiedProvider')]
+    public function testUpstreamQualifiedFixtures(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseListRules($css));
     }
