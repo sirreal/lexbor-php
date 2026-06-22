@@ -511,6 +511,166 @@ final class ParserTest extends TestCase
                 ],
             ],
         ]];
+        yield 'qualified.ton #30 at-rule block then spaced declaration' => ['#id {@Naruto Orochimaru {Sasuke Uchiha} width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'at-rule',
+                        'name' => '@Naruto',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Orochimaru'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                        ],
+                        'block' => [
+                            [
+                                'type' => 'qualified-rule',
+                                'prelude' => [
+                                    ['type' => 'ident', 'value' => 'Sasuke'],
+                                    ['type' => 'whitespace', 'value' => ' '],
+                                    ['type' => 'ident', 'value' => 'Uchiha'],
+                                ],
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #31 at-rule block adjacent declaration' => ['#id {@Naruto Orochimaru {Sasuke Uchiha}width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'at-rule',
+                        'name' => '@Naruto',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Orochimaru'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                        ],
+                        'block' => [
+                            [
+                                'type' => 'qualified-rule',
+                                'prelude' => [
+                                    ['type' => 'ident', 'value' => 'Sasuke'],
+                                    ['type' => 'whitespace', 'value' => ' '],
+                                    ['type' => 'ident', 'value' => 'Uchiha'],
+                                ],
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #32 broken declaration as qualified rule' => ['#id {broken declaration}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'broken'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'declaration'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #33 broken declaration with colon as qualified rule' => ['#id {broken de:claration}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'broken'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'de'],
+                            ['type' => 'colon', 'value' => ':'],
+                            ['type' => 'ident', 'value' => 'claration'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #34 broken qualified rule then spaced declaration' => ['#id {broken declaration; width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'broken'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'declaration'],
+                        ],
+                    ],
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'qualified.ton #35 broken qualified rule adjacent declaration' => ['#id {broken declaration;width: 10px}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'broken'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'declaration'],
+                        ],
+                    ],
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
     }
 
     /**

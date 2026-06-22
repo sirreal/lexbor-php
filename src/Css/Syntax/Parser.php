@@ -163,6 +163,11 @@ final class Parser
                 if ($token->type === 'left-curly-bracket') {
                     $offset++;
                     $rule['block'] = $this->consumeBlock($tokens, $offset, true);
+
+                    if (! $this->isAtBlockLastItem($tokens, $offset)) {
+                        $rule['block'] = self::stripEmptyQualifiedBlocks($rule['block']);
+                    }
+
                     return $rule;
                 }
             }
@@ -190,6 +195,18 @@ final class Parser
         }
 
         return ($tokens[$offset] ?? null)?->type === 'colon';
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private function isAtBlockLastItem(array $tokens, int $offset): bool
+    {
+        while ($offset < count($tokens) && in_array($tokens[$offset]->type, ['whitespace', 'comment'], true)) {
+            $offset++;
+        }
+
+        return $offset >= count($tokens) || $tokens[$offset]->type === 'right-curly-bracket';
     }
 
     /**
@@ -327,6 +344,21 @@ final class Parser
         ];
 
         $declarations = [];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $items
+     * @return list<array<string, mixed>>
+     */
+    private static function stripEmptyQualifiedBlocks(array $items): array
+    {
+        foreach ($items as &$item) {
+            if (($item['type'] ?? null) === 'qualified-rule' && ($item['block'] ?? null) === []) {
+                unset($item['block']);
+            }
+        }
+
+        return $items;
     }
 
     /**
