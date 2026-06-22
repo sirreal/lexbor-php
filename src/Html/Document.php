@@ -13,12 +13,14 @@ use Lexbor\Dom\NodeType;
 final class Document extends Node
 {
     private Element $body;
+    private TagRegistry $tags;
 
     public function __construct()
     {
-        parent::__construct(NodeType::Document, $this);
+        parent::__construct(NodeType::Document, $this, Tag::DOCUMENT);
 
-        $this->body = new Element('body', ownerDocument: $this);
+        $this->tags = new TagRegistry();
+        $this->body = new Element('body', tagId: Tag::BODY, ownerDocument: $this);
         $this->appendChild($this->body);
     }
 
@@ -42,12 +44,24 @@ final class Document extends Node
 
     public function createElement(string $tagName): Element
     {
-        return new Element(strtolower($tagName), ownerDocument: $this);
+        $tagId = $this->tags->idForName($tagName);
+
+        return new Element(TagRegistry::nameById($tagId) ?? strtolower($tagName), tagId: $tagId, ownerDocument: $this);
     }
 
     public function createDocumentFragment(): DocumentFragment
     {
         return new DocumentFragment($this);
+    }
+
+    public function createInterfaceByTagId(int $tagId): Node
+    {
+        return InterfaceFactory::create($this, $tagId);
+    }
+
+    public function tags(): TagRegistry
+    {
+        return $this->tags;
     }
 
     /**
@@ -56,15 +70,14 @@ final class Document extends Node
     private function parseTopLevelElements(string $html): array
     {
         $elements = [];
-        $pattern = '~<([A-Za-z][A-Za-z0-9:-]*)([^>]*)>\s*</\1>~';
+        $pattern = '~<([A-Za-z][A-Za-z0-9:-]*)([^>]*)>.*?</\1>~si';
 
         if (preg_match_all($pattern, $html, $matches, PREG_SET_ORDER) !== false) {
             foreach ($matches as $match) {
-                $elements[] = new Element(
-                    strtolower($match[1]),
-                    $this->parseAttributes($match[2]),
-                    $this,
-                );
+                $element = $this->createElement($match[1]);
+                $element->attributes = $this->parseAttributes($match[2]);
+
+                $elements[] = $element;
             }
         }
 

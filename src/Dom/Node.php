@@ -15,6 +15,7 @@ class Node
     public function __construct(
         public readonly NodeType $type,
         public ?object $ownerDocument = null,
+        public ?int $localName = null,
     ) {
     }
 

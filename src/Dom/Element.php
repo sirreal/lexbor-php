@@ -12,9 +12,10 @@ final class Element extends Node
     public function __construct(
         public readonly string $tagName,
         public array $attributes = [],
+        public ?int $tagId = null,
         ?object $ownerDocument = null,
     ) {
-        parent::__construct(NodeType::Element, $ownerDocument);
+        parent::__construct(NodeType::Element, $ownerDocument, $tagId);
     }
 
     public function getAttribute(string $name): ?string
@@ -27,4 +28,3 @@ final class Element extends Node
         $this->attributes[$name] = $value;
     }
 }
-
