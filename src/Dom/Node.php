@@ -466,6 +466,10 @@ class Node
             return new Text($this->data, $ownerDocument, $this->localName);
         }
 
+        if ($this instanceof Comment) {
+            return new Comment($this->data, $ownerDocument, $this->localName);
+        }
+
         if ($this instanceof DocumentType) {
             return new DocumentType($this->name(), $this->publicId(), $this->systemId(), $ownerDocument, $this->localName);
         }

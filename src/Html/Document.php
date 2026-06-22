@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lexbor\Html;
 
 use Lexbor\Core\Status;
+use Lexbor\Dom\Comment;
 use Lexbor\Dom\DocumentFragment;
 use Lexbor\Dom\DocumentType;
 use Lexbor\Dom\Element;
@@ -109,6 +110,11 @@ final class Document extends Node
         return new Text($data, $this, Tag::TEXT);
     }
 
+    public function createComment(string $data): Comment
+    {
+        return new Comment($data, $this, Tag::EM_COMMENT);
+    }
+
     public function createInterfaceByTagId(int $tagId): Node
     {
         return InterfaceFactory::create($this, $tagId);
@@ -142,25 +148,32 @@ final class Document extends Node
     private function parseFragmentInto(Node $root, string $html): void
     {
         $stack = [$root];
-        $pattern = '~<\s*(/)?\s*([A-Za-z][A-Za-z0-9:-]*)((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>~s';
+        $pattern = '~<!--(?<comment>.*?)-->|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z][A-Za-z0-9:-]*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~s';
         $offset = 0;
 
-        while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE, $offset) === 1) {
+        while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
             $tagStart = $match[0][1];
             if ($tagStart > $offset) {
                 $this->appendText($stack[count($stack) - 1], substr($html, $offset, $tagStart - $offset));
             }
 
             $tagEnd = $tagStart + strlen($match[0][0]);
-            $tagName = strtolower($match[2][0]);
 
-            if ($match[1][0] === '/') {
+            if (($match['comment'][1] ?? -1) !== -1) {
+                $this->appendComment($stack[count($stack) - 1], $match['comment'][0]);
+                $offset = $tagEnd;
+                continue;
+            }
+
+            $tagName = strtolower($match['tag'][0]);
+
+            if ($match['closing'][0] === '/') {
                 $this->closeElement($stack, $tagName);
                 $offset = $tagEnd;
                 continue;
             }
 
-            $attributeSource = rtrim($match[3][0]);
+            $attributeSource = rtrim($match['attributes'][0] ?? '');
             $selfClosing = str_ends_with($attributeSource, '/');
             if ($selfClosing) {
                 $attributeSource = rtrim(substr($attributeSource, 0, -1));
@@ -189,6 +202,11 @@ final class Document extends Node
         if ($offset < strlen($html)) {
             $this->appendText($stack[count($stack) - 1], substr($html, $offset));
         }
+    }
+
+    private function appendComment(Node $parent, string $data): void
+    {
+        $parent->appendChild($this->createComment($data));
     }
 
     private function appendText(Node $parent, string $data): void

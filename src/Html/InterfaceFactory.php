@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lexbor\Html;
 
+use Lexbor\Dom\Comment;
 use Lexbor\Dom\DocumentType;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
@@ -15,7 +16,7 @@ final class InterfaceFactory
     public static function create(Document $document, int $tagId): Node
     {
         return match ($tagId) {
-            Tag::EM_COMMENT => new Node(NodeType::Comment, $document, $tagId),
+            Tag::EM_COMMENT => new Comment('', $document, $tagId),
             Tag::DOCUMENT => new Node(NodeType::Document, $document, $tagId),
             Tag::EM_DOCTYPE => new DocumentType(ownerDocument: $document, localName: $tagId),
             Tag::TEXT => new Text('', $document, $tagId),

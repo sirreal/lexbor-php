@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lexbor\Tests\Html;
 
 use Lexbor\Core\Status;
+use Lexbor\Dom\Comment;
 use Lexbor\Dom\Text;
 use Lexbor\Html\Document;
 use Lexbor\Html\Serializer;
@@ -14,6 +15,30 @@ use PHPUnit\Framework\TestCase;
 
 final class SerializeTest extends TestCase
 {
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function upstreamSerializeExtCommentProvider(): iterable
+    {
+        yield 'comment.ton #1 simple comment' => ['<div><!-- hello --></div>', '<div><!-- hello --></div>'];
+        yield 'comment.ton #2 empty comment' => ['<div><!----></div>', '<div><!----></div>'];
+        yield 'comment.ton #3 space comment' => ['<div><!-- --></div>', '<div><!-- --></div>'];
+        yield 'comment.ton #4 raw markup characters' => ['<div><!-- <div> & "quote" --></div>', '<div><!-- <div> & "quote" --></div>'];
+        yield 'comment.ton #5 greater-than character' => ['<div><!-- a > b --></div>', '<div><!-- a > b --></div>'];
+        yield 'comment.ton #6 multiline comment' => ["<div><!-- line1\nline2 --></div>", "<div><!-- line1\nline2 --></div>"];
+        yield 'comment.ton #7 top-level comment' => ['x<!-- top level -->', 'x<!-- top level -->'];
+        yield 'comment.ton #8 adjacent comments' => ['<div><!-- a --><!-- b --><!-- c --></div>', '<div><!-- a --><!-- b --><!-- c --></div>'];
+        yield 'comment.ton #9 comment around text' => ['<div><!-- before -->text<!-- after --></div>', '<div><!-- before -->text<!-- after --></div>'];
+        yield 'comment.ton #10 long comment' => [
+            '<div><!-- This is a very long comment that goes on and on and on and contains lots of text to test serialization of lengthy comment nodes --></div>',
+            '<div><!-- This is a very long comment that goes on and on and on and contains lots of text to test serialization of lengthy comment nodes --></div>',
+        ];
+        yield 'comment.ton #26 nested comments' => [
+            '<div><!-- L1 --><p><!-- L2 --><span><!-- L3 --></span></p></div>',
+            '<div><!-- L1 --><p><!-- L2 --><span><!-- L3 --></span></p></div>',
+        ];
+    }
+
     /**
      * @return iterable<string, array{string, string}>
      */
@@ -59,6 +84,15 @@ final class SerializeTest extends TestCase
         yield 'node.h param' => ['param'];
     }
 
+    #[DataProvider('upstreamSerializeExtCommentProvider')]
+    public function testUpstreamSerializeExtCommentFixtures(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
     #[DataProvider('upstreamSerializeExtElementProvider')]
     public function testUpstreamSerializeExtElementFixtures(string $html, string $expected): void
     {
@@ -98,6 +132,19 @@ final class SerializeTest extends TestCase
 
         self::assertInstanceOf(Text::class, $text);
         self::assertSame('', $text->data);
+    }
+
+    public function testCommentNodeCreatedByTagInterface(): void
+    {
+        $document = new Document();
+        $comment = $document->createInterfaceByTagId(Tag::EM_COMMENT);
+
+        self::assertInstanceOf(Comment::class, $comment);
+        self::assertSame('', $comment->data);
+
+        $comment->data = 'edited';
+
+        self::assertSame('<!--edited-->', Serializer::serialize($comment));
     }
 
     public function testTextNodeSerializesEscapedMarkupWhenAppended(): void

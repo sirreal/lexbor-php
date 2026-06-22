@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lexbor\Tests\Html;
 
 use Lexbor\Core\Status;
+use Lexbor\Dom\Comment;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\ExceptionCode;
 use Lexbor\Dom\Text;
@@ -116,6 +117,23 @@ final class CloneTest extends TestCase
         $clone = $document->elementsByTagName('div')[0]->cloneNode(true);
 
         self::assertSame('<div x="abc"><span>darkness</span><xx>xXx</xx></div>', Serializer::serialize($clone));
+    }
+
+    public function testDeepCloneCopiesCommentDescendants(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<div><!-- original --></div>'));
+
+        $clone = $document->elementsByTagName('div')[0]->cloneNode(true);
+        $comment = $clone->firstChild;
+
+        self::assertInstanceOf(Comment::class, $comment);
+        self::assertSame(' original ', $comment->data);
+
+        $comment->data = ' changed ';
+
+        self::assertSame('<div><!-- changed --></div>', Serializer::serialize($clone));
+        self::assertSame('<div><!-- original --></div>', Serializer::serialize($document->elementsByTagName('div')[0]));
     }
 
     private function documentWithFixture(): Document

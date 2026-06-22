@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lexbor\Html;
 
+use Lexbor\Dom\Comment;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
 use Lexbor\Dom\Text;
@@ -14,6 +15,10 @@ final class Serializer
     {
         if ($node instanceof Text) {
             return self::serializeText($node);
+        }
+
+        if ($node instanceof Comment) {
+            return self::serializeComment($node);
         }
 
         if ($node instanceof Element) {
@@ -27,6 +32,10 @@ final class Serializer
     {
         if ($node instanceof Text) {
             return self::serializeText($node);
+        }
+
+        if ($node instanceof Comment) {
+            return self::serializeComment($node);
         }
 
         if ($node instanceof Element && $node->tagName !== 'body') {
@@ -48,6 +57,10 @@ final class Serializer
             $data = self::hasRawTextParent($node) ? $node->data : self::escapeText($node->data);
 
             return self::indent($indent) . '"' . $data . '"' . "\n";
+        }
+
+        if ($node instanceof Comment) {
+            return self::indent($indent) . self::serializeComment($node) . "\n";
         }
 
         if ($node instanceof Element) {
@@ -91,6 +104,11 @@ final class Serializer
         }
 
         return $out;
+    }
+
+    private static function serializeComment(Comment $comment): string
+    {
+        return sprintf('<!--%s-->', $comment->data);
     }
 
     private static function serializeText(Text $text): string
