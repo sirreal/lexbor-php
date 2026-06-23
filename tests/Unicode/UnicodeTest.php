@@ -7,6 +7,7 @@ namespace Lexbor\Tests\Unicode;
 use Lexbor\Encoding\Utf8;
 use Lexbor\Unicode\Unicode;
 use Lexbor\Unicode\UnicodeData;
+use Lexbor\Unicode\UnicodeNormalizer;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -130,6 +131,44 @@ final class UnicodeTest extends TestCase
 
         self::assertSame([0x00C1], Unicode::normalizeCodePoints([0x0041, 0x1FFFFF, 0x0301], Unicode::FORM_NFC));
         self::assertSame([0x0041, 0x0301], Unicode::normalizeCodePoints([0x0041, 0x1FFFFF, 0x0301], Unicode::FORM_NFD));
+        self::assertSame([0x0300, 0x0315], Unicode::normalizeCodePoints([0x0315, 0x0300], Unicode::FORM_NFD));
+    }
+
+    public function testUpstreamNormalizationStreamingEdgeFixture(): void
+    {
+        $source = "\u{1E9B}\u{0323}";
+        $normalizer = new UnicodeNormalizer(Unicode::FORM_NFC);
+        $normalized = $normalizer->normalize(substr($source, 0, 2), false);
+        $normalized .= $normalizer->normalize(substr($source, 2), true);
+
+        self::assertSame([0x1E9B, 0x0323], Utf8::decode($normalized));
+
+        $source = Utf8::encodeCodePoint(0x04D6)
+            . str_repeat(Utf8::encodeCodePoint(0x0300), 1024)
+            . Utf8::encodeCodePoint(0x0415)
+            . 'abc';
+        $expected = Utf8::decode($source);
+
+        $normalizer = new UnicodeNormalizer(Unicode::FORM_NFC);
+        $normalizer->setFlushCount(1024);
+
+        self::assertSame($expected, Utf8::decode($normalizer->normalize($source, true)));
+
+        $normalizer = new UnicodeNormalizer(Unicode::FORM_NFC);
+        $normalizer->setFlushCount(1024);
+        $normalized = '';
+        $flushedBeforeEnd = false;
+
+        for ($i = 0, $length = strlen($source); $i < $length; $i++) {
+            $chunk = $normalizer->normalize($source[$i], false);
+            $flushedBeforeEnd = $flushedBeforeEnd || $chunk !== '';
+            $normalized .= $chunk;
+        }
+
+        self::assertTrue($flushedBeforeEnd);
+        $normalized .= $normalizer->finish();
+
+        self::assertSame($expected, Utf8::decode($normalized));
     }
 
     public function testGeneratedNormalizationTablesMatchUpstreamResource(): void
