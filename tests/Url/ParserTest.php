@@ -264,6 +264,63 @@ final class ParserTest extends TestCase
         self::assertNull((new Parser())->parse('https://[1:2:192.0.2.1::]'));
     }
 
+    public function testProtocolMutationClearsNewDefaultPort(): void
+    {
+        $http = (new Parser())->parse('https://lexbor.com:80/');
+        $https = (new Parser())->parse('http://lexbor.com:443/');
+        $sameScheme = (new Parser())->parse('http://lexbor.com:80/');
+
+        self::assertNotNull($http);
+        self::assertNotNull($https);
+        self::assertNotNull($sameScheme);
+
+        self::assertTrue($http->setProtocol('http'));
+        self::assertTrue($https->setProtocol('https'));
+        self::assertTrue($sameScheme->setProtocol('http'));
+        self::assertSame('http://lexbor.com/', $http->serialize());
+        self::assertSame('https://lexbor.com/', $https->serialize());
+        self::assertSame('http://lexbor.com/', $sameScheme->serialize());
+        self::assertNull($http->port);
+        self::assertNull($https->port);
+        self::assertNull($sameScheme->port);
+    }
+
+    public function testProtocolMutationDoesNotCrossFileBoundary(): void
+    {
+        $file = (new Parser())->parse('file:///tmp/a');
+        $http = (new Parser())->parse('http://lexbor.com/');
+
+        self::assertNotNull($file);
+        self::assertNotNull($http);
+
+        self::assertTrue($file->setProtocol('http'));
+        self::assertTrue($http->setProtocol('file'));
+        self::assertSame('file:///tmp/a', $file->serialize());
+        self::assertSame('http://lexbor.com/', $http->serialize());
+    }
+
+    public function testProtocolMutationStripsAsciiTabNewlineAndCarriageReturn(): void
+    {
+        $leadingTab = (new Parser())->parse('https://lexbor.com/');
+        $innerNewline = (new Parser())->parse('https://lexbor.com/');
+        $innerTab = (new Parser())->parse('http://lexbor.com/');
+        $trailingCarriageReturn = (new Parser())->parse('https://lexbor.com/');
+
+        self::assertNotNull($leadingTab);
+        self::assertNotNull($innerNewline);
+        self::assertNotNull($innerTab);
+        self::assertNotNull($trailingCarriageReturn);
+
+        self::assertTrue($leadingTab->setProtocol("\thttp"));
+        self::assertTrue($innerNewline->setProtocol("ht\ntp"));
+        self::assertTrue($innerTab->setProtocol("http\ts"));
+        self::assertTrue($trailingCarriageReturn->setProtocol("http\r"));
+        self::assertSame('http://lexbor.com/', $leadingTab->serialize());
+        self::assertSame('http://lexbor.com/', $innerNewline->serialize());
+        self::assertSame('https://lexbor.com/', $innerTab->serialize());
+        self::assertSame('http://lexbor.com/', $trailingCarriageReturn->serialize());
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -734,6 +791,42 @@ final class ParserTest extends TestCase
         }
 
         self::assertNotNull($url);
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamChangesProtocolProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            $changes = $entry['change'];
+            $activeChanges = array_filter(
+                $changes,
+                static fn (mixed $value): bool => $value !== null,
+            );
+
+            if (array_keys($activeChanges) !== ['protocol']) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesProtocolProvider')]
+    public function testUpstreamChangesProtocolFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+
+        self::assertNotNull($url);
+        self::assertSame(! ($entry['failed'] ?? false), $url->setProtocol($entry['change']['protocol']));
         self::assertSame($entry['done'], $url->serialize());
         self::assertSame($entry['scheme'], $url->scheme);
         self::assertSame($entry['host'] ?? '', $url->host);
