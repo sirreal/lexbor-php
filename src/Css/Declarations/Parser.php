@@ -10,6 +10,7 @@ use Lexbor\Css\Syntax\Tokenizer;
 final class Parser
 {
     private const array KNOWN_PROPERTIES = [
+        'text-decoration' => true,
         'width' => true,
     ];
 
@@ -206,7 +207,10 @@ final class Parser
             }
         }
 
-        return self::isValidWidth($value, $valueTokens) ? 'property' : 'undef';
+        return match ($property) {
+            'width' => self::isValidWidth($value, $valueTokens) ? 'property' : 'undef',
+            default => 'undef',
+        };
     }
 
     /**

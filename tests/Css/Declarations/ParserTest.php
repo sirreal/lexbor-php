@@ -93,6 +93,9 @@ final class ParserTest extends TestCase
             ['type' => 'undef', 'name' => '', 'value' => '@at-some xxx {yyy} @at-some xxx', 'important' => false],
             ['type' => 'custom', 'name' => 'myprop', 'value' => '1px', 'important' => false],
         ]];
+        yield 'syntax.ton #26 known text-decoration with invalid value' => ['text-decoration: hsl(20 blah err', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'hsl(20 blah err', 'important' => false],
+        ]];
     }
 
     /**
