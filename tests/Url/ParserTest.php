@@ -220,6 +220,28 @@ final class ParserTest extends TestCase
         self::assertSame('/', $url->path);
     }
 
+    public function testNonSpecialNumericHostIsNotIpv4Normalized(): void
+    {
+        $url = (new Parser())->parse('my://16909060');
+
+        self::assertNotNull($url);
+        self::assertSame('my://16909060', $url->serialize());
+        self::assertSame('16909060', $url->host);
+    }
+
+    public function testOversizedIpv4NumberRejectsWithoutOverflow(): void
+    {
+        $url = (new Parser())->parse('https://' . str_repeat('9', 80));
+
+        self::assertNull($url);
+    }
+
+    public function testInvalidOctalIpv4CandidatesAreRejected(): void
+    {
+        self::assertNull((new Parser())->parse('https://09'));
+        self::assertNull((new Parser())->parse('https://1.2.3.09'));
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -637,6 +659,36 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamIpv4Provider(): iterable
+    {
+        foreach (self::urlFixtureEntries('ipv4.ton') as $index => $entry) {
+            yield 'ipv4.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamIpv4Provider')]
+    public function testUpstreamIpv4Fixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url'], null, $entry['encoding'] ?? 'utf-8');
+
+        if ($entry['failed'] ?? false) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
      * @return iterable<string, array{string, ?array<string, mixed>}>
      */
     public static function upstreamFileProvider(): iterable
@@ -898,6 +950,7 @@ final class ParserTest extends TestCase
         }
 
         $json = preg_replace('/\/\*.*?\*\//s', '', $contents);
+        $json = preg_replace('/,\s*([\]}])/m', '$1', $json ?? '');
         $entries = json_decode($json ?? '', true, flags: JSON_THROW_ON_ERROR);
 
         if (! is_array($entries)) {

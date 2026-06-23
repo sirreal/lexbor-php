@@ -10,6 +10,8 @@ use Lexbor\Punycode\Punycode;
 
 final class Parser
 {
+    private const IPV4_UINT32_LIMIT = 4294967296;
+
     public function parse(string $input, ?Url $base = null, string $encoding = 'utf-8'): ?Url
     {
         $errors = [];
@@ -88,7 +90,12 @@ final class Parser
         }
 
         [$authority, $path] = $this->splitAuthorityAndPath($input);
-        [$username, $password, $host, $port] = $this->parseAuthority($authority, $errors, $scheme === 'file');
+        [$username, $password, $host, $port] = $this->parseAuthority(
+            $authority,
+            $errors,
+            $scheme === 'file',
+            $this->isSpecialScheme($scheme),
+        );
 
         if ($host === null) {
             return null;
@@ -143,8 +150,12 @@ final class Parser
      * @param list<ValidationError> $errors
      * @return array{string, string, ?string, ?int}
      */
-    private function parseAuthority(string $authority, array &$errors, bool $allowFileDriveHost = false): array
-    {
+    private function parseAuthority(
+        string $authority,
+        array &$errors,
+        bool $allowFileDriveHost = false,
+        bool $parseIpv4 = true,
+    ): array {
         $username = '';
         $password = '';
         $hostPort = $authority;
@@ -168,7 +179,7 @@ final class Parser
         }
 
         if (! ($allowFileDriveHost && preg_match('/^[A-Za-z]\|$/', $host) === 1)) {
-            $host = $this->parseHost($host);
+            $host = $this->parseHost($host, $parseIpv4);
         }
 
         if ($host === null) {
@@ -179,7 +190,7 @@ final class Parser
         return [$username, $password, $host, $port];
     }
 
-    private function parseHost(string $host): ?string
+    private function parseHost(string $host, bool $parseIpv4): ?string
     {
         if ($host === '') {
             return '';
@@ -191,21 +202,160 @@ final class Parser
             return null;
         }
 
-        if (! $this->hasNonAsciiByte($host)) {
-            return $host;
+        if ($this->hasNonAsciiByte($host)) {
+            try {
+                $host = $this->domainToAscii($host);
+            } catch (LexborException) {
+                return null;
+            }
+
+            if ($host === '' || $this->hasForbiddenDomainCodePoint($host)) {
+                return null;
+            }
         }
 
-        try {
-            $host = $this->domainToAscii($host);
-        } catch (LexborException) {
-            return null;
-        }
-
-        if ($host === '' || $this->hasForbiddenDomainCodePoint($host)) {
-            return null;
+        if ($parseIpv4 && $this->isIpv4Candidate($host)) {
+            return $this->parseIpv4Host($host);
         }
 
         return $host;
+    }
+
+    private function isIpv4Candidate(string $host): bool
+    {
+        if ($host === '') {
+            return false;
+        }
+
+        if (str_ends_with($host, '.')) {
+            $host = substr($host, 0, -1);
+
+            if ($host === '' || str_ends_with($host, '.')) {
+                return false;
+            }
+        }
+
+        $lastDot = strrpos($host, '.');
+        $lastPart = $lastDot === false ? $host : substr($host, $lastDot + 1);
+
+        if (ctype_digit($lastPart)) {
+            return true;
+        }
+
+        return $this->parseIpv4Number($lastPart) !== null;
+    }
+
+    private function parseIpv4Host(string $host): ?string
+    {
+        $parts = explode('.', $host);
+
+        if ($parts[count($parts) - 1] === '') {
+            array_pop($parts);
+        }
+
+        if ($parts === [] || count($parts) > 4) {
+            return null;
+        }
+
+        $numbers = [];
+
+        foreach ($parts as $part) {
+            if ($part === '') {
+                return null;
+            }
+
+            $number = $this->parseIpv4Number($part);
+
+            if ($number === null) {
+                return null;
+            }
+
+            $numbers[] = $number;
+        }
+
+        $count = count($numbers);
+        $last = $numbers[$count - 1];
+        $lastLimit = 256 ** (5 - $count);
+
+        if ($last >= $lastLimit) {
+            return null;
+        }
+
+        $ip = $last;
+
+        for ($index = 0; $index < $count - 1; $index++) {
+            if ($numbers[$index] > 255) {
+                return null;
+            }
+
+            $ip += $numbers[$index] * (256 ** (3 - $index));
+        }
+
+        return sprintf(
+            '%d.%d.%d.%d',
+            ($ip >> 24) & 0xFF,
+            ($ip >> 16) & 0xFF,
+            ($ip >> 8) & 0xFF,
+            $ip & 0xFF,
+        );
+    }
+
+    private function parseIpv4Number(string $part): ?int
+    {
+        if ($part === '') {
+            return null;
+        }
+
+        $base = 10;
+        $digits = $part;
+
+        if (strlen($part) > 1 && $part[0] === '0') {
+            if ($part[1] === 'x') {
+                $base = 16;
+                $digits = substr($part, 2);
+            } else {
+                $base = 8;
+                $digits = substr($part, 1);
+            }
+
+            if ($digits === '') {
+                return 0;
+            }
+        }
+
+        $number = 0;
+        $length = strlen($digits);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $digit = $this->ipv4DigitValue($digits[$offset], $base);
+
+            if ($digit === null) {
+                return null;
+            }
+
+            if ($number > intdiv(self::IPV4_UINT32_LIMIT - $digit, $base)) {
+                return self::IPV4_UINT32_LIMIT;
+            }
+
+            $number = $number * $base + $digit;
+        }
+
+        return $number;
+    }
+
+    private function ipv4DigitValue(string $byte, int $base): ?int
+    {
+        $value = ord($byte);
+
+        if ($value >= 0x30 && $value <= 0x39) {
+            $digit = $value - 0x30;
+        } elseif ($value >= 0x61 && $value <= 0x66) {
+            $digit = $value - 0x61 + 10;
+        } else {
+            return null;
+        }
+
+        return $digit < $base ? $digit : null;
     }
 
     private function percentDecodeHost(string $host): string
