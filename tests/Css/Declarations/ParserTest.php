@@ -57,6 +57,42 @@ final class ParserTest extends TestCase
         yield 'syntax.ton #14 custom property with whitespace around colon' => ['myprop         :    1px  ;', [
             ['type' => 'custom', 'name' => 'myprop', 'value' => '1px', 'important' => false],
         ]];
+        yield 'syntax.ton #15 invalid numeric declaration name' => ['1px: drop', [
+            ['type' => 'undef', 'name' => '', 'value' => '1px: drop', 'important' => false],
+        ]];
+        yield 'syntax.ton #16 invalid declaration without colon' => ['name value', [
+            ['type' => 'undef', 'name' => '', 'value' => 'name value', 'important' => false],
+        ]];
+        yield 'syntax.ton #17 invalid, custom, then invalid declarations' => ['name value; myprop: 1px; 2px: broken', [
+            ['type' => 'undef', 'name' => '', 'value' => 'name value', 'important' => false],
+            ['type' => 'custom', 'name' => 'myprop', 'value' => '1px', 'important' => false],
+            ['type' => 'undef', 'name' => '', 'value' => '2px: broken', 'important' => false],
+        ]];
+        yield 'syntax.ton #18 at-rule with block is invalid declaration' => ['@at-some prelude {block}', [
+            ['type' => 'undef', 'name' => '', 'value' => '@at-some prelude {block}', 'important' => false],
+        ]];
+        yield 'syntax.ton #19 at-rule without semicolon is invalid declaration' => ['@at-some prelude', [
+            ['type' => 'undef', 'name' => '', 'value' => '@at-some prelude', 'important' => false],
+        ]];
+        yield 'syntax.ton #20 semicolon-terminated at-rule is invalid declaration' => ['@at-some prelude;', [
+            ['type' => 'undef', 'name' => '', 'value' => '@at-some prelude', 'important' => false],
+        ]];
+        yield 'syntax.ton #21 at-rule with empty block is invalid declaration' => ['@at-some prelude {}', [
+            ['type' => 'undef', 'name' => '', 'value' => '@at-some prelude {}', 'important' => false],
+        ]];
+        yield 'syntax.ton #22 bare at-rule is invalid declaration' => ['@at-some', [
+            ['type' => 'undef', 'name' => '', 'value' => '@at-some', 'important' => false],
+        ]];
+        yield 'syntax.ton #23 bare semicolon-terminated at-rule is invalid declaration' => ['@at-some;', [
+            ['type' => 'undef', 'name' => '', 'value' => '@at-some', 'important' => false],
+        ]];
+        yield 'syntax.ton #24 adjacent at-rule block is invalid declaration' => ['@at-some{xxx}', [
+            ['type' => 'undef', 'name' => '', 'value' => '@at-some{xxx}', 'important' => false],
+        ]];
+        yield 'syntax.ton #25 at-rule invalid declaration then custom declaration' => ['@at-some xxx {yyy} @at-some xxx; myprop: 1px', [
+            ['type' => 'undef', 'name' => '', 'value' => '@at-some xxx {yyy} @at-some xxx', 'important' => false],
+            ['type' => 'custom', 'name' => 'myprop', 'value' => '1px', 'important' => false],
+        ]];
     }
 
     /**
