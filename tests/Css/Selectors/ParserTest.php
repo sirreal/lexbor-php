@@ -137,6 +137,12 @@ final class ParserTest extends TestCase
         yield 'selectors.c #125 has selector skips nested block containing comma' => [':has(:not(div, {([([{, .class}])])}), #hash)', ':has(#hash)', ['Syntax error. Selectors. Unexpected token: {', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #126 selector list with compound nth-child and nested not has' => ['div > :nth-child(2n+1):not(:has(a)),p:has(a):not([href]) span, div', 'div > :nth-child(odd):not(:has(a)), p:has(a):not([href]) span, div', []];
         yield 'selectors.c #127 selector list with descendant nth-child and nested not has' => ['div > :nth-child(2n+1) :not(:has(a)),p:has(a) :not([href]) span, div', 'div > :nth-child(odd) :not(:has(a)), p:has(a) :not([href]) span, div', []];
+        yield 'selectors.c #147 spaced dash-match attribute selector' => ['[lang |= en]', '[lang|="en"]', []];
+        yield 'selectors.c #148 tight dash-match attribute selector' => ['[lang|=en]', '[lang|="en"]', []];
+        yield 'selectors.c #149 dash-match attribute selector with spaced value' => ['[lang|= en]', '[lang|="en"]', []];
+        yield 'selectors.c #150 dash-match attribute selector with spaced name' => ['[lang |=en]', '[lang|="en"]', []];
+        yield 'selectors.c #151 rejects dash-match attribute selector with spaced matcher' => ['[lang| =en]', '', ['Syntax error. Selectors. Unexpected token:  ']];
+        yield 'selectors.c #152 rejects spaced dash-match attribute selector matcher' => ['[lang | = en]', '', ['Syntax error. Selectors. Unexpected token:  ']];
     }
 
     /**
@@ -175,6 +181,16 @@ final class ParserTest extends TestCase
         yield 'selectors.c #144 relative selector with nth-child' => ['parseRelative', '+ :nth-child(2n+1)', '+ :nth-child(odd)', []];
         yield 'selectors.c #145 relative selector rejects child combinator' => ['parseRelative', '+ :nth-child(2n+1) > span', '', ['Syntax error. Selectors. Unexpected token: >']];
         yield 'selectors.c #146 relative selector rejects selector-list comma' => ['parseRelative', '+ :nth-child(2n+1), span', '', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors.c #153 simple list spaced dash-match attribute selector' => ['parseSimpleList', '[lang |= en]', '[lang|="en"]', []];
+        yield 'selectors.c #154 simple list tight dash-match attribute selector' => ['parseSimpleList', '[lang|=en]', '[lang|="en"]', []];
+        yield 'selectors.c #155 simple list dash-match attribute selector with spaced value' => ['parseSimpleList', '[lang|= en]', '[lang|="en"]', []];
+        yield 'selectors.c #156 simple list dash-match attribute selector with spaced name' => ['parseSimpleList', '[lang |=en]', '[lang|="en"]', []];
+        yield 'selectors.c #157 simple list rejects dash-match attribute selector with spaced matcher' => ['parseSimpleList', '[lang| =en]', '', ['Syntax error. Selectors. Unexpected token:  ']];
+        yield 'selectors.c #158 simple list rejects spaced dash-match attribute selector matcher' => ['parseSimpleList', '[lang | = en]', '', ['Syntax error. Selectors. Unexpected token:  ']];
+        yield 'selectors.c #159 compound has rejects spaced dash-match attribute selector matcher' => ['parseCompound', ':has([lang | = en])', '', ['Syntax error. Selectors. Unexpected token:  ', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
+        yield 'selectors.c #160 compound has rejects dash-match attribute selector with spaced matcher' => ['parseCompound', ':has([lang| =en])', '', ['Syntax error. Selectors. Unexpected token:  ', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
+        yield 'selectors.c #161 compound has with dash-match attribute selector' => ['parseCompound', ':has([lang|=en])', ':has([lang|="en"])', []];
+        yield 'selectors.c #162 compound has skips invalid dash-match attribute selector' => ['parseCompound', ':has([lang| =en], #id)', ':has(#id)', ['Syntax error. Selectors. Unexpected token:  ']];
     }
 
     /**

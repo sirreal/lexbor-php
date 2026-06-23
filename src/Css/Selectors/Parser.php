@@ -557,18 +557,25 @@ final class Parser
             return self::attributeEof("[{$name->value}]");
         }
 
-        if ($token->type === 'delim' && $token->value !== '=') {
-            $lookahead = $offset + 1;
-            self::skipWhitespace($tokens, $lookahead);
-
-            return self::error($tokens[$lookahead]->value ?? 'END-OF-FILE');
-        }
-
-        if ($token->type !== 'delim' || $token->value !== '=') {
+        if ($token->type !== 'delim') {
             return self::error($token->value);
         }
 
-        $offset++;
+        $matcher = '';
+        if ($token->value === '=') {
+            $offset++;
+        } elseif (in_array($token->value, ['~', '|', '^', '$', '*'], true)) {
+            $next = $tokens[$offset + 1] ?? null;
+            if ($next?->type !== 'delim' || $next->value !== '=') {
+                return self::error($next?->value ?? 'END-OF-FILE');
+            }
+
+            $matcher = $token->value;
+            $offset += 2;
+        } else {
+            return self::error($token->value);
+        }
+
         self::skipWhitespace($tokens, $offset);
 
         $value = self::serializeAttributeValue($tokens[$offset] ?? null);
@@ -591,7 +598,7 @@ final class Parser
             self::skipWhitespace($tokens, $offset);
         }
 
-        $serialized = "[{$name->value}={$value}{$modifier}]";
+        $serialized = "[{$name->value}{$matcher}={$value}{$modifier}]";
         $token = $tokens[$offset] ?? null;
         if ($token === null) {
             return self::attributeEof($serialized);
