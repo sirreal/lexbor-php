@@ -572,6 +572,41 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamSlowPathProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('slow_path.ton') as $index => $entry) {
+            yield 'slow_path.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamSlowPathProvider')]
+    public function testUpstreamSlowPathFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url'], null, $entry['encoding'] ?? 'utf-8');
+
+        if ($entry['failed'] ?? false) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+        self::assertSame($entry['query'] ?? null, $url->query);
+        self::assertSame($entry['fragment'] ?? null, $url->fragment);
+
+        if (array_key_exists('path_length', $entry)) {
+            self::assertSame($entry['path_length'], self::pathSegmentCount($url->path));
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, ?array<string, mixed>}>
      */
     public static function upstreamFileProvider(): iterable
