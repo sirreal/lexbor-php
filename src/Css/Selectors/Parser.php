@@ -282,13 +282,17 @@ final class Parser
         }
 
         $name = strtolower(substr($tokens[1]->value, 0, -1));
-        if ($name !== 'not') {
-            return null;
+        if ($name !== 'not' && $name !== 'has') {
+            return self::error($tokens[1]->value);
         }
 
         [$body, $closed, $trailing] = self::pseudoFunctionBody($tokens);
         if ($trailing !== []) {
             return self::error(self::firstUnexpectedToken($trailing));
+        }
+
+        if ($name === 'has') {
+            return $this->parseHasPseudoFunction($body, $closed);
         }
 
         $selectorParts = self::splitSelectorList($body);
@@ -346,6 +350,50 @@ final class Parser
 
         return [
             'value' => sprintf(':%s(%s)', $name, implode(', ', $serialized)),
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * @param list<Token> $body
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseHasPseudoFunction(array $body, bool $closed): array
+    {
+        [$selectorParts, $errors] = self::splitForgivingSelectorList($body);
+        $serialized = [];
+
+        foreach ($selectorParts as $selectorTokens) {
+            $selector = $this->parseSimpleSelector($selectorTokens);
+            if ($selector === null) {
+                $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($selectorTokens));
+                continue;
+            }
+
+            if ($selector['errors'] !== []) {
+                array_push($errors, ...$selector['errors']);
+            }
+
+            if ($selector['value'] !== '') {
+                $serialized[] = $selector['value'];
+            }
+        }
+
+        if (! $closed) {
+            $errors[] = self::eofPseudoFunctionError();
+        }
+
+        if ($serialized === []) {
+            $errors[] = self::emptyPseudoFunctionError('has');
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
+        return [
+            'value' => sprintf(':has(%s)', implode(', ', $serialized)),
             'errors' => $errors,
         ];
     }
@@ -548,6 +596,53 @@ final class Parser
         }
 
         return $parts;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{list<list<Token>>, list<string>}
+     */
+    private static function splitForgivingSelectorList(array $tokens): array
+    {
+        $parts = [];
+        $errors = [];
+        $part = [];
+        $depth = 0;
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'function') {
+                $depth++;
+                $part[] = $token;
+                continue;
+            }
+
+            if ($token->type === 'right-parenthesis' && $depth > 0) {
+                $depth--;
+                $part[] = $token;
+                continue;
+            }
+
+            if ($token->type === 'comma' && $depth === 0) {
+                $part = self::trimTokenList($part);
+                if ($part === []) {
+                    $errors[] = self::unexpectedTokenError(',');
+                } else {
+                    $parts[] = $part;
+                }
+
+                $part = [];
+                continue;
+            }
+
+            $part[] = $token;
+        }
+
+        $part = self::trimTokenList($part);
+        if ($part !== []) {
+            $parts[] = $part;
+        }
+
+        return [$parts, $errors];
     }
 
     /**

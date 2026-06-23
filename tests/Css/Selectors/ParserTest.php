@@ -79,6 +79,13 @@ final class ParserTest extends TestCase
         yield 'selectors.c #62 EOF in nested not selector list' => [':not(div, :not(.class, :not([x], #hash), span)', ':not(div, :not(.class, :not([x], #hash), span))', ['Syntax error. Selectors. End Of File in pseudo function']];
         yield 'selectors.c #63 EOF in nested not selector' => [':not(div, :not(div', ':not(div, :not(div))', ['Syntax error. Selectors. End Of File in pseudo function', 'Syntax error. Selectors. End Of File in pseudo function']];
         yield 'selectors.c #64 EOF in empty nested not selector' => [':not(div, :not(', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE', 'Syntax error. Selectors. End Of File in pseudo function', "Syntax error. Selectors. Pseudo function can't be empty: not()", 'Syntax error. Selectors. End Of File in pseudo function', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors.c #65 has selector skips empty selector after comma' => [':has(div,, .class)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors.c #66 has selector skips leading and repeated empty selectors' => [':has(,div,, .class,)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: ,', 'Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors.c #67 has selector skips invalid nested not selector' => [':has(div, :not(1%), .class)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors.c #68 has selector skips invalid class selector' => [':has(div, .class 1%)', ':has(div)', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors.c #69 has selector keeps valid selector after invalid selector' => [':has(div, .class 1%, #hash)', ':has(div, #hash)', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors.c #70 rejects unknown pseudo function' => [':godofwar(div)', '', ['Syntax error. Selectors. Unexpected token: godofwar(']];
+        yield 'selectors.c #71 has selector skips unknown pseudo function' => [':has(div, :godofwar(div), .class)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: godofwar(']];
     }
 
     /**
