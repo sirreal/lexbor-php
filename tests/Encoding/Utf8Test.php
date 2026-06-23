@@ -97,4 +97,70 @@ final class Utf8Test extends TestCase
 
         self::fail('Expected LexborException for out-of-range UTF-8 code point.');
     }
+
+    /**
+     * @return iterable<string, array{string, list<int>}>
+     */
+    public static function upstreamUtf8DecodeProvider(): iterable
+    {
+        $replacement = Utf8::REPLACEMENT_CODE_POINT;
+        $continue = Utf8::DECODE_CONTINUE;
+
+        yield 'single/utf-8.c decode #1 ascii' => ["\x32", [0x32]];
+        yield 'single/utf-8.c decode #2 invalid two-byte continuation' => ["\xC2\x32", [$replacement, 0x32]];
+        yield 'single/utf-8.c decode #3 two-byte lower edge' => ["\xC2\x80", [0x80]];
+        yield 'single/utf-8.c decode #4 two-byte upper body' => ["\xDF\x80", [0x07C0]];
+        yield 'single/utf-8.c decode #5 three-byte lower edge' => ["\xE0\xA0\x80", [0x0800]];
+        yield 'single/utf-8.c decode #6 repeated three-byte lower edge' => ["\xE0\xA0\x80", [0x0800]];
+        yield 'single/utf-8.c decode #7 invalid E0 second then valid two-byte' => [
+            "\xE0\x7F\xC2\x80",
+            [$replacement, 0x7F, 0x80],
+        ];
+        yield 'single/utf-8.c decode #8 E0 upper second edge' => ["\xE0\xBF\x80", [0x0FC0]];
+        yield 'single/utf-8.c decode #9 invalid E0 second and overlong lead' => [
+            "\xE0\xC0\xC2\x80",
+            [$replacement, $replacement, 0x80],
+        ];
+        yield 'single/utf-8.c decode #10 invalid E0 second then incomplete ED' => [
+            "\xE0\xED\x80",
+            [$replacement, $continue],
+        ];
+        yield 'single/utf-8.c decode #11 ED upper non-surrogate edge' => ["\xED\x9F\x80", [0xD7C0]];
+        yield 'single/utf-8.c decode #12 surrogate sequence' => [
+            "\xED\xA0\x80",
+            [$replacement, $replacement, $replacement],
+        ];
+        yield 'single/utf-8.c decode #13 four-byte lower edge' => ["\xF0\x90\x80\x80", [0x10000]];
+        yield 'single/utf-8.c decode #14 invalid F0 second' => [
+            "\xF0\x8F\x80\x80",
+            [$replacement, $replacement, $replacement, $replacement],
+        ];
+        yield 'single/utf-8.c decode #15 invalid F0 second then valid two-byte' => [
+            "\xF0\x8F\x80\xC2\x80",
+            [$replacement, $replacement, $replacement, 0x80],
+        ];
+        yield 'single/utf-8.c decode #16 F4 upper edge' => ["\xF4\x8F\x80\x80", [0x10F000]];
+        yield 'single/utf-8.c decode #17 invalid F4 second' => [
+            "\xF4\x90\x80\x80",
+            [$replacement, $replacement, $replacement, $replacement],
+        ];
+        yield 'single/utf-8.c decode #18 invalid F4 second then valid two-byte' => [
+            "\xF4\x90\x80\xC2\x80",
+            [$replacement, $replacement, $replacement, 0x80],
+        ];
+        yield 'single/utf-8.c decode #19 invalid fourth byte resumes ascii' => [
+            "\xF4\x8F\x80\x32",
+            [$replacement, 0x32],
+        ];
+        yield 'single/utf-8.c decode #20 Cyrillic letters' => ["\xD0\xB8\xD0\xBD", [0x0438, 0x043D]];
+    }
+
+    /**
+     * @param list<int> $expected
+     */
+    #[DataProvider('upstreamUtf8DecodeProvider')]
+    public function testUpstreamUtf8SingleDecode(string $input, array $expected): void
+    {
+        self::assertSame($expected, Utf8::decodeWithReplacement($input));
+    }
 }

@@ -9,6 +9,9 @@ use Lexbor\Core\Status;
 
 final class Utf8
 {
+    public const int REPLACEMENT_CODE_POINT = 0xFFFD;
+    public const int DECODE_CONTINUE = 0x2FFFFF;
+
     public static function skipUtf8Bom(string $data): string
     {
         return str_starts_with($data, "\xEF\xBB\xBF") ? substr($data, 3) : $data;
@@ -22,6 +25,133 @@ final class Utf8
     public static function skipUtf16LeBom(string $data): string
     {
         return str_starts_with($data, "\xFF\xFE") ? substr($data, 2) : $data;
+    }
+
+    /**
+     * Decodes with Lexbor's UTF-8 single-decoder error handling.
+     *
+     * @return list<int>
+     */
+    public static function decodeWithReplacement(string $data): array
+    {
+        $length = strlen($data);
+        $codePoints = [];
+
+        for ($i = 0; $i < $length;) {
+            $first = ord($data[$i]);
+
+            if ($first <= 0x7F) {
+                $codePoints[] = $first;
+                $i++;
+                continue;
+            }
+
+            if ($first >= 0xC2 && $first <= 0xDF) {
+                if ($i + 1 >= $length) {
+                    $codePoints[] = self::DECODE_CONTINUE;
+                    break;
+                }
+
+                $second = ord($data[$i + 1]);
+
+                if (! self::isContinuationByte($second)) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    $i++;
+                    continue;
+                }
+
+                $codePoints[] = (($first & 0x1F) << 6) | ($second & 0x3F);
+                $i += 2;
+                continue;
+            }
+
+            if ($first >= 0xE0 && $first <= 0xEF) {
+                if ($i + 1 >= $length) {
+                    $codePoints[] = self::DECODE_CONTINUE;
+                    break;
+                }
+
+                $second = ord($data[$i + 1]);
+
+                if (! self::isValidThreeByteSecond($first, $second)) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    $i++;
+                    continue;
+                }
+
+                if ($i + 2 >= $length) {
+                    $codePoints[] = self::DECODE_CONTINUE;
+                    break;
+                }
+
+                $third = ord($data[$i + 2]);
+
+                if (! self::isContinuationByte($third)) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    $i += 2;
+                    continue;
+                }
+
+                $codePoints[] = (($first & 0x0F) << 12)
+                    | (($second & 0x3F) << 6)
+                    | ($third & 0x3F);
+                $i += 3;
+                continue;
+            }
+
+            if ($first >= 0xF0 && $first <= 0xF4) {
+                if ($i + 1 >= $length) {
+                    $codePoints[] = self::DECODE_CONTINUE;
+                    break;
+                }
+
+                $second = ord($data[$i + 1]);
+
+                if (! self::isValidFourByteSecond($first, $second)) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    $i++;
+                    continue;
+                }
+
+                if ($i + 2 >= $length) {
+                    $codePoints[] = self::DECODE_CONTINUE;
+                    break;
+                }
+
+                $third = ord($data[$i + 2]);
+
+                if (! self::isContinuationByte($third)) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    $i += 2;
+                    continue;
+                }
+
+                if ($i + 3 >= $length) {
+                    $codePoints[] = self::DECODE_CONTINUE;
+                    break;
+                }
+
+                $fourth = ord($data[$i + 3]);
+
+                if (! self::isContinuationByte($fourth)) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    $i += 3;
+                    continue;
+                }
+
+                $codePoints[] = (($first & 0x07) << 18)
+                    | (($second & 0x3F) << 12)
+                    | (($third & 0x3F) << 6)
+                    | ($fourth & 0x3F);
+                $i += 4;
+                continue;
+            }
+
+            $codePoints[] = self::REPLACEMENT_CODE_POINT;
+            $i++;
+        }
+
+        return $codePoints;
     }
 
     /**
@@ -134,6 +264,29 @@ final class Utf8
         if (strlen($data) - $offset < $needed) {
             self::unexpected('Truncated UTF-8 sequence.');
         }
+    }
+
+    private static function isContinuationByte(int $byte): bool
+    {
+        return $byte >= 0x80 && $byte <= 0xBF;
+    }
+
+    private static function isValidThreeByteSecond(int $first, int $second): bool
+    {
+        return match ($first) {
+            0xE0 => $second >= 0xA0 && $second <= 0xBF,
+            0xED => $second >= 0x80 && $second <= 0x9F,
+            default => self::isContinuationByte($second),
+        };
+    }
+
+    private static function isValidFourByteSecond(int $first, int $second): bool
+    {
+        return match ($first) {
+            0xF0 => $second >= 0x90 && $second <= 0xBF,
+            0xF4 => $second >= 0x80 && $second <= 0x8F,
+            default => self::isContinuationByte($second),
+        };
     }
 
     private static function unexpected(string $message): never
