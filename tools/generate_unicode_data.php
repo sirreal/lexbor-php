@@ -56,15 +56,66 @@ foreach ($idnaMatches as $match) {
     $idnaEntries[] = $typeByName[$name];
 }
 
+preg_match_all(
+    '/\{\s*([^,{}]+),\s*([^,{}]+),\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}/',
+    captureArray($source, 'lxb_unicode_normalization_entries'),
+    $normalizationMatches,
+    PREG_SET_ORDER,
+);
+
+$normalizationEntries = [];
+foreach ($normalizationMatches as $match) {
+    $normalizationEntries[] = (int) $match[6];
+}
+
+preg_match_all(
+    '/\{\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}/',
+    captureArray($source, 'lxb_unicode_composition_entries'),
+    $compositionEntryMatches,
+    PREG_SET_ORDER,
+);
+
+$compositionEntries = [];
+foreach ($compositionEntryMatches as $match) {
+    $compositionEntries[] = [(int) $match[1], (int) $match[2], (int) $match[3]];
+}
+
+preg_match_all(
+    '/\{\s*(0x[0-9A-Fa-f]+|\d+)\s*,\s*(?:true|false)\s*\}/',
+    captureArray($source, 'lxb_unicode_composition_cps'),
+    $compositionCpMatches,
+    PREG_SET_ORDER,
+);
+
+$compositionCodePoints = [];
+foreach ($compositionCpMatches as $match) {
+    $compositionCodePoints[] = parseNumber($match[1]);
+}
+
 $ranges = [];
 $current = null;
 $nonDisallowedCount = 0;
+$compositionMap = [];
+$compositionPairCount = 0;
 
 foreach (unicodeTableMaps($source) as [$start, $endExclusive, $indexes]) {
     foreach ($indexes as $offset => $entryIndex) {
         $codePoint = $start + $offset;
-        $idnaIndex = $unicodeEntries[$entryIndex][1] ?? 0;
+        [$normalizationIndex, $idnaIndex] = $unicodeEntries[$entryIndex] ?? [0, 0];
         $type = $idnaIndex === 0 ? 2 : ($idnaEntries[$idnaIndex] ?? 2);
+
+        $compositionIndex = $normalizationEntries[$normalizationIndex] ?? 0;
+        [$length, $index, $secondStart] = $compositionEntries[$compositionIndex] ?? [0, 0, 0];
+
+        for ($i = 0; $i < $length; $i++) {
+            $composed = $compositionCodePoints[$index + $i] ?? 0;
+            if ($composed === 0) {
+                continue;
+            }
+
+            $compositionMap[$codePoint][$secondStart + $i] = $composed;
+            $compositionPairCount++;
+        }
 
         if ($type === 2) {
             if ($current !== null) {
@@ -108,7 +159,7 @@ namespace Lexbor\Unicode;
 
 /*
  * Generated from upstream/lexbor/source/lexbor/unicode/res.h by
- * tools/generate_unicode_idna_data.php.
+ * tools/generate_unicode_data.php.
  */
 final class UnicodeData
 {
@@ -126,16 +177,36 @@ foreach ($ranges as [$start, $end, $type]) {
     $output .= sprintf("        [0x%X, 0x%X, %d],\n", $start, $end, $type);
 }
 
+$output .= "    ];\n\n";
+$output .= '    public const int CANONICAL_COMPOSITION_PAIR_COUNT = ' . $compositionPairCount . ";\n\n";
+$output .= "    /**\n";
+$output .= "     * @var array<int, array<int, int>>\n";
+$output .= "     */\n";
+$output .= "    public const array CANONICAL_COMPOSITION_MAP = [\n";
+
+ksort($compositionMap);
+foreach ($compositionMap as $first => $seconds) {
+    ksort($seconds);
+    $output .= sprintf("        0x%X => [\n", $first);
+
+    foreach ($seconds as $second => $composed) {
+        $output .= sprintf("            0x%X => 0x%X,\n", $second, $composed);
+    }
+
+    $output .= "        ],\n";
+}
+
 $output .= "    ];\n";
 $output .= "}\n";
 
 file_put_contents($outputPath, $output);
 
 printf(
-    "Generated %s with %d IDNA type ranges covering %d non-disallowed code points.\n",
+    "Generated %s with %d IDNA type ranges covering %d non-disallowed code points and %d canonical composition pairs.\n",
     $outputPath,
     count($ranges),
     $nonDisallowedCount,
+    $compositionPairCount,
 );
 
 function captureArray(string $source, string $name): string
@@ -151,6 +222,15 @@ function captureArray(string $source, string $name): string
     }
 
     return $match[1];
+}
+
+function parseNumber(string $number): int
+{
+    if (str_starts_with($number, '0x') || str_starts_with($number, '0X')) {
+        return hexdec(substr($number, 2));
+    }
+
+    return (int) $number;
 }
 
 /**

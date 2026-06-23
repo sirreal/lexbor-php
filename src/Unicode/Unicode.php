@@ -46,4 +46,9 @@ final class Unicode
 
         return self::IDNA_DISALLOWED;
     }
+
+    public static function compose(int $first, int $second): ?int
+    {
+        return UnicodeData::CANONICAL_COMPOSITION_MAP[$first][$second] ?? null;
+    }
 }

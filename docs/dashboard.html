@@ -205,7 +205,7 @@
     <main>
         <div class="metrics" aria-label="Project metrics">
             <div class="metric">
-                <strong>1710 / 1710</strong>
+                <strong>1712 / 1712</strong>
                 <span>PHPUnit tests passing</span>
             </div>
             <div class="metric">
@@ -266,9 +266,9 @@
                     <tr>
                         <td>Unicode</td>
                         <td><span class="status done">Implemented slice</span></td>
-                        <td>3 total; 1 ported from unicode/idna_type.c, 1 generated IDNA type table parity walk from unicode/res.h, plus 1 IDNA classifier boundary regression</td>
+                        <td>5 total; 1 ported from unicode/idna_type.c, 1 ported from unicode/composition_test.c, 2 generated IDNA type and canonical composition table parity walks from unicode/res.h, plus 1 IDNA/composition boundary regression</td>
                         <td><div class="bar" aria-label="100 percent"><span style="width: 100%"></span></div></td>
-                        <td>Initial Unicode IDNA type classifier implemented from Lexbor's generated Unicode resource table, including compressed non-disallowed type ranges, upstream edge coverage for U+E00FF, generated table parity against lxb_unicode_table_map_* and lxb_unicode_idna_entries, and boundary checks across every generated range; normalization and full IDNA processing remain.</td>
+                        <td>Initial Unicode IDNA type classifier and canonical composition lookup implemented from Lexbor's generated Unicode resource table, including compressed non-disallowed type ranges, 1,045 canonical composition pairs, upstream edge coverage for U+E00FF, generated table parity against lxb_unicode_table_map_*, lxb_unicode_idna_entries, and composition arrays, plus boundary checks across every generated range; normalization and full IDNA processing remain.</td>
                     </tr>
                     <tr>
                         <td>URL</td>

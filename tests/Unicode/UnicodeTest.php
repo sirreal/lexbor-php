@@ -51,6 +51,25 @@ final class UnicodeTest extends TestCase
         }
     }
 
+    public function testUpstreamCompositionFixture(): void
+    {
+        foreach (self::compositionFixtureRows() as [$first, $second, $composed]) {
+            self::assertSame($composed, Unicode::compose($first, $second));
+        }
+
+        self::assertNull(Unicode::compose(0x0041, 0x0041));
+        self::assertNull(Unicode::compose(-1, 0x0300));
+        self::assertNull(Unicode::compose(0x0041, -1));
+    }
+
+    public function testGeneratedCanonicalCompositionMapMatchesUpstreamResource(): void
+    {
+        $expected = self::expectedCanonicalCompositionMap();
+
+        self::assertSame($expected, UnicodeData::CANONICAL_COMPOSITION_MAP);
+        self::assertSame(self::compositionPairCount($expected), UnicodeData::CANONICAL_COMPOSITION_PAIR_COUNT);
+    }
+
     /**
      * @return array{list<array{int, int, int}>, int}
      */
@@ -152,6 +171,149 @@ final class UnicodeTest extends TestCase
         return $cached;
     }
 
+    /**
+     * @return array<int, array<int, int>>
+     */
+    private static function expectedCanonicalCompositionMap(): array
+    {
+        static $cached = null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $sourcePath = dirname(__DIR__, 2) . '/upstream/lexbor/source/lexbor/unicode/res.h';
+        $source = file_get_contents($sourcePath);
+
+        if ($source === false) {
+            throw new RuntimeException("Unable to read upstream Unicode resource: {$sourcePath}");
+        }
+
+        preg_match_all(
+            '/\{\s*(\d+)\s*,\s*(\d+)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_entries'),
+            $entryMatches,
+            PREG_SET_ORDER,
+        );
+
+        $unicodeEntries = [];
+        foreach ($entryMatches as $match) {
+            $unicodeEntries[] = [(int) $match[1], (int) $match[2]];
+        }
+
+        preg_match_all(
+            '/\{\s*([^,{}]+),\s*([^,{}]+),\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_normalization_entries'),
+            $normalizationMatches,
+            PREG_SET_ORDER,
+        );
+
+        $normalizationEntries = [];
+        foreach ($normalizationMatches as $match) {
+            $normalizationEntries[] = (int) $match[6];
+        }
+
+        preg_match_all(
+            '/\{\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_composition_entries'),
+            $compositionEntryMatches,
+            PREG_SET_ORDER,
+        );
+
+        $compositionEntries = [];
+        foreach ($compositionEntryMatches as $match) {
+            $compositionEntries[] = [(int) $match[1], (int) $match[2], (int) $match[3]];
+        }
+
+        preg_match_all(
+            '/\{\s*(0x[0-9A-Fa-f]+|\d+)\s*,\s*(?:true|false)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_composition_cps'),
+            $compositionCpMatches,
+            PREG_SET_ORDER,
+        );
+
+        $compositionCodePoints = [];
+        foreach ($compositionCpMatches as $match) {
+            $compositionCodePoints[] = self::parseNumber($match[1]);
+        }
+
+        $map = [];
+
+        foreach (self::unicodeTableMaps($source) as [$start, , $indexes]) {
+            foreach ($indexes as $offset => $entryIndex) {
+                $codePoint = $start + $offset;
+                [$normalizationIndex] = $unicodeEntries[$entryIndex] ?? [0, 0];
+                $compositionIndex = $normalizationEntries[$normalizationIndex] ?? 0;
+                [$length, $index, $secondStart] = $compositionEntries[$compositionIndex] ?? [0, 0, 0];
+
+                for ($i = 0; $i < $length; $i++) {
+                    $composed = $compositionCodePoints[$index + $i] ?? 0;
+                    if ($composed === 0) {
+                        continue;
+                    }
+
+                    $map[$codePoint][$secondStart + $i] = $composed;
+                }
+            }
+        }
+
+        ksort($map);
+        foreach ($map as &$seconds) {
+            ksort($seconds);
+        }
+        unset($seconds);
+
+        $cached = $map;
+
+        return $cached;
+    }
+
+    /**
+     * @return list<array{int, int, int}>
+     */
+    private static function compositionFixtureRows(): array
+    {
+        static $rows = null;
+
+        if ($rows !== null) {
+            return $rows;
+        }
+
+        $sourcePath = dirname(__DIR__, 2) . '/upstream/lexbor/test/lexbor/unicode/composition_test.c';
+        $source = file_get_contents($sourcePath);
+
+        if ($source === false) {
+            throw new RuntimeException("Unable to read upstream Unicode composition test: {$sourcePath}");
+        }
+
+        preg_match_all('/\{\s*(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+),\s*(0x[0-9A-Fa-f]+)\s*\}/', $source, $matches, PREG_SET_ORDER);
+
+        $rows = [];
+        foreach ($matches as $match) {
+            $rows[] = [
+                self::parseNumber($match[1]),
+                self::parseNumber($match[2]),
+                self::parseNumber($match[3]),
+            ];
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param array<int, array<int, int>> $map
+     */
+    private static function compositionPairCount(array $map): int
+    {
+        $count = 0;
+
+        foreach ($map as $seconds) {
+            $count += count($seconds);
+        }
+
+        return $count;
+    }
+
     private static function captureArray(string $source, string $name): string
     {
         if (
@@ -216,5 +378,14 @@ final class UnicodeTest extends TestCase
         if ($inMap) {
             throw new RuntimeException('Unterminated Unicode table map.');
         }
+    }
+
+    private static function parseNumber(string $number): int
+    {
+        if (str_starts_with($number, '0x') || str_starts_with($number, '0X')) {
+            return hexdec(substr($number, 2));
+        }
+
+        return (int) $number;
     }
 }
