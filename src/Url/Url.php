@@ -20,6 +20,7 @@ final class Url
         public string $path,
         public ?string $query = null,
         public ?string $fragment = null,
+        public bool $hasAuthority = true,
         private readonly array $errors = [],
     ) {
     }
@@ -40,6 +41,7 @@ final class Url
         $this->path = $url->path;
         $this->query = $url->query;
         $this->fragment = $url->fragment;
+        $this->hasAuthority = $url->hasAuthority;
 
         return true;
     }
@@ -97,6 +99,10 @@ final class Url
 
     public function setHost(string $host): bool
     {
+        if (! $this->hasAuthority) {
+            return true;
+        }
+
         if ($host === '' && $this->hasCredentialsOrPort()) {
             return true;
         }
@@ -126,6 +132,10 @@ final class Url
 
     public function setHostname(string $hostname): bool
     {
+        if (! $this->hasAuthority) {
+            return true;
+        }
+
         if ($hostname === '' && $this->hasCredentialsOrPort()) {
             return true;
         }
@@ -230,6 +240,12 @@ final class Url
 
     public function serialize(): string
     {
+        if (! $this->hasAuthority) {
+            return "{$this->scheme}:{$this->path}"
+                . ($this->query !== null ? "?{$this->query}" : '')
+                . ($this->fragment !== null ? "#{$this->fragment}" : '');
+        }
+
         $authority = $this->host;
 
         if ($this->username !== '' || $this->password !== '') {
@@ -257,7 +273,7 @@ final class Url
 
     private function canHaveCredentials(): bool
     {
-        return $this->host !== '' && $this->scheme !== 'file';
+        return $this->hasAuthority && $this->host !== '' && $this->scheme !== 'file';
     }
 
     private function hasCredentialsOrPort(): bool

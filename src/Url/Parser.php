@@ -67,6 +67,10 @@ final class Parser
             return $this->parseWithScheme($scheme, substr($body, 2), $errors, $encoding);
         }
 
+        if (! $this->isSpecialScheme($scheme)) {
+            return $this->buildUrlWithoutAuthority($scheme, $body, $errors, $encoding);
+        }
+
         if ($this->isSpecialScheme($scheme) && $body !== '' && ! str_starts_with($body, '/')) {
             return $this->parseWithScheme($scheme, $body, $errors, $encoding);
         }
@@ -655,6 +659,33 @@ final class Parser
             $this->percentEncodePath($path, $errors),
             $query !== null ? $this->percentEncodeQuery($query, $scheme, $encoding, $errors) : null,
             $fragment !== null ? $this->percentEncodeFragment($fragment, $errors) : null,
+            true,
+            $errors,
+        );
+    }
+
+    /**
+     * @param list<ValidationError> $errors
+     */
+    private function buildUrlWithoutAuthority(
+        string $scheme,
+        string $pathAndSuffix,
+        array $errors,
+        string $encoding,
+    ): Url {
+        [$pathAndQuery, $fragment] = array_pad(explode('#', $pathAndSuffix, 2), 2, null);
+        [$path, $query] = array_pad(explode('?', $pathAndQuery, 2), 2, null);
+
+        return new Url(
+            $scheme,
+            '',
+            '',
+            '',
+            null,
+            $this->percentEncodePath($path, $errors),
+            $query !== null ? $this->percentEncodeQuery($query, $scheme, $encoding, $errors) : null,
+            $fragment !== null ? $this->percentEncodeFragment($fragment, $errors) : null,
+            false,
             $errors,
         );
     }

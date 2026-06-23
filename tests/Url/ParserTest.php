@@ -229,6 +229,25 @@ final class ParserTest extends TestCase
         self::assertSame('16909060', $url->host);
     }
 
+    public function testNonAuthorityUrlSerializesWithoutSlashesAndIgnoresHostMutation(): void
+    {
+        $url = (new Parser())->parse('data:toto?x=1#frag');
+
+        self::assertNotNull($url);
+        self::assertSame('data:toto?x=1#frag', $url->serialize());
+        self::assertSame('data', $url->scheme);
+        self::assertFalse($url->hasAuthority);
+        self::assertSame('', $url->host);
+        self::assertSame('toto', $url->path);
+        self::assertSame('x=1', $url->query);
+        self::assertSame('frag', $url->fragment);
+        self::assertTrue($url->setHostname('example.com'));
+        self::assertTrue($url->setHost('example.com:123'));
+        self::assertSame('data:toto?x=1#frag', $url->serialize());
+        self::assertSame('', $url->host);
+        self::assertNull($url->port);
+    }
+
     public function testOversizedIpv4NumberRejectsWithoutOverflow(): void
     {
         $url = (new Parser())->parse('https://' . str_repeat('9', 80));
@@ -1170,7 +1189,7 @@ final class ParserTest extends TestCase
     public static function upstreamChangesHostProvider(): iterable
     {
         foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
-            if ($index < 15 || $index > 22) {
+            if (($index < 15 || $index > 22) && ($index < 42 || $index > 44)) {
                 continue;
             }
 
