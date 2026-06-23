@@ -57,6 +57,10 @@ final class Parser
         [$authority, $path] = $this->splitAuthorityAndPath($input);
         [$username, $password, $host, $port] = $this->parseAuthority($authority);
 
+        if ($scheme === 'file') {
+            [$host, $path] = $this->normalizeFileHostAndPath($host, $path);
+        }
+
         return $this->buildUrl($scheme, $username, $password, $host, $port, $path, $errors, $allowEmptyPath);
     }
 
@@ -199,7 +203,20 @@ final class Parser
 
     private function isUnsupportedFileUrl(string $input): bool
     {
-        return preg_match('/^file:\/\/[A-Za-z](?:%7C|\|)\//i', $input) === 1;
+        return preg_match('/^file:\/\/[A-Za-z]%7C\//i', $input) === 1
+            || preg_match('/^file:\/\/[A-Za-z]\|[^\/]/i', $input) === 1;
+    }
+
+    /**
+     * @return array{string, string}
+     */
+    private function normalizeFileHostAndPath(string $host, string $path): array
+    {
+        if (preg_match('/^([A-Za-z])\|$/', $host, $matches) !== 1) {
+            return [$host, $path];
+        }
+
+        return ['', '/' . strtoupper($matches[1]) . ':' . $path];
     }
 
     private function isPathByteAllowed(int $byte): bool

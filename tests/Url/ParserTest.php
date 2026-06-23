@@ -219,4 +219,53 @@ final class ParserTest extends TestCase
         self::assertSame('lexbor.com', $url->host);
         self::assertSame('/', $url->path);
     }
+
+    /**
+     * @return iterable<string, array{string, ?array<string, mixed>}>
+     */
+    public static function upstreamFileProvider(): iterable
+    {
+        yield 'file.ton #1 literal drive pipe' => [
+            'file://C|/my/docs',
+            [
+                'done' => 'file:///C:/my/docs',
+                'scheme' => 'file',
+                'host' => '',
+                'path' => '/C:/my/docs',
+            ],
+        ];
+        yield 'file.ton #2 ordinary file host' => [
+            'file://CdiSk/my/docs',
+            [
+                'done' => 'file://cdisk/my/docs',
+                'scheme' => 'file',
+                'host' => 'cdisk',
+                'path' => '/my/docs',
+            ],
+        ];
+        yield 'file.ton #3 invalid drive-like host' => [
+            'file://C|disk/my/docs',
+            null,
+        ];
+    }
+
+    /**
+     * @param ?array<string, mixed> $expected
+     */
+    #[DataProvider('upstreamFileProvider')]
+    public function testUpstreamFileFixtures(string $source, ?array $expected): void
+    {
+        $url = (new Parser())->parse($source);
+
+        if ($expected === null) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($expected['done'], $url->serialize());
+        self::assertSame($expected['scheme'], $url->scheme);
+        self::assertSame($expected['host'], $url->host);
+        self::assertSame($expected['path'], $url->path);
+    }
 }
