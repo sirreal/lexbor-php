@@ -8,7 +8,7 @@ use Lexbor\Encoding\Utf8;
 
 final class Parser
 {
-    public function parse(string $input, ?Url $base = null): ?Url
+    public function parse(string $input, ?Url $base = null, string $encoding = 'utf-8'): ?Url
     {
         $errors = [];
         $input = $this->sanitizeInput($input, $errors);
@@ -26,7 +26,7 @@ final class Parser
 
             $body = substr($input, 2);
 
-            return $this->parseWithScheme($base->scheme, $body, $errors, $body === '');
+            return $this->parseWithScheme($base->scheme, $body, $errors, $encoding, $body === '');
         }
 
         if ($base !== null && str_starts_with($input, '/')) {
@@ -38,26 +38,32 @@ final class Parser
                 $base->port,
                 $input,
                 $errors,
+                $encoding,
             );
         }
 
         if (! preg_match('/^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/s', $input, $matches)) {
             if (preg_match('/^file:(.*)$/is', $input, $matches) === 1) {
-                return $this->parseWithScheme('file', $matches[1], $errors);
+                return $this->parseWithScheme('file', $matches[1], $errors, $encoding);
             }
 
             $this->appendError($errors, ValidationError::InvalidUrlUnit);
             return null;
         }
 
-        return $this->parseWithScheme(strtolower($matches[1]), $matches[2], $errors);
+        return $this->parseWithScheme(strtolower($matches[1]), $matches[2], $errors, $encoding);
     }
 
     /**
      * @param list<ValidationError> $errors
      */
-    private function parseWithScheme(string $scheme, string $input, array $errors, bool $allowEmptyPath = false): ?Url
-    {
+    private function parseWithScheme(
+        string $scheme,
+        string $input,
+        array $errors,
+        string $encoding,
+        bool $allowEmptyPath = false,
+    ): ?Url {
         [$authority, $path] = $this->splitAuthorityAndPath($input);
         [$username, $password, $host, $port] = $this->parseAuthority($authority, $errors);
 
@@ -78,6 +84,7 @@ final class Parser
             $port,
             $path,
             $errors,
+            $encoding,
             $allowEmptyPath || ! $this->isSpecialScheme($scheme),
         );
     }
@@ -147,6 +154,7 @@ final class Parser
         ?int $port,
         string $pathAndSuffix,
         array $errors,
+        string $encoding = 'utf-8',
         bool $allowEmptyPath = false,
     ): Url {
         [$pathAndQuery, $fragment] = array_pad(explode('#', $pathAndSuffix, 2), 2, null);
@@ -163,7 +171,7 @@ final class Parser
             $host,
             $port,
             $this->percentEncodePath($path, $errors),
-            $query,
+            $query !== null ? $this->percentEncodeQuery($query, $scheme, $encoding, $errors) : null,
             $fragment !== null ? $this->percentEncodeFragment($fragment, $errors) : null,
             $errors,
         );
@@ -243,6 +251,32 @@ final class Parser
     /**
      * @param list<ValidationError> $errors
      */
+    private function percentEncodeQuery(string $query, string $scheme, string $encoding, array &$errors): string
+    {
+        $encoded = '';
+        $isSpecial = $this->isSpecialScheme($scheme);
+
+        foreach (Utf8::decode($query) as $codePoint) {
+            if ($this->isInvalidUrlUnit($codePoint)) {
+                $this->appendError($errors, ValidationError::InvalidUrlUnit);
+            }
+
+            foreach ($this->queryBytesForCodePoint($codePoint, $encoding) as $byte) {
+                if ($byte < 0x80 && $this->isQueryByteAllowed($byte, $isSpecial)) {
+                    $encoded .= chr($byte);
+                    continue;
+                }
+
+                $encoded .= sprintf('%%%02X', $byte);
+            }
+        }
+
+        return $encoded;
+    }
+
+    /**
+     * @param list<ValidationError> $errors
+     */
     private function percentEncodeUserInfo(string $value, array &$errors): string
     {
         $encoded = '';
@@ -312,6 +346,17 @@ final class Parser
             && ! in_array($byte, [0x22, 0x3C, 0x3E, 0x60], true);
     }
 
+    private function isQueryByteAllowed(int $byte, bool $isSpecial): bool
+    {
+        return $byte >= 0x21
+            && $byte <= 0x7E
+            && ! in_array(
+                $byte,
+                $isSpecial ? [0x22, 0x23, 0x27, 0x3C, 0x3E] : [0x22, 0x23, 0x3C, 0x3E],
+                true,
+            );
+    }
+
     private function isUserInfoByteAllowed(int $byte): bool
     {
         return $byte >= 0x21
@@ -351,6 +396,47 @@ final class Parser
         }
 
         return $encoded;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function queryBytesForCodePoint(int $codePoint, string $encoding): array
+    {
+        if ($codePoint < 0x80) {
+            return [$codePoint];
+        }
+
+        return match (strtolower($encoding)) {
+            'shift_jis', 'shift-jis' => $this->shiftJisQueryBytesForCodePoint($codePoint),
+            'iso-2022-jp' => $this->iso2022JpQueryBytesForCodePoint($codePoint),
+            default => array_map('ord', str_split(Utf8::encodeCodePoint($codePoint))),
+        };
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function shiftJisQueryBytesForCodePoint(int $codePoint): array
+    {
+        if ($codePoint === 0x2261) {
+            return [0x81, 0xDF];
+        }
+
+        // Lexbor emits unsupported Shift_JIS query code points as percent-escaped NCRs.
+        return array_map('ord', str_split('%26%23' . $codePoint . '%3B'));
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function iso2022JpQueryBytesForCodePoint(int $codePoint): array
+    {
+        if ($codePoint === 0x00A5) {
+            return [0x1B, 0x28, 0x4A, 0x5C, 0x1B, 0x28, 0x42];
+        }
+
+        return array_map('ord', str_split(Utf8::encodeCodePoint($codePoint)));
     }
 
     /**

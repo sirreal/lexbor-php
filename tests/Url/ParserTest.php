@@ -362,6 +362,161 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, array<string, string>}>
+     */
+    public static function upstreamQueryProvider(): iterable
+    {
+        yield 'query.ton #1 ascii query' => [
+            'https://lexbor.com/?abc=xyz',
+            'utf-8',
+            [
+                'done' => 'https://lexbor.com/?abc=xyz',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=xyz',
+            ],
+        ];
+        yield 'query.ton #2 special query apostrophe' => [
+            "https://lexbor.com/?abc='",
+            'utf-8',
+            [
+                'done' => 'https://lexbor.com/?abc=%27',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=%27',
+            ],
+        ];
+        yield 'query.ton #3 non-special query apostrophe' => [
+            "my://lexbor.com/?abc='",
+            'utf-8',
+            [
+                'done' => "my://lexbor.com/?abc='",
+                'scheme' => 'my',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => "abc='",
+            ],
+        ];
+        yield 'query.ton #4 utf-8 equivalent sign' => [
+            "https://lexbor.com/?abc=\u{2261}",
+            'utf-8',
+            [
+                'done' => 'https://lexbor.com/?abc=%E2%89%A1',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=%E2%89%A1',
+            ],
+        ];
+        yield 'query.ton #5 shift_jis equivalent sign' => [
+            "https://lexbor.com/?abc=\u{2261}",
+            'Shift_JIS',
+            [
+                'done' => 'https://lexbor.com/?abc=%81%DF',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=%81%DF',
+            ],
+        ];
+        yield 'query.ton #6 shift_jis fallback numeric character reference' => [
+            "https://lexbor.com/?abc=\u{203D}",
+            'Shift_JIS',
+            [
+                'done' => 'https://lexbor.com/?abc=%26%238253%3B',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=%26%238253%3B',
+            ],
+        ];
+        yield 'query.ton #7 iso-2022-jp yen sign' => [
+            "https://lexbor.com/?abc=\u{00A5}",
+            'ISO-2022-JP',
+            [
+                'done' => 'https://lexbor.com/?abc=%1B(J\\%1B(B',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=%1B(J\\%1B(B',
+            ],
+        ];
+        yield 'query.ton #8 shift_jis mixed query' => [
+            "https://lexbor.com/?abc=1+1 \u{2261} 2%20\u{203D}",
+            'Shift_JIS',
+            [
+                'done' => 'https://lexbor.com/?abc=1+1%20%81%DF%202%20%26%238253%3B',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=1+1%20%81%DF%202%20%26%238253%3B',
+            ],
+        ];
+        yield 'query.ton #9 utf-8 multiple code points' => [
+            "https://lexbor.com/?abc=\u{2261}\u{203D}",
+            'utf-8',
+            [
+                'done' => 'https://lexbor.com/?abc=%E2%89%A1%E2%80%BD',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=%E2%89%A1%E2%80%BD',
+            ],
+        ];
+        yield 'query.ton #10 query question mark' => [
+            'https://lexbor.com/?abc=x?yz',
+            'utf-8',
+            [
+                'done' => 'https://lexbor.com/?abc=x?yz',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => 'abc=x?yz',
+            ],
+        ];
+        yield 'query.ton #11 leading question mark in query' => [
+            'https://lexbor.com/??abc=xyz',
+            'utf-8',
+            [
+                'done' => 'https://lexbor.com/??abc=xyz',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => '?abc=xyz',
+            ],
+        ];
+        yield 'query.ton #12 empty query' => [
+            'https://lexbor.com/?',
+            'utf-8',
+            [
+                'done' => 'https://lexbor.com/?',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'query' => '',
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, string> $expected
+     */
+    #[DataProvider('upstreamQueryProvider')]
+    public function testUpstreamQueryFixtures(string $source, string $encoding, array $expected): void
+    {
+        $url = (new Parser())->parse($source, null, $encoding);
+
+        self::assertNotNull($url);
+        self::assertSame($expected['done'], $url->serialize());
+        self::assertSame($expected['scheme'], $url->scheme);
+        self::assertSame($expected['host'], $url->host);
+        self::assertSame($expected['path'], $url->path);
+        self::assertSame($expected['query'], $url->query);
+    }
+
+    /**
      * @return iterable<string, array{string, ?array<string, mixed>}>
      */
     public static function upstreamFileProvider(): iterable
