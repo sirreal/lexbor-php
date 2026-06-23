@@ -117,6 +117,135 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function upstreamDisplayProvider(): iterable
+    {
+        $values = [
+            'initial',
+            'inherit',
+            'unset',
+            'revert',
+            'block flow',
+            'block flow-root',
+            'block table',
+            'block flex',
+            'block grid',
+            'block ruby',
+            'block',
+            'inline flow',
+            'inline flow-root',
+            'inline table',
+            'inline flex',
+            'inline grid',
+            'inline ruby',
+            'inline',
+            'run-in flow',
+            'run-in flow-root',
+            'run-in table',
+            'run-in flex',
+            'run-in grid',
+            'run-in ruby',
+            'run-in',
+            'flow',
+            'flow-root',
+            'table',
+            'flex',
+            'grid',
+            'ruby',
+            'flow block',
+            'flow inline',
+            'flow run-in',
+            'flow-root block',
+            'flow-root inline',
+            'flow-root run-in',
+            'table block',
+            'table inline',
+            'table run-in',
+            'flex block',
+            'flex inline',
+            'flex run-in',
+            'grid block',
+            'grid inline',
+            'grid run-in',
+            'ruby block',
+            'ruby inline',
+            'ruby run-in',
+            'block flow list-item',
+            'block flow-root list-item',
+            'block list-item',
+            'inline flow list-item',
+            'inline flow-root list-item',
+            'inline list-item',
+            'run-in flow list-item',
+            'run-in flow-root list-item',
+            'run-in list-item',
+            'flow list-item',
+            'flow-root list-item',
+            'list-item',
+            'block list-item flow',
+            'block list-item flow-root',
+            'inline list-item flow',
+            'inline list-item flow-root',
+            'run-in list-item flow',
+            'run-in list-item flow-root',
+            'list-item flow',
+            'list-item flow-root',
+            'flow block list-item',
+            'flow inline list-item',
+            'flow run-in list-item',
+            'flow-root block list-item',
+            'flow-root inline list-item',
+            'flow-root run-in list-item',
+            'flow list-item block',
+            'flow list-item inline',
+            'flow list-item run-in',
+            'flow-root list-item block',
+            'flow-root list-item inline',
+            'flow-root list-item run-in',
+            'list-item block',
+            'list-item inline',
+            'list-item run-in',
+            'list-item block flow',
+            'list-item block flow-root',
+            'list-item inline flow',
+            'list-item inline flow-root',
+            'list-item run-in flow',
+            'list-item run-in flow-root',
+            'list-item flow block',
+            'list-item flow inline',
+            'list-item flow run-in',
+            'list-item flow-root block',
+            'list-item flow-root inline',
+            'list-item flow-root run-in',
+            'table-row-group',
+            'table-header-group',
+            'table-footer-group',
+            'table-row',
+            'table-cell',
+            'table-column-group',
+            'table-column',
+            'table-caption',
+            'ruby-base',
+            'ruby-text',
+            'ruby-base-container',
+            'ruby-text-container',
+            'contents',
+            'none',
+            'inline-block',
+            'inline-table',
+            'inline-flex',
+            'inline-grid',
+        ];
+
+        foreach ($values as $index => $value) {
+            yield sprintf('display.ton #%d %s', $index + 1, $value) => ["display: {$value}", [
+                ['type' => 'property', 'name' => 'display', 'value' => $value, 'important' => false],
+            ]];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function widthRegressionProvider(): iterable
     {
         yield 'unitless zero width is valid' => ['width: 0', [
@@ -189,6 +318,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('upstreamHeightProvider')]
     public function testUpstreamHeightFixtures(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('upstreamDisplayProvider')]
+    public function testUpstreamDisplayFixtures(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
