@@ -96,6 +96,14 @@ final class ParserTest extends TestCase
         yield 'selectors.c #79 rejects has selector with unknown pseudo and extra close' => [':has(div, :godofwar()))', '', ['Syntax error. Selectors. Unexpected token: godofwar(', 'Syntax error. Selectors. Unexpected token: )']];
         yield 'selectors.c #80 has selector skips nested unknown pseudo function' => [':has(div, :godofwar(:godofwar()))', ':has(div)', ['Syntax error. Selectors. Unexpected token: godofwar(']];
         yield 'selectors.c #81 rejects has selector with nested unknown pseudo and extra close' => [':has(div, :godofwar(:godofwar())))', '', ['Syntax error. Selectors. Unexpected token: godofwar(', 'Syntax error. Selectors. Unexpected token: )']];
+        yield 'selectors.c #82 selector list with attribute selector' => ["div, [refs='link'], #hash", 'div, [refs="link"], #hash', []];
+        yield 'selectors.c #83 rejects invalid selector in list' => ['div, .class 1%, #hash', '', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors.c #84 rejects combinator before selector-list comma' => ['div, .class >, #hash', '', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors.c #85 rejects leading child combinator' => ['> .class', '', ['Syntax error. Selectors. Unexpected token: >']];
+        yield 'selectors.c #86 rejects trailing child combinator' => ['.class >', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
+        yield 'selectors.c #87 rejects leading selector-list comma' => [', .class', '', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors.c #88 rejects trailing selector-list comma' => ['.class ,', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
+        yield 'selectors.c #89 rejects leading combinator in selector-list item' => ['div, > .class, #hash', '', ['Syntax error. Selectors. Unexpected token: >']];
     }
 
     /**

@@ -25,6 +25,11 @@ final class Parser
             return self::error('END-OF-FILE');
         }
 
+        $selectorList = $this->parseSelectorList($tokens);
+        if ($selectorList !== null) {
+            return $selectorList;
+        }
+
         $class = $this->parseClassSelector($tokens);
         if ($class !== null) {
             return $class;
@@ -89,10 +94,90 @@ final class Parser
         }
 
         if (isset($tokens[$offset])) {
+            if (self::isCombinatorToken($tokens[$offset])) {
+                $lookahead = $offset + 1;
+                self::skipWhitespace($tokens, $lookahead);
+
+                if (! isset($tokens[$lookahead])) {
+                    return self::error('END-OF-FILE');
+                }
+            }
+
             return self::error($tokens[$offset]->value);
         }
 
         return ['value' => ".{$tokens[1]->value}", 'errors' => []];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
+    private function parseSelectorList(array $tokens): ?array
+    {
+        if (! self::hasTopLevelTokenType($tokens, 'comma')) {
+            return null;
+        }
+
+        $part = [];
+        $serialized = [];
+        $stack = [];
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'comma' && $stack === []) {
+                $part = self::trimTokenList($part);
+                if ($part === []) {
+                    return self::error(',');
+                }
+
+                if (self::endsWithCombinator($part)) {
+                    return self::error(',');
+                }
+
+                $selector = $this->parseSimpleSelector($part);
+                if ($selector === null) {
+                    return self::error(self::firstUnexpectedToken($part));
+                }
+
+                if ($selector['errors'] !== []) {
+                    return [
+                        'value' => '',
+                        'errors' => $selector['errors'],
+                    ];
+                }
+
+                $serialized[] = $selector['value'];
+                $part = [];
+                continue;
+            }
+
+            self::updateTokenStack($stack, $token);
+            $part[] = $token;
+        }
+
+        $part = self::trimTokenList($part);
+        if ($part === [] || self::endsWithCombinator($part)) {
+            return self::error('END-OF-FILE');
+        }
+
+        $selector = $this->parseSimpleSelector($part);
+        if ($selector === null) {
+            return self::error(self::firstUnexpectedToken($part));
+        }
+
+        if ($selector['errors'] !== []) {
+            return [
+                'value' => '',
+                'errors' => $selector['errors'],
+            ];
+        }
+
+        $serialized[] = $selector['value'];
+
+        return [
+            'value' => implode(', ', $serialized),
+            'errors' => [],
+        ];
     }
 
     /**
@@ -512,11 +597,44 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function hasTopLevelTokenType(array $tokens, string $type): bool
+    {
+        $stack = [];
+
+        foreach ($tokens as $token) {
+            if ($token->type === $type && $stack === []) {
+                return true;
+            }
+
+            self::updateTokenStack($stack, $token);
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function skipWhitespace(array $tokens, int &$offset): void
     {
         while (($tokens[$offset] ?? null)?->type === 'whitespace') {
             $offset++;
         }
+    }
+
+    private static function isCombinatorToken(Token $token): bool
+    {
+        return $token->type === 'delim' && in_array($token->value, ['>', '+', '~'], true);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function endsWithCombinator(array $tokens): bool
+    {
+        $tokens = self::trimTokenList($tokens);
+
+        return $tokens !== [] && self::isCombinatorToken($tokens[array_key_last($tokens)]);
     }
 
     private static function serializeAttributeValue(?Token $token): ?string
@@ -686,6 +804,27 @@ final class Parser
         }
 
         return [$parts, $errors];
+    }
+
+    /**
+     * @param list<string> $stack
+     */
+    private static function updateTokenStack(array &$stack, Token $token): void
+    {
+        if ($token->type === 'function') {
+            $stack[] = 'right-parenthesis';
+            return;
+        }
+
+        $closingToken = self::closingTokenFor($token);
+        if ($closingToken !== null) {
+            $stack[] = $closingToken;
+            return;
+        }
+
+        if ($stack !== [] && $token->type === $stack[array_key_last($stack)]) {
+            array_pop($stack);
+        }
     }
 
     /**
