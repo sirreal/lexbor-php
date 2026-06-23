@@ -235,8 +235,20 @@ final class Parser
         while ($offset < count($tokens)) {
             $token = $tokens[$offset];
 
-            if ($blockEndStack === [] && ($token->type === 'right-curly-bracket' || $token->type === 'semicolon')) {
-                break;
+            if ($blockEndStack === []) {
+                if ($token->type === 'right-curly-bracket' || $token->type === 'semicolon') {
+                    break;
+                }
+
+                if ($token->type === 'left-curly-bracket') {
+                    $offset++;
+
+                    return [
+                        'type' => 'qualified-rule',
+                        'prelude' => $prelude,
+                        'block' => $this->consumeBlock($tokens, $offset, true),
+                    ];
+                }
             }
 
             if ($token->type !== 'comment') {
@@ -252,11 +264,29 @@ final class Parser
             'prelude' => $prelude,
         ];
 
-        if ($includeEmptyBlock) {
+        if ($includeEmptyBlock || self::hasParenthesizedCurlyPrelude($prelude)) {
             $rule['block'] = [];
         }
 
         return $rule;
+    }
+
+    /**
+     * @param list<array{type: string, value: string}> $prelude
+     */
+    private static function hasParenthesizedCurlyPrelude(array $prelude): bool
+    {
+        if (($prelude[0]['type'] ?? null) !== 'left-parenthesis') {
+            return false;
+        }
+
+        foreach ($prelude as $token) {
+            if ($token['type'] === 'right-curly-bracket') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

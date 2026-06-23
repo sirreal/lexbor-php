@@ -803,6 +803,83 @@ final class ParserTest extends TestCase
                 ],
             ],
         ]];
+        yield 'at.ton #11 function prelude before nested malformed block' => ['@Naruto Orochimaru(;) {{]}}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'function', 'value' => 'Orochimaru('],
+                    ['type' => 'semicolon', 'value' => ';'],
+                    ['type' => 'right-parenthesis', 'value' => ')'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [],
+                        'block' => [
+                            [
+                                'type' => 'qualified-rule',
+                                'prelude' => [
+                                    ['type' => 'right-square-bracket', 'value' => ']'],
+                                ],
+                                'block' => [],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #12 parenthesized malformed prelude in block' => ['@Naruto (;) {(})}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'left-parenthesis', 'value' => '('],
+                    ['type' => 'semicolon', 'value' => ';'],
+                    ['type' => 'right-parenthesis', 'value' => ')'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'left-parenthesis', 'value' => '('],
+                            ['type' => 'right-curly-bracket', 'value' => '}'],
+                            ['type' => 'right-parenthesis', 'value' => ')'],
+                        ],
+                        'block' => [],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #13 ident prelude before nested square malformed block' => ['@Naruto Orochimaru {{[}]}}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [],
+                        'block' => [
+                            [
+                                'type' => 'qualified-rule',
+                                'prelude' => [
+                                    ['type' => 'left-square-bracket', 'value' => '['],
+                                    ['type' => 'right-curly-bracket', 'value' => '}'],
+                                    ['type' => 'right-square-bracket', 'value' => ']'],
+                                ],
+                                'block' => [],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
         yield 'at.ton #14 at-rule with qualified block and spaced name' => ['@Naruto {Sasuke Uchiha}', [
             [
                 'type' => 'at-rule',
