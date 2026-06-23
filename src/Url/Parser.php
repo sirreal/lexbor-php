@@ -55,7 +55,7 @@ final class Parser
     private function parseWithScheme(string $scheme, string $input, array $errors, bool $allowEmptyPath = false): Url
     {
         [$authority, $path] = $this->splitAuthorityAndPath($input);
-        [$username, $password, $host, $port] = $this->parseAuthority($authority);
+        [$username, $password, $host, $port] = $this->parseAuthority($authority, $errors);
 
         if ($scheme === 'file') {
             [$host, $path] = $this->normalizeFileHostAndPath($host, $path);
@@ -88,9 +88,10 @@ final class Parser
     }
 
     /**
+     * @param list<ValidationError> $errors
      * @return array{string, string, string, ?int}
      */
-    private function parseAuthority(string $authority): array
+    private function parseAuthority(string $authority, array &$errors): array
     {
         $username = '';
         $password = '';
@@ -101,6 +102,8 @@ final class Parser
             $credentials = substr($authority, 0, $at);
             $hostPort = substr($authority, $at + 1);
             [$username, $password] = array_pad(explode(':', $credentials, 2), 2, '');
+            $username = $this->percentEncodeUserInfo($username, $errors);
+            $password = $this->percentEncodeUserInfo($password, $errors);
         }
 
         $host = $hostPort;
@@ -219,6 +222,31 @@ final class Parser
         return $encoded;
     }
 
+    /**
+     * @param list<ValidationError> $errors
+     */
+    private function percentEncodeUserInfo(string $value, array &$errors): string
+    {
+        $encoded = '';
+
+        foreach (Utf8::decode($value) as $codePoint) {
+            if ($this->isInvalidUrlUnit($codePoint)) {
+                $this->appendError($errors, ValidationError::InvalidUrlUnit);
+            }
+
+            $bytes = Utf8::encodeCodePoint($codePoint);
+
+            if ($codePoint < 0x80 && $this->isUserInfoByteAllowed($codePoint)) {
+                $encoded .= chr($codePoint);
+                continue;
+            }
+
+            $encoded .= $this->percentEncodeBytes($bytes);
+        }
+
+        return $encoded;
+    }
+
     private function isInvalidUrlUnit(int $codePoint): bool
     {
         return ($codePoint >= 0xFDD0 && $codePoint <= 0xFDEF)
@@ -254,6 +282,36 @@ final class Parser
         return $byte >= 0x21
             && $byte <= 0x7E
             && ! in_array($byte, [0x22, 0x3C, 0x3E, 0x60], true);
+    }
+
+    private function isUserInfoByteAllowed(int $byte): bool
+    {
+        return $byte >= 0x21
+            && $byte <= 0x7E
+            && ! in_array(
+                $byte,
+                [
+                    0x22,
+                    0x23,
+                    0x2F,
+                    0x3A,
+                    0x3B,
+                    0x3C,
+                    0x3D,
+                    0x3E,
+                    0x3F,
+                    0x40,
+                    0x5B,
+                    0x5C,
+                    0x5D,
+                    0x5E,
+                    0x60,
+                    0x7B,
+                    0x7C,
+                    0x7D,
+                ],
+                true,
+            );
     }
 
     private function percentEncodeBytes(string $bytes): string

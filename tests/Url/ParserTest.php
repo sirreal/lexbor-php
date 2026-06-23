@@ -331,4 +331,141 @@ final class ParserTest extends TestCase
         self::assertSame($expected['path'], $url->path);
         self::assertSame($expected['fragment'], $url->fragment);
     }
+
+    /**
+     * @return iterable<string, array{string, array<string, string>}>
+     */
+    public static function upstreamUsernamePasswordProvider(): iterable
+    {
+        yield 'username_password.ton #1 username and password' => [
+            'https://user:password@lexbor.com',
+            [
+                'done' => 'https://user:password@lexbor.com/',
+                'scheme' => 'https',
+                'username' => 'user',
+                'password' => 'password',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #2 username only' => [
+            'https://user@lexbor.com',
+            [
+                'done' => 'https://user@lexbor.com/',
+                'scheme' => 'https',
+                'username' => 'user',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #3 password only' => [
+            'https://:password@lexbor.com',
+            [
+                'done' => 'https://:password@lexbor.com/',
+                'scheme' => 'https',
+                'password' => 'password',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #4 at sign in password' => [
+            'https://user:password@next@lexbor.com',
+            [
+                'done' => 'https://user:password%40next@lexbor.com/',
+                'scheme' => 'https',
+                'username' => 'user',
+                'password' => 'password%40next',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #5 multiple at signs in password' => [
+            'https://user:password@next@ends@lexbor.com',
+            [
+                'done' => 'https://user:password%40next%40ends@lexbor.com/',
+                'scheme' => 'https',
+                'username' => 'user',
+                'password' => 'password%40next%40ends',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #6 multiple at signs in username' => [
+            'https://user@next@ends@lexbor.com',
+            [
+                'done' => 'https://user%40next%40ends@lexbor.com/',
+                'scheme' => 'https',
+                'username' => 'user%40next%40ends',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #7 userinfo delimiters' => [
+            'https://us=er:pass:word@lexbor.com',
+            [
+                'done' => 'https://us%3Der:pass%3Aword@lexbor.com/',
+                'scheme' => 'https',
+                'username' => 'us%3Der',
+                'password' => 'pass%3Aword',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #8 utf-8 password' => [
+            "https://user:pass\u{0401}word@lexbor.com",
+            [
+                'done' => 'https://user:pass%D0%81word@lexbor.com/',
+                'scheme' => 'https',
+                'username' => 'user',
+                'password' => 'pass%D0%81word',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #9 empty credentials' => [
+            'https://@lexbor.com',
+            [
+                'done' => 'https://lexbor.com/',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #10 empty username and password' => [
+            'https://:@lexbor.com',
+            [
+                'done' => 'https://lexbor.com/',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'username_password.ton #11 colon-only password' => [
+            'https://:::::@lexbor.com',
+            [
+                'done' => 'https://:%3A%3A%3A%3A@lexbor.com/',
+                'scheme' => 'https',
+                'password' => '%3A%3A%3A%3A',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, string> $expected
+     */
+    #[DataProvider('upstreamUsernamePasswordProvider')]
+    public function testUpstreamUsernamePasswordFixtures(string $source, array $expected): void
+    {
+        $url = (new Parser())->parse($source);
+
+        self::assertNotNull($url);
+        self::assertSame($expected['done'], $url->serialize());
+        self::assertSame($expected['scheme'], $url->scheme);
+        self::assertSame($expected['username'] ?? '', $url->username);
+        self::assertSame($expected['password'] ?? '', $url->password);
+        self::assertSame($expected['host'], $url->host);
+        self::assertSame($expected['path'], $url->path);
+    }
 }
