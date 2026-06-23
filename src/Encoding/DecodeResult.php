@@ -21,6 +21,8 @@ final readonly class DecodeResult
         public int $pendingUtf8Need = 0,
         public int $pendingUtf8Lower = 0,
         public int $pendingUtf8Upper = 0,
+        public ?int $pendingFirstCodePoint = null,
+        public ?int $pendingSecondCodePoint = null,
     ) {
     }
 }
