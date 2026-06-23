@@ -73,13 +73,56 @@ final class Url
         return true;
     }
 
-    public function setHostname(string $hostname): bool
+    public function setHost(string $host): bool
     {
-        if ($hostname === '' && in_array($this->scheme, ['ftp', 'http', 'https', 'ws', 'wss'], true)) {
+        if ($host === '' && $this->hasCredentialsOrPort()) {
+            return true;
+        }
+
+        if ($this->isInvalidReplacementHost($host, true)) {
             return false;
         }
 
-        $this->host = strtolower($hostname);
+        if ($this->shouldIgnoreFileHostPort($host)) {
+            return true;
+        }
+
+        $url = $this->parseWithReplacementHost($host, true);
+
+        if ($url === null) {
+            return false;
+        }
+
+        $this->host = $url->host;
+
+        if ($this->hasExplicitPort($host)) {
+            $this->port = $url->port === $this->defaultPort($this->scheme) ? null : $url->port;
+        }
+
+        return true;
+    }
+
+    public function setHostname(string $hostname): bool
+    {
+        if ($hostname === '' && $this->hasCredentialsOrPort()) {
+            return true;
+        }
+
+        if ($this->isInvalidReplacementHost($hostname, false)) {
+            return false;
+        }
+
+        if ($this->shouldIgnoreFileHostPort($hostname)) {
+            return true;
+        }
+
+        $url = $this->parseWithReplacementHost($hostname, false);
+
+        if ($url === null) {
+            return false;
+        }
+
+        $this->host = $url->host;
 
         return true;
     }
@@ -114,6 +157,11 @@ final class Url
     private function canHaveCredentials(): bool
     {
         return $this->host !== '' && $this->scheme !== 'file';
+    }
+
+    private function hasCredentialsOrPort(): bool
+    {
+        return $this->username !== '' || $this->password !== '' || $this->port !== null;
     }
 
     private function percentEncodeUserInfo(string $value): string
@@ -163,6 +211,186 @@ final class Url
                 ],
                 true,
             );
+    }
+
+    private function parseWithReplacementHost(string $host, bool $allowPort): ?self
+    {
+        if ($this->isInvalidReplacementHost($host, $allowPort)) {
+            return null;
+        }
+
+        $hostForParsing = $this->hostForParsing($host);
+
+        if ($this->scheme === 'file' && preg_match('/^[A-Za-z][|:]$/', $hostForParsing) === 1) {
+            return null;
+        }
+
+        return (new Parser())->parse("{$this->scheme}://{$hostForParsing}");
+    }
+
+    private function isInvalidReplacementHost(string $host, bool $allowPort): bool
+    {
+        if ($this->hasInvalidHostCodePoint($host)
+            || $this->hasFileDrivePrefix($host)
+            || $this->hasAuthorityDelimiter($host)
+            || $this->hasMalformedPortSeparator($host)
+            || ! $this->hasValidExplicitPort($host)
+        ) {
+            return true;
+        }
+
+        return ! $allowPort && ! $this->shouldIgnoreFileHostPort($host) && $this->hasPortSeparator($host);
+    }
+
+    private function hasInvalidHostCodePoint(string $host): bool
+    {
+        $length = strlen($host);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $byte = ord($host[$offset]);
+
+            if ($byte <= 0x20 || $byte === 0x7F) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasAuthorityDelimiter(string $host): bool
+    {
+        return str_contains($host, '/')
+            || str_contains($host, '?')
+            || str_contains($host, '#')
+            || str_contains($host, '@')
+            || str_contains($host, '\\');
+    }
+
+    private function shouldIgnoreFileHostPort(string $host): bool
+    {
+        return $this->scheme === 'file'
+            && ! $this->hasFileDrivePrefix($host)
+            && $this->hasPortSeparator($host);
+    }
+
+    private function hasFileDrivePrefix(string $host): bool
+    {
+        return $this->scheme === 'file' && preg_match('/^[A-Za-z][|:]/', $host) === 1;
+    }
+
+    private function hasPortSeparator(string $host): bool
+    {
+        if (! str_starts_with($host, '[')) {
+            return str_contains($host, ':');
+        }
+
+        $close = strpos($host, ']');
+
+        return $close === false || substr($host, $close + 1) !== '';
+    }
+
+    private function hasMalformedPortSeparator(string $host): bool
+    {
+        if (str_starts_with($host, '[')) {
+            $close = strpos($host, ']');
+
+            if ($close === false) {
+                return true;
+            }
+
+            $suffix = substr($host, $close + 1);
+
+            if ($suffix === '') {
+                return false;
+            }
+
+            if (! str_starts_with($suffix, ':')) {
+                return true;
+            }
+
+            $port = substr($suffix, 1);
+
+            return $port !== '' && ! ctype_digit($port);
+        }
+
+        $colon = strpos($host, ':');
+
+        if ($colon === false) {
+            return false;
+        }
+
+        if (strpos($host, ':', $colon + 1) !== false) {
+            return true;
+        }
+
+        $port = substr($host, $colon + 1);
+
+        return $port !== '' && ! ctype_digit($port);
+    }
+
+    private function hasExplicitPort(string $host): bool
+    {
+        return $this->explicitPortString($host) !== null;
+    }
+
+    private function hasValidExplicitPort(string $host): bool
+    {
+        $port = $this->explicitPortString($host);
+
+        if ($port === null) {
+            return true;
+        }
+
+        $normalized = ltrim($port, '0');
+        $normalized = $normalized === '' ? '0' : $normalized;
+
+        return strlen($normalized) <= 5 && (int) $normalized <= 65535;
+    }
+
+    private function hostForParsing(string $host): string
+    {
+        if (! str_ends_with($host, ':')) {
+            return $host;
+        }
+
+        if (str_starts_with($host, '[')) {
+            $close = strpos($host, ']');
+
+            if ($close !== false && $close === strlen($host) - 2) {
+                return substr($host, 0, -1);
+            }
+
+            return $host;
+        }
+
+        $hostWithoutColon = substr($host, 0, -1);
+
+        return str_contains($hostWithoutColon, ':') ? $host : $hostWithoutColon;
+    }
+
+    private function explicitPortString(string $host): ?string
+    {
+        if (str_starts_with($host, '[')) {
+            $close = strpos($host, ']');
+
+            if ($close === false || ! str_starts_with(substr($host, $close + 1), ':')) {
+                return null;
+            }
+
+            $port = substr($host, $close + 2);
+
+            return ctype_digit($port) ? $port : null;
+        }
+
+        $colon = strrpos($host, ':');
+
+        if ($colon === false) {
+            return null;
+        }
+
+        $port = substr($host, $colon + 1);
+
+        return ctype_digit($port) ? $port : null;
     }
 
     private function isSpecialScheme(string $scheme): bool

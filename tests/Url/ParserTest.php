@@ -337,6 +337,72 @@ final class ParserTest extends TestCase
         self::assertSame('file:///tmp/a', $file->serialize());
     }
 
+    public function testHostMutationRejectsAuthorityDelimitersAndPreservesHostnamePort(): void
+    {
+        $url = (new Parser())->parse('https://lexbor.com:8443/path');
+        $bad = (new Parser())->parse('https://lexbor.com/');
+        $file = (new Parser())->parse('file://example.com/tmp');
+        $nonSpecialWithPort = (new Parser())->parse('foo://a:8080/p');
+        $nonSpecialWithCredentials = (new Parser())->parse('foo://user:pass@a:99/p');
+        $nonSpecialWithoutState = (new Parser())->parse('foo://a/p');
+
+        self::assertNotNull($url);
+        self::assertNotNull($bad);
+        self::assertNotNull($file);
+        self::assertNotNull($nonSpecialWithPort);
+        self::assertNotNull($nonSpecialWithCredentials);
+        self::assertNotNull($nonSpecialWithoutState);
+
+        self::assertTrue($url->setHostname('example.com'));
+        self::assertSame('https://example.com:8443/path', $url->serialize());
+        self::assertTrue($url->setHost('other.example'));
+        self::assertSame('https://other.example:8443/path', $url->serialize());
+        self::assertTrue($url->setHost('default.example:443'));
+        self::assertSame('https://default.example/path', $url->serialize());
+        self::assertTrue($url->setHost('other.example:80'));
+        self::assertSame('https://other.example:80/path', $url->serialize());
+        self::assertTrue($url->setHost('zero-default.example:000443'));
+        self::assertSame('https://zero-default.example/path', $url->serialize());
+        self::assertTrue($url->setHost('zero-port.example:000080'));
+        self::assertSame('https://zero-port.example:80/path', $url->serialize());
+        self::assertTrue($url->setHost('empty-port.example:'));
+        self::assertSame('https://empty-port.example:80/path', $url->serialize());
+
+        self::assertFalse($bad->setHost('user@example.com'));
+        self::assertFalse($bad->setHost('example.com/path'));
+        self::assertFalse($bad->setHost("example.com\x08"));
+        self::assertFalse($bad->setHostname("example.com\x08"));
+        self::assertFalse($bad->setHost('example.com:65536'));
+        self::assertFalse($bad->setHost('example.com:65536:'));
+        self::assertSame('https://lexbor.com/', $bad->serialize());
+
+        self::assertFalse($file->setHost('C|'));
+        self::assertFalse($file->setHostname('C|'));
+        self::assertFalse($file->setHost('C|:'));
+        self::assertFalse($file->setHost('C:'));
+        self::assertFalse($file->setHost('C:123'));
+        self::assertTrue($file->setHost('other:123'));
+        self::assertTrue($file->setHost('other:'));
+        self::assertTrue($file->setHostname('other:456'));
+        self::assertTrue($file->setHostname('[::1]:123'));
+        self::assertFalse($file->setHost('other: '));
+        self::assertFalse($file->setHostname("other:\x7F"));
+        self::assertFalse($file->setHost('other:123/path'));
+        self::assertFalse($file->setHost('other/path:123'));
+        self::assertFalse($file->setHost('other:65536'));
+        self::assertFalse($file->setHost('other:123:'));
+        self::assertFalse($file->setHostname('[::1]x'));
+        self::assertFalse($file->setHostname('user@other:123'));
+        self::assertSame('file://example.com/tmp', $file->serialize());
+
+        self::assertTrue($nonSpecialWithPort->setHostname(''));
+        self::assertTrue($nonSpecialWithCredentials->setHost(''));
+        self::assertTrue($nonSpecialWithoutState->setHost(''));
+        self::assertSame('foo://a:8080/p', $nonSpecialWithPort->serialize());
+        self::assertSame('foo://user:pass@a:99/p', $nonSpecialWithCredentials->serialize());
+        self::assertSame('foo:///p', $nonSpecialWithoutState->serialize());
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -893,6 +959,56 @@ final class ParserTest extends TestCase
         self::assertSame($entry['scheme'], $url->scheme);
         self::assertSame($entry['username'] ?? '', $url->username);
         self::assertSame($entry['password'] ?? '', $url->password);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamChangesHostProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            if ($index < 15 || $index > 22) {
+                continue;
+            }
+
+            $changes = $entry['change'];
+            $activeChanges = array_filter(
+                $changes,
+                static fn (mixed $value): bool => $value !== null,
+            );
+            $keys = array_keys($activeChanges);
+
+            if ($keys !== ['host'] && $keys !== ['hostname']) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesHostProvider')]
+    public function testUpstreamChangesHostFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+        $changes = $entry['change'];
+
+        self::assertNotNull($url);
+
+        if ($changes['host'] !== null) {
+            self::assertSame(! ($entry['failed'] ?? false), $url->setHost($changes['host']));
+        }
+
+        if ($changes['hostname'] !== null) {
+            self::assertSame(! ($entry['failed'] ?? false), $url->setHostname($changes['hostname']));
+        }
+
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
         self::assertSame($entry['host'] ?? '', $url->host);
         self::assertSame($entry['path'] ?? '', $url->path);
     }
