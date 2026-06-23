@@ -120,6 +120,12 @@ final class ParserTest extends TestCase
         yield 'selectors.c #108 rejects EOF in invalid nth-child' => [':nth-child(2n+', '', ['Syntax error. Selectors. End Of File in pseudo function', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"]];
         yield 'selectors.c #109 has selector skips invalid nth-child after valid selector' => [':has(div, :nth-child(2n+))', ':has(div)', ["Syntax error. Selectors. Pseudo function can't be empty: nth-child()"]];
         yield 'selectors.c #110 has selector skips EOF invalid nth-child after valid selector' => [':has(div, :nth-child(2n+', ':has(div)', ['Syntax error. Selectors. End Of File in pseudo function', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()", 'Syntax error. Selectors. End Of File in pseudo function']];
+        yield 'selectors.c #111 nth-child of type selector' => [':nth-child(2n+2 of div)', ':nth-child(2n+2 of div)', []];
+        yield 'selectors.c #112 nth-child of complex selector' => [':nth-child(2n+2 of div > .class + #hash ~ [refs=a].super || #id)', ':nth-child(2n+2 of div > .class + #hash ~ [refs="a"].super || #id)', []];
+        yield 'selectors.c #113 rejects nth-child empty of selector' => [':nth-child(2n+2 of )', '', ["Syntax error. Selectors. Pseudo function can't be empty: nth-child()"]];
+        yield 'selectors.c #114 rejects nth-child invalid of selector' => [':nth-child(2n+2 of 1%)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"]];
+        yield 'selectors.c #115 nth-child of forgiving has selector' => [':nth-child(2n+2 of :has(div, 1%))', ':nth-child(2n+2 of :has(div))', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors.c #116 nth-child of nested nth-child selector' => [':nth-child(2n+2 of :nth-child(2n+1))', ':nth-child(2n+2 of :nth-child(odd))', []];
     }
 
     /**

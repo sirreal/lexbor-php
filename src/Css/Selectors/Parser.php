@@ -614,12 +614,13 @@ final class Parser
      */
     private function parseNthChildPseudoFunction(string $name, array $body, bool $closed, array $trailing): array
     {
-        $anPlusB = (new AnPlusBParser())->parse($this->serializeAnPlusBTokens($body));
+        [$anPlusBTokens, $ofSelectorTokens] = self::splitNthChildOfSelector($body);
+        $anPlusB = (new AnPlusBParser())->parse($this->serializeAnPlusBTokens($anPlusBTokens));
         $errors = [];
 
         if ($anPlusB['errors'] !== []) {
             $unexpectedToken = self::unexpectedAnPlusBToken($anPlusB['errors']);
-            if ($unexpectedToken !== null && self::shouldReportNthChildUnexpectedToken($body, $unexpectedToken)) {
+            if ($unexpectedToken !== null && self::shouldReportNthChildUnexpectedToken($anPlusBTokens, $unexpectedToken)) {
                 $errors[] = self::unexpectedTokenError($unexpectedToken);
             }
 
@@ -633,6 +634,58 @@ final class Parser
                 'value' => '',
                 'errors' => $errors,
             ];
+        }
+
+        $ofSelector = null;
+        if ($ofSelectorTokens !== null) {
+            $ofSelectorTokens = self::trimTokenList($ofSelectorTokens);
+            if ($ofSelectorTokens === []) {
+                if (! $closed) {
+                    $errors[] = self::eofPseudoFunctionError();
+                }
+
+                $errors[] = self::emptyPseudoFunctionError($name);
+
+                return [
+                    'value' => '',
+                    'errors' => $errors,
+                ];
+            }
+
+            $selector = $this->parseSelectorComponent($ofSelectorTokens);
+            if ($selector === null) {
+                $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($ofSelectorTokens));
+
+                if (! $closed) {
+                    $errors[] = self::eofPseudoFunctionError();
+                }
+
+                $errors[] = self::emptyPseudoFunctionError($name);
+
+                return [
+                    'value' => '',
+                    'errors' => $errors,
+                ];
+            }
+
+            if ($selector['errors'] !== []) {
+                array_push($errors, ...$selector['errors']);
+            }
+
+            if ($selector['value'] === '') {
+                if (! $closed) {
+                    $errors[] = self::eofPseudoFunctionError();
+                }
+
+                $errors[] = self::emptyPseudoFunctionError($name);
+
+                return [
+                    'value' => '',
+                    'errors' => $errors,
+                ];
+            }
+
+            $ofSelector = $selector['value'];
         }
 
         if (! $closed) {
@@ -649,7 +702,9 @@ final class Parser
         }
 
         return [
-            'value' => sprintf(':%s(%s)', $name, $anPlusB['value']),
+            'value' => $ofSelector === null
+                ? sprintf(':%s(%s)', $name, $anPlusB['value'])
+                : sprintf(':%s(%s of %s)', $name, $anPlusB['value'], $ofSelector),
             'errors' => $errors,
         ];
     }
@@ -1399,6 +1454,28 @@ final class Parser
         }
 
         return [$parts, $errors];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{list<Token>, list<Token>|null}
+     */
+    private static function splitNthChildOfSelector(array $tokens): array
+    {
+        $stack = [];
+
+        foreach ($tokens as $offset => $token) {
+            if ($stack === [] && $token->type === 'ident' && strtolower($token->value) === 'of') {
+                return [
+                    self::trimTokenList(array_slice($tokens, 0, $offset)),
+                    self::trimTokenList(array_slice($tokens, $offset + 1)),
+                ];
+            }
+
+            self::updateTokenStack($stack, $token);
+        }
+
+        return [self::trimTokenList($tokens), null];
     }
 
     /**
