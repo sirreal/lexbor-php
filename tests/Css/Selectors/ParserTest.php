@@ -162,6 +162,9 @@ final class ParserTest extends TestCase
      */
     public static function upstreamSelectorEntrypointProvider(): iterable
     {
+        $sixtyFourBs = str_repeat('B', 64);
+        $twoHundredAs = str_repeat('A', 200);
+
         yield 'selectors.c #128 complex list with nth-child' => ['parseComplexList', 'div > :nth-child(2n+1) span, div', 'div > :nth-child(odd) span, div', []];
         yield 'selectors.c #129 compound list rejects child combinator' => ['parseCompoundList', 'div > :nth-child(2n+1)', '', ['Syntax error. Selectors. Unexpected token: >']];
         yield 'selectors.c #130 compound list with nth-child and type selector' => ['parseCompoundList', ':nth-child(2n+1), div', ':nth-child(odd), div', []];
@@ -191,6 +194,16 @@ final class ParserTest extends TestCase
         yield 'selectors.c #160 compound has rejects dash-match attribute selector with spaced matcher' => ['parseCompound', ':has([lang| =en])', '', ['Syntax error. Selectors. Unexpected token:  ', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
         yield 'selectors.c #161 compound has with dash-match attribute selector' => ['parseCompound', ':has([lang|=en])', ':has([lang|="en"])', []];
         yield 'selectors.c #162 compound has skips invalid dash-match attribute selector' => ['parseCompound', ':has([lang| =en], #id)', ':has(#id)', ['Syntax error. Selectors. Unexpected token:  ']];
+        yield 'selectors.c #163 lexbor-contains string' => ['parseSimpleList', ':lexbor-contains("abc")', ':lexbor-contains("abc")', []];
+        yield 'selectors.c #164 lexbor-contains string with tight i modifier' => ['parseSimpleList', ':lexbor-contains("abc"i)', ':lexbor-contains("abc" i)', []];
+        yield 'selectors.c #165 lexbor-contains string with spaced i modifier' => ['parseSimpleList', ':lexbor-contains("abc" i)', ':lexbor-contains("abc" i)', []];
+        yield 'selectors.c #166 lexbor-contains ident with i modifier' => ['parseSimpleList', ':lexbor-contains(abc i)', ':lexbor-contains("abc" i)', []];
+        yield 'selectors.c #167 lexbor-contains ident' => ['parseSimpleList', ':lexbor-contains(abc)', ':lexbor-contains("abc")', []];
+        yield 'selectors.c #168 rejects lexbor-contains s modifier' => ['parseSimpleList', ':lexbor-contains(abc s)', '', ['Syntax error. Selectors. Unexpected token: s']];
+        yield 'selectors.c #169 rejects lexbor-contains number' => ['parseSimpleList', ':lexbor-contains(12345)', '', ['Syntax error. Selectors. Unexpected token: 12345']];
+        yield 'selectors.c #170 lexbor-contains 64-byte string' => ['parseSimpleList', sprintf(':lexbor-contains("%s")', $sixtyFourBs), sprintf(':lexbor-contains("%s")', $sixtyFourBs), []];
+        yield 'selectors.c #171 lexbor-contains 64-byte string with i modifier' => ['parseSimpleList', sprintf(':lexbor-contains("%s" i)', $sixtyFourBs), sprintf(':lexbor-contains("%s" i)', $sixtyFourBs), []];
+        yield 'selectors.c #172 lexbor-contains 200-byte string' => ['parseSimpleList', sprintf(':lexbor-contains("%s")', $twoHundredAs), sprintf(':lexbor-contains("%s")', $twoHundredAs), []];
     }
 
     /**
@@ -241,6 +254,19 @@ final class ParserTest extends TestCase
         self::assertSame(
             ['value' => '', 'errors' => ['Syntax error. Selectors. Unexpected token: ,']],
             (new Parser())->parseComplexList('div, .class >, #hash'),
+        );
+    }
+
+    public function testLexborContainsEscapesDoubleQuotes(): void
+    {
+        self::assertSame(
+            ['value' => ':lexbor-contains("a\\000022b\\000022c")', 'errors' => []],
+            (new Parser())->parseSimpleList(':lexbor-contains(\'a"b"c\')'),
+        );
+
+        self::assertSame(
+            ['value' => ':lexbor-contains("a\\000022b")', 'errors' => []],
+            (new Parser())->parseSimpleList(':lexbor-contains(a\\22 b)'),
         );
     }
 

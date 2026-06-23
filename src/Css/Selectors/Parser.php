@@ -636,11 +636,15 @@ final class Parser
         }
 
         $name = strtolower(substr($tokens[1]->value, 0, -1));
-        if (! in_array($name, ['not', 'has', 'nth-child', 'nth-last-child'], true)) {
+        if (! in_array($name, ['not', 'has', 'nth-child', 'nth-last-child', 'lexbor-contains'], true)) {
             return self::error($tokens[1]->value);
         }
 
         [$body, $closed, $trailing] = self::pseudoFunctionBody($tokens);
+        if ($name === 'lexbor-contains') {
+            return $this->parseLexborContainsPseudoFunction($body, $closed, $trailing);
+        }
+
         if ($name === 'nth-child' || $name === 'nth-last-child') {
             return $this->parseNthChildPseudoFunction($name, $body, $closed, $trailing);
         }
@@ -709,6 +713,76 @@ final class Parser
         return [
             'value' => sprintf(':%s(%s)', $name, implode(', ', $serialized)),
             'errors' => $errors,
+        ];
+    }
+
+    /**
+     * @param list<Token> $body
+     * @param list<Token> $trailing
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseLexborContainsPseudoFunction(array $body, bool $closed, array $trailing): array
+    {
+        $offset = 0;
+        self::skipWhitespace($body, $offset);
+
+        $value = $body[$offset] ?? null;
+        if ($value === null) {
+            $errors = [];
+            if (! $closed) {
+                $errors[] = self::unexpectedTokenError('END-OF-FILE');
+                $errors[] = self::eofPseudoFunctionError();
+            }
+
+            $errors[] = self::emptyPseudoFunctionError('lexbor-contains');
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
+        if ($value->type === 'string') {
+            $serialized = str_replace('\\"', '\\000022', $value->value);
+        } elseif ($value->type === 'ident') {
+            $serialized = '"' . str_replace('"', '\\000022', $value->value) . '"';
+        } else {
+            return self::error($value->value);
+        }
+
+        $offset++;
+        self::skipWhitespace($body, $offset);
+
+        $modifier = '';
+        $token = $body[$offset] ?? null;
+        if ($token?->type === 'ident') {
+            if (strtolower($token->value) !== 'i') {
+                return self::error($token->value);
+            }
+
+            $modifier = ' i';
+            $offset++;
+            self::skipWhitespace($body, $offset);
+        }
+
+        if (isset($body[$offset])) {
+            return self::error($body[$offset]->value);
+        }
+
+        if (! $closed) {
+            return [
+                'value' => sprintf(':lexbor-contains(%s%s)', $serialized, $modifier),
+                'errors' => [self::eofPseudoFunctionError()],
+            ];
+        }
+
+        if ($trailing !== []) {
+            return self::error(self::firstUnexpectedToken($trailing));
+        }
+
+        return [
+            'value' => sprintf(':lexbor-contains(%s%s)', $serialized, $modifier),
+            'errors' => [],
         ];
     }
 
