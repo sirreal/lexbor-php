@@ -86,20 +86,86 @@ final class Parser
      */
     private function parseAttributeSelector(array $tokens): ?array
     {
-        if (
-            count($tokens) !== 5
-            || $tokens[0]->type !== 'left-square-bracket'
-            || $tokens[1]->type !== 'ident'
-            || $tokens[2]->type !== 'delim'
-            || $tokens[2]->value !== '='
-            || $tokens[3]->type !== 'string'
-            || $tokens[4]->type !== 'right-square-bracket'
-        ) {
+        if (($tokens[0] ?? null)?->type !== 'left-square-bracket') {
             return null;
         }
 
+        $offset = 1;
+        self::skipWhitespace($tokens, $offset);
+
+        $name = $tokens[$offset] ?? null;
+        if ($name?->type !== 'ident') {
+            return self::error($name?->value ?? 'END-OF-FILE');
+        }
+
+        $offset++;
+        self::skipWhitespace($tokens, $offset);
+
+        $token = $tokens[$offset] ?? null;
+        if ($token?->type === 'right-square-bracket') {
+            $offset++;
+            self::skipWhitespace($tokens, $offset);
+
+            if (isset($tokens[$offset])) {
+                return self::error($tokens[$offset]->value);
+            }
+
+            return [
+                'value' => "[{$name->value}]",
+                'errors' => [],
+            ];
+        }
+
+        if ($token === null) {
+            return self::attributeEof("[{$name->value}]");
+        }
+
+        if ($token->type !== 'delim' || $token->value !== '=') {
+            return self::error($token->value);
+        }
+
+        $offset++;
+        self::skipWhitespace($tokens, $offset);
+
+        $value = self::serializeAttributeValue($tokens[$offset] ?? null);
+        if ($value === null) {
+            return self::error($tokens[$offset]->value ?? 'END-OF-FILE');
+        }
+
+        $offset++;
+        self::skipWhitespace($tokens, $offset);
+
+        $modifier = '';
+        $token = $tokens[$offset] ?? null;
+        if ($token?->type === 'ident') {
+            $modifier = strtolower($token->value);
+            if ($modifier !== 'i' && $modifier !== 's') {
+                return self::error($token->value);
+            }
+
+            $offset++;
+            self::skipWhitespace($tokens, $offset);
+        }
+
+        $serialized = "[{$name->value}={$value}{$modifier}]";
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return self::attributeEof($serialized);
+        }
+
+        if ($token->type !== 'right-square-bracket') {
+            return self::error($token->value);
+        }
+
+        $offset++;
+        self::skipWhitespace($tokens, $offset);
+
+        if (isset($tokens[$offset])) {
+            return self::error($tokens[$offset]->value);
+        }
+
         return [
-            'value' => "[{$tokens[1]->value}={$tokens[3]->value}]",
+            'value' => $serialized,
             'errors' => [],
         ];
     }
@@ -135,6 +201,33 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function skipWhitespace(array $tokens, int &$offset): void
+    {
+        while (($tokens[$offset] ?? null)?->type === 'whitespace') {
+            $offset++;
+        }
+    }
+
+    private static function serializeAttributeValue(?Token $token): ?string
+    {
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident') {
+            return "\"{$token->value}\"";
+        }
+
+        if ($token->type !== 'string') {
+            return null;
+        }
+
+        return str_replace('\\"', '\\000022', $token->value);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function firstUnexpectedToken(array $tokens): string
     {
         foreach ($tokens as $token) {
@@ -154,6 +247,17 @@ final class Parser
         return [
             'value' => '',
             'errors' => [sprintf('Syntax error. Selectors. Unexpected token: %s', $token)],
+        ];
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    private static function attributeEof(string $value): array
+    {
+        return [
+            'value' => $value,
+            'errors' => ['Syntax error. Selectors. End Of File in attribute selector'],
         ];
     }
 }

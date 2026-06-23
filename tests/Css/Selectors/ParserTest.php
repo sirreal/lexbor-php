@@ -33,6 +33,19 @@ final class ParserTest extends TestCase
         yield 'selectors.c #16 named namespace type selector' => ['html|div', 'html|div', []];
         yield 'selectors.c #17 spaced named namespace type selector' => ['html |div', 'html |div', []];
         yield 'selectors.c #18 attribute string selector' => ["[refs='link']", '[refs="link"]', []];
+        yield 'selectors.c #19 spaced attribute string selector' => [" [ refs = 'link' ] ", '[refs="link"]', []];
+        yield 'selectors.c #20 double-quoted attribute string selector' => ['[refs="link"]', '[refs="link"]', []];
+        yield 'selectors.c #21 attribute string selector with tight i modifier' => ["[refs='link'i]", '[refs="link"i]', []];
+        yield 'selectors.c #22 attribute string selector with spaced i modifier' => ["[refs='link' i]", '[refs="link"i]', []];
+        yield 'selectors.c #23 attribute string selector with trailing spaced i modifier' => ["[refs='link' i ]", '[refs="link"i]', []];
+        yield 'selectors.c #24 attribute presence selector' => ['[refs]', '[refs]', []];
+        yield 'selectors.c #25 unquoted attribute value selector' => ['[refs=link]', '[refs="link"]', []];
+        yield 'selectors.c #26 unquoted attribute value selector with i modifier' => ['[refs=link i]', '[refs="link"i]', []];
+        yield 'selectors.c #27 attribute string selector escapes double quotes' => ['[refs=\'a"b"c\']', '[refs="a\\000022b\\000022c"]', []];
+        yield 'selectors.c #28 EOF in attribute presence selector' => ['[refs', '[refs]', ['Syntax error. Selectors. End Of File in attribute selector']];
+        yield 'selectors.c #29 EOF in unquoted attribute value selector' => ['[refs=link', '[refs="link"]', ['Syntax error. Selectors. End Of File in attribute selector']];
+        yield 'selectors.c #30 EOF in string attribute value selector' => ["[refs='a b", '[refs="a b"]', ['Syntax error. Selectors. End Of File in attribute selector']];
+        yield 'selectors.c #31 EOF after attribute i modifier' => ['[refs=link i', '[refs="link"i]', ['Syntax error. Selectors. End Of File in attribute selector']];
     }
 
     /**
@@ -42,5 +55,13 @@ final class ParserTest extends TestCase
     public function testUpstreamSelectorFixtures(string $selector, string $value, array $errors): void
     {
         self::assertSame(['value' => $value, 'errors' => $errors], (new Parser())->parse($selector));
+    }
+
+    public function testAttributePresenceRejectsTrailingTokens(): void
+    {
+        $expected = ['value' => '', 'errors' => ['Syntax error. Selectors. Unexpected token: junk']];
+
+        self::assertSame($expected, (new Parser())->parse('[refs]junk'));
+        self::assertSame($expected, (new Parser())->parse('[refs] junk'));
     }
 }
