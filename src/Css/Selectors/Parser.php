@@ -40,6 +40,16 @@ final class Parser
             return $attribute;
         }
 
+        $pseudoFunction = $this->parsePseudoFunctionSelector($tokens);
+        if ($pseudoFunction !== null) {
+            return $pseudoFunction;
+        }
+
+        $descendant = $this->parseDescendantSelector($tokens);
+        if ($descendant !== null) {
+            return $descendant;
+        }
+
         if (count($tokens) === 1) {
             return match ($tokens[0]->type) {
                 'ident', 'hash' => ['value' => $tokens[0]->value, 'errors' => []],
@@ -83,6 +93,55 @@ final class Parser
         }
 
         return ['value' => ".{$tokens[1]->value}", 'errors' => []];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
+    private function parseDescendantSelector(array $tokens): ?array
+    {
+        if (! self::hasTokenType($tokens, 'whitespace')) {
+            return null;
+        }
+
+        $parts = [];
+        $part = [];
+
+        foreach ($tokens as $token) {
+            if ($token->type !== 'whitespace') {
+                $part[] = $token;
+                continue;
+            }
+
+            if ($part !== []) {
+                $parts[] = $part;
+                $part = [];
+            }
+        }
+
+        if ($part !== []) {
+            $parts[] = $part;
+        }
+
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $serialized = [];
+        foreach ($parts as $tokensPart) {
+            $value = $this->serializeSimpleSelector($tokensPart);
+            if ($value === null) {
+                return null;
+            }
+
+            $serialized[] = $value;
+        }
+
+        return [
+            'value' => implode(' ', $serialized),
+            'errors' => [],
+        ];
     }
 
     /**
@@ -208,6 +267,47 @@ final class Parser
         ];
     }
 
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
+    private function parsePseudoFunctionSelector(array $tokens): ?array
+    {
+        if (
+            count($tokens) < 3
+            || $tokens[0]->type !== 'colon'
+            || $tokens[1]->type !== 'function'
+            || $tokens[array_key_last($tokens)]->type !== 'right-parenthesis'
+        ) {
+            return null;
+        }
+
+        $name = strtolower(substr($tokens[1]->value, 0, -1));
+        if ($name !== 'not') {
+            return null;
+        }
+
+        $selectorParts = self::splitSelectorList(array_slice($tokens, 2, -1));
+        if ($selectorParts === []) {
+            return self::emptyPseudoFunction($name);
+        }
+
+        $serialized = [];
+        foreach ($selectorParts as $selectorTokens) {
+            $value = $this->serializeSimpleSelector($selectorTokens);
+            if ($value === null) {
+                return null;
+            }
+
+            $serialized[] = $value;
+        }
+
+        return [
+            'value' => sprintf(':%s(%s)', $name, implode(', ', $serialized)),
+            'errors' => [],
+        ];
+    }
+
     private static function parseTypeSelector(string $selector): ?string
     {
         $selector = trim($selector);
@@ -239,6 +339,20 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function hasTokenType(array $tokens, string $type): bool
+    {
+        foreach ($tokens as $token) {
+            if ($token->type === $type) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function skipWhitespace(array $tokens, int &$offset): void
     {
         while (($tokens[$offset] ?? null)?->type === 'whitespace') {
@@ -261,6 +375,95 @@ final class Parser
         }
 
         return str_replace('\\"', '\\000022', $token->value);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private function serializeSimpleSelector(array $tokens): ?string
+    {
+        $tokens = $this->stripWhitespaceTokens($tokens);
+
+        if ($tokens === []) {
+            return null;
+        }
+
+        $class = $this->parseClassSelector($tokens);
+        if ($class !== null && $class['errors'] === []) {
+            return $class['value'];
+        }
+
+        $attribute = $this->parseAttributeSelector($tokens);
+        if ($attribute !== null && $attribute['errors'] === []) {
+            return $attribute['value'];
+        }
+
+        if (count($tokens) === 1 && in_array($tokens[0]->type, ['ident', 'hash'], true)) {
+            return $tokens[0]->value;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return list<list<Token>>
+     */
+    private static function splitSelectorList(array $tokens): array
+    {
+        $parts = [];
+        $part = [];
+        $depth = 0;
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'function') {
+                $depth++;
+                $part[] = $token;
+                continue;
+            }
+
+            if ($token->type === 'right-parenthesis' && $depth > 0) {
+                $depth--;
+                $part[] = $token;
+                continue;
+            }
+
+            if ($token->type === 'comma' && $depth === 0) {
+                $part = self::trimTokenList($part);
+                if ($part !== []) {
+                    $parts[] = $part;
+                }
+
+                $part = [];
+                continue;
+            }
+
+            $part[] = $token;
+        }
+
+        $part = self::trimTokenList($part);
+        if ($part !== []) {
+            $parts[] = $part;
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return list<Token>
+     */
+    private static function trimTokenList(array $tokens): array
+    {
+        while ($tokens !== [] && $tokens[0]->type === 'whitespace') {
+            array_shift($tokens);
+        }
+
+        while ($tokens !== [] && $tokens[array_key_last($tokens)]->type === 'whitespace') {
+            array_pop($tokens);
+        }
+
+        return $tokens;
     }
 
     /**
@@ -296,6 +499,17 @@ final class Parser
         return [
             'value' => $value,
             'errors' => ['Syntax error. Selectors. End Of File in attribute selector'],
+        ];
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    private static function emptyPseudoFunction(string $name): array
+    {
+        return [
+            'value' => '',
+            'errors' => [sprintf("Syntax error. Selectors. Pseudo function can't be empty: %s()", $name)],
         ];
     }
 }
