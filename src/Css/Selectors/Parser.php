@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lexbor\Css\Selectors;
 
+use Lexbor\Css\Syntax\AnPlusBParser;
 use Lexbor\Css\Syntax\Token;
 use Lexbor\Css\Syntax\Tokenizer;
 
@@ -45,11 +46,16 @@ final class Parser
     }
 
     /**
+     * @var array<int, string>
+     */
+    private array $rawTokenValues = [];
+
+    /**
      * @return array{value: string, errors: list<string>}
      */
     public function parse(string $selector): array
     {
-        $tokens = $this->stripWhitespaceTokens($this->tokenizer->tokenize($selector));
+        $tokens = $this->tokenize($selector);
 
         if ($tokens === []) {
             return self::error('END-OF-FILE');
@@ -110,7 +116,7 @@ final class Parser
      */
     public function parseRelativeList(string $selector): array
     {
-        $tokens = $this->stripWhitespaceTokens($this->tokenizer->tokenize($selector));
+        $tokens = $this->tokenize($selector);
 
         if ($tokens === []) {
             return self::error('END-OF-FILE');
@@ -471,11 +477,15 @@ final class Parser
         }
 
         $name = strtolower(substr($tokens[1]->value, 0, -1));
-        if ($name !== 'not' && $name !== 'has') {
+        if (! in_array($name, ['not', 'has', 'nth-child', 'nth-last-child'], true)) {
             return self::error($tokens[1]->value);
         }
 
         [$body, $closed, $trailing] = self::pseudoFunctionBody($tokens);
+        if ($name === 'nth-child' || $name === 'nth-last-child') {
+            return $this->parseNthChildPseudoFunction($name, $body, $closed, $trailing);
+        }
+
         if ($name === 'has') {
             return $this->parseHasPseudoFunction($body, $closed, $trailing);
         }
@@ -598,6 +608,53 @@ final class Parser
     }
 
     /**
+     * @param list<Token> $body
+     * @param list<Token> $trailing
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseNthChildPseudoFunction(string $name, array $body, bool $closed, array $trailing): array
+    {
+        $anPlusB = (new AnPlusBParser())->parse($this->serializeAnPlusBTokens($body));
+        $errors = [];
+
+        if ($anPlusB['errors'] !== []) {
+            $unexpectedToken = self::unexpectedAnPlusBToken($anPlusB['errors']);
+            if ($unexpectedToken !== null && self::shouldReportNthChildUnexpectedToken($body, $unexpectedToken)) {
+                $errors[] = self::unexpectedTokenError($unexpectedToken);
+            }
+
+            if (! $closed) {
+                $errors[] = self::eofPseudoFunctionError();
+            }
+
+            $errors[] = self::emptyPseudoFunctionError($name);
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
+        if (! $closed) {
+            $errors[] = self::eofPseudoFunctionError();
+        }
+
+        if ($trailing !== []) {
+            $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($trailing));
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
+        return [
+            'value' => sprintf(':%s(%s)', $name, $anPlusB['value']),
+            'errors' => $errors,
+        ];
+    }
+
+    /**
      * @param list<Token> $tokens
      * @return array{list<Token>, bool, list<Token>}
      */
@@ -682,6 +739,23 @@ final class Parser
         }
 
         return $tokens;
+    }
+
+    /**
+     * @return list<Token>
+     */
+    private function tokenize(string $selector): array
+    {
+        $tokens = $this->tokenizer->tokenize($selector);
+        $this->rawTokenValues = [];
+
+        $offset = 0;
+        foreach ($tokens as $token) {
+            $this->rawTokenValues[spl_object_id($token)] = substr($selector, $offset, $token->length);
+            $offset += $token->length;
+        }
+
+        return $this->stripWhitespaceTokens($tokens);
     }
 
     /**
@@ -1377,6 +1451,85 @@ final class Parser
         }
 
         return 'END-OF-FILE';
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private function serializeAnPlusBTokens(array $tokens): string
+    {
+        $value = '';
+        foreach ($tokens as $token) {
+            $value .= $this->anPlusBTokenSourceValue($token);
+        }
+
+        return $value;
+    }
+
+    private function anPlusBTokenSourceValue(Token $token): string
+    {
+        $raw = $this->rawTokenValues[spl_object_id($token)] ?? null;
+        if ($raw !== null && in_array($token->type, ['dimension', 'number'], true)) {
+            if ($token->type === 'dimension' && self::shouldUseDecodedEscapedDimension($raw)) {
+                return $token->value;
+            }
+
+            return $raw;
+        }
+
+        if (
+            $token->type === 'number'
+            && $token->value !== ''
+            && ! str_starts_with($token->value, '+')
+            && ! str_starts_with($token->value, '-')
+            && $token->length > strlen($token->value)
+        ) {
+            return "+{$token->value}";
+        }
+
+        return $token->value;
+    }
+
+    private static function shouldUseDecodedEscapedDimension(string $raw): bool
+    {
+        if (! str_contains($raw, '\\')) {
+            return false;
+        }
+
+        return preg_match('/^[+-]?(?:\d+\.\d+|\.\d+|\d+[eE][+-]?\d+)/', $raw) !== 1;
+    }
+
+    /**
+     * @param list<string> $errors
+     */
+    private static function unexpectedAnPlusBToken(array $errors): ?string
+    {
+        $error = $errors[0] ?? null;
+        if ($error !== null && preg_match('/Unexpected token: (.+)$/', $error, $matches) === 1) {
+            return $matches[1];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function shouldReportNthChildUnexpectedToken(array $tokens, string $unexpectedToken): bool
+    {
+        if (str_contains($unexpectedToken, '.') || str_contains($unexpectedToken, '%')) {
+            return true;
+        }
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'whitespace') {
+                continue;
+            }
+
+            return ! in_array($token->type, ['ident', 'dimension', 'number', 'delim'], true);
+        }
+
+        return false;
     }
 
     /**

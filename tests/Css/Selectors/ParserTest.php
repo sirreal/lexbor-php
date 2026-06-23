@@ -114,6 +114,12 @@ final class ParserTest extends TestCase
         yield 'selectors.c #97 has selector skips unknown pseudo element' => [':has(div, ::godofwar)', ':has(div)', ['Syntax error. Selectors. Unexpected token: godofwar']];
         yield 'selectors.c #98 has selector skips unknown pseudo element between valid selectors' => [':has(div, ::godofwar, .class)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: godofwar']];
         yield 'selectors.c #99 rejects empty selector' => ['', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
+        yield 'selectors.c #105 nth-child with An+B expression' => [':nth-child(2n+2)', ':nth-child(2n+2)', []];
+        yield 'selectors.c #106 rejects incomplete nth-child An+B expression' => [':nth-child(2n+)', '', ["Syntax error. Selectors. Pseudo function can't be empty: nth-child()"]];
+        yield 'selectors.c #107 rejects has selector with invalid nth-child' => [':has(:nth-child(2n+))', '', ["Syntax error. Selectors. Pseudo function can't be empty: nth-child()", "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
+        yield 'selectors.c #108 rejects EOF in invalid nth-child' => [':nth-child(2n+', '', ['Syntax error. Selectors. End Of File in pseudo function', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"]];
+        yield 'selectors.c #109 has selector skips invalid nth-child after valid selector' => [':has(div, :nth-child(2n+))', ':has(div)', ["Syntax error. Selectors. Pseudo function can't be empty: nth-child()"]];
+        yield 'selectors.c #110 has selector skips EOF invalid nth-child after valid selector' => [':has(div, :nth-child(2n+', ':has(div)', ['Syntax error. Selectors. End Of File in pseudo function', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()", 'Syntax error. Selectors. End Of File in pseudo function']];
     }
 
     /**
@@ -160,5 +166,82 @@ final class ParserTest extends TestCase
             ['value' => '', 'errors' => ['Syntax error. Selectors. Unexpected token: ,']],
             (new Parser())->parse('div, .class ||, #hash'),
         );
+    }
+
+    public function testNthChildRejectsFractionalAnPlusBNumbers(): void
+    {
+        self::assertSame(['value' => ':nth-child(even)', 'errors' => []], (new Parser())->parse(':nth-child(+2n)'));
+        self::assertSame(['value' => ':nth-child(odd)', 'errors' => []], (new Parser())->parse(':nth-child(+2n+1)'));
+        self::assertSame(['value' => ':nth-child(even)', 'errors' => []], (new Parser())->parse(':nth-child(02n)'));
+        self::assertSame(['value' => ':nth-child(+n+1)', 'errors' => []], (new Parser())->parse(':nth-child(1n+01)'));
+
+        self::assertSame(
+            [
+                'value' => '',
+                'errors' => ['Syntax error. Selectors. Unexpected token: 2.0n', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"],
+            ],
+            (new Parser())->parse(':nth-child(2.0n)'),
+        );
+
+        self::assertSame(
+            [
+                'value' => '',
+                'errors' => ['Syntax error. Selectors. Unexpected token: 1.0', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"],
+            ],
+            (new Parser())->parse(':nth-child(1n+1.0)'),
+        );
+
+        self::assertSame(
+            [
+                'value' => '',
+                'errors' => ['Syntax error. Selectors. Unexpected token: 2.0\\6e', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"],
+            ],
+            (new Parser())->parse(':nth-child(2.0\\6e)'),
+        );
+
+        self::assertSame(
+            [
+                'value' => '',
+                'errors' => ['Syntax error. Selectors. Unexpected token: 1.0\\6e+1', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"],
+            ],
+            (new Parser())->parse(':nth-child(1.0\\6e+1)'),
+        );
+
+        self::assertSame(
+            [
+                'value' => '',
+                'errors' => ["Syntax error. Selectors. Pseudo function can't be empty: nth-child()"],
+            ],
+            (new Parser())->parse(':nth-child(2e0\\6e)'),
+        );
+
+        self::assertSame(
+            [
+                'value' => '',
+                'errors' => ["Syntax error. Selectors. Pseudo function can't be empty: nth-child()"],
+            ],
+            (new Parser())->parse(':nth-child(+2e0\\6e+1)'),
+        );
+
+        foreach (['.0\\6e', '+.0\\6e', '-.0\\6e'] as $source) {
+            self::assertSame(
+                [
+                    'value' => '',
+                    'errors' => ['Syntax error. Selectors. Unexpected token: ' . $source, "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"],
+                ],
+                (new Parser())->parse(':nth-child(' . $source . ')'),
+            );
+        }
+    }
+
+    public function testNthChildAcceptsEscapedAnPlusBKeywords(): void
+    {
+        self::assertSame(['value' => ':nth-child(odd)', 'errors' => []], (new Parser())->parse(':nth-child(o\\64 d)'));
+        self::assertSame(['value' => ':nth-child(even)', 'errors' => []], (new Parser())->parse(':nth-child(e\\76 en)'));
+        self::assertSame(['value' => ':nth-child(odd)', 'errors' => []], (new Parser())->parse(':nth-child(2\\6e+1)'));
+        self::assertSame(['value' => ':nth-child(odd)', 'errors' => []], (new Parser())->parse(':nth-child(+2\\6e+1)'));
+        self::assertSame(['value' => ':nth-child(+n-1)', 'errors' => []], (new Parser())->parse(':nth-child(1n-\\31)'));
+        self::assertSame(['value' => ':nth-child(+n-1)', 'errors' => []], (new Parser())->parse(':nth-child(1n\\2d 1)'));
+        self::assertSame(['value' => ':nth-child(+n+1)', 'errors' => []], (new Parser())->parse(':nth-child(1n\\2b 1)'));
     }
 }
