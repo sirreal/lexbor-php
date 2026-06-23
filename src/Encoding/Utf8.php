@@ -11,6 +11,9 @@ final class Utf8
 {
     public const int REPLACEMENT_CODE_POINT = 0xFFFD;
     public const int DECODE_CONTINUE = 0x2FFFFF;
+    public const int ENCODE_OK = 0x00;
+    public const int ENCODE_ERROR = -0x01;
+    public const int ENCODE_SMALL_BUFFER = -0x02;
 
     public static function skipUtf8Bom(string $data): string
     {
@@ -257,6 +260,25 @@ final class Utf8
             . chr(0x80 | (($codePoint >> 12) & 0x3F))
             . chr(0x80 | (($codePoint >> 6) & 0x3F))
             . chr(0x80 | ($codePoint & 0x3F));
+    }
+
+    public static function encodeCodePointWithCapacity(int $codePoint, int $capacity): EncodeResult
+    {
+        if ($capacity < 1) {
+            self::unexpected('UTF-8 encode buffer capacity must be positive.');
+        }
+
+        if ($codePoint < 0 || $codePoint >= 0x110000) {
+            return new EncodeResult(self::ENCODE_ERROR, '');
+        }
+
+        $bytes = self::encodeCodePoint($codePoint);
+
+        if (strlen($bytes) > $capacity) {
+            return new EncodeResult(self::ENCODE_SMALL_BUFFER, '');
+        }
+
+        return new EncodeResult(strlen($bytes), $bytes);
     }
 
     private static function requireBytes(string $data, int $offset, int $needed): void

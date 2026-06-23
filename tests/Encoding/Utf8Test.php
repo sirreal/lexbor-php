@@ -88,6 +88,10 @@ final class Utf8Test extends TestCase
 
     public function testUpstreamUtf8SingleEncodeRejectsOutOfRangeCodePoint(): void
     {
+        $result = Utf8::encodeCodePointWithCapacity(0x110000, 4);
+        self::assertSame(Utf8::ENCODE_ERROR, $result->status);
+        self::assertSame('', $result->bytes);
+
         try {
             Utf8::encodeCodePoint(0x110000);
         } catch (LexborException $exception) {
@@ -162,5 +166,69 @@ final class Utf8Test extends TestCase
     public function testUpstreamUtf8SingleDecode(string $input, array $expected): void
     {
         self::assertSame($expected, Utf8::decodeWithReplacement($input));
+    }
+
+    /**
+     * @return iterable<string, array{int, int, int, string}>
+     */
+    public static function upstreamUtf8EncodeBufferProvider(): iterable
+    {
+        yield 'single/utf-8.c encode_buffer_check #1 two-byte small buffer' => [
+            0x07FF,
+            1,
+            Utf8::ENCODE_SMALL_BUFFER,
+            '',
+        ];
+        yield 'single/utf-8.c encode_buffer_check #2 two-byte exact buffer' => [0x07FF, 2, 2, "\xDF\xBF"];
+        yield 'single/utf-8.c encode_buffer_check #3 three-byte one-byte buffer' => [
+            0xFFFF,
+            1,
+            Utf8::ENCODE_SMALL_BUFFER,
+            '',
+        ];
+        yield 'single/utf-8.c encode_buffer_check #4 three-byte two-byte buffer' => [
+            0xFFFF,
+            2,
+            Utf8::ENCODE_SMALL_BUFFER,
+            '',
+        ];
+        yield 'single/utf-8.c encode_buffer_check #5 three-byte exact buffer' => [0xFFFF, 3, 3, "\xEF\xBF\xBF"];
+        yield 'single/utf-8.c encode_buffer_check #6 four-byte one-byte buffer' => [
+            0x10FFFF,
+            1,
+            Utf8::ENCODE_SMALL_BUFFER,
+            '',
+        ];
+        yield 'single/utf-8.c encode_buffer_check #7 four-byte two-byte buffer' => [
+            0x10FFFF,
+            2,
+            Utf8::ENCODE_SMALL_BUFFER,
+            '',
+        ];
+        yield 'single/utf-8.c encode_buffer_check #8 four-byte three-byte buffer' => [
+            0x10FFFF,
+            3,
+            Utf8::ENCODE_SMALL_BUFFER,
+            '',
+        ];
+        yield 'single/utf-8.c encode_buffer_check #9 four-byte exact buffer' => [
+            0x10FFFF,
+            4,
+            4,
+            "\xF4\x8F\xBF\xBF",
+        ];
+    }
+
+    #[DataProvider('upstreamUtf8EncodeBufferProvider')]
+    public function testUpstreamUtf8SingleEncodeBufferCheck(
+        int $codePoint,
+        int $capacity,
+        int $expectedStatus,
+        string $expectedBytes,
+    ): void {
+        $result = Utf8::encodeCodePointWithCapacity($codePoint, $capacity);
+
+        self::assertSame($expectedStatus, $result->status);
+        self::assertSame($expectedBytes, $result->bytes);
     }
 }
