@@ -264,6 +264,28 @@ final class ParserTest extends TestCase
         self::assertNull((new Parser())->parse('https://[1:2:192.0.2.1::]'));
     }
 
+    public function testHrefMutationReplacesWholeUrlOrPreservesOnFailure(): void
+    {
+        $url = (new Parser())->parse('https://user:pass@lexbor.com:8443/docs/html/path?x=y#old');
+
+        self::assertNotNull($url);
+        self::assertTrue($url->setHref('http://example.com/path/to/path?q=a#fragment'));
+        self::assertSame('http://example.com/path/to/path?q=a#fragment', $url->serialize());
+        self::assertSame('http', $url->scheme);
+        self::assertSame('', $url->username);
+        self::assertSame('', $url->password);
+        self::assertSame('example.com', $url->host);
+        self::assertNull($url->port);
+        self::assertSame('/path/to/path', $url->path);
+        self::assertSame('q=a', $url->query);
+        self::assertSame('fragment', $url->fragment);
+
+        self::assertFalse($url->setHref(''));
+        self::assertSame('http://example.com/path/to/path?q=a#fragment', $url->serialize());
+        self::assertFalse($url->setHref('/relative/path'));
+        self::assertSame('http://example.com/path/to/path?q=a#fragment', $url->serialize());
+    }
+
     public function testProtocolMutationClearsNewDefaultPort(): void
     {
         $http = (new Parser())->parse('https://lexbor.com:80/');
@@ -1010,6 +1032,52 @@ final class ParserTest extends TestCase
         self::assertSame($entry['scheme'], $url->scheme);
         self::assertSame($entry['host'] ?? '', $url->host);
         self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamChangesHrefProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            $changes = $entry['change'];
+            $activeChanges = array_filter(
+                $changes,
+                static fn (mixed $value): bool => $value !== null,
+            );
+
+            if (array_keys($activeChanges) !== ['href']) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesHrefProvider')]
+    public function testUpstreamChangesHrefFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+
+        self::assertNotNull($url);
+        self::assertSame(! ($entry['failed'] ?? false), $url->setHref($entry['change']['href']));
+        self::assertSame($entry['done'], $url->serialize());
+
+        if ($entry['failed'] ?? false) {
+            return;
+        }
+
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['username'] ?? '', $url->username);
+        self::assertSame($entry['password'] ?? '', $url->password);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['port'] ?? null, $url->port);
+        self::assertSame($entry['path'] ?? '', $url->path);
+        self::assertSame($entry['query'] ?? null, $url->query);
+        self::assertSame($entry['fragment'] ?? null, $url->fragment);
     }
 
     /**

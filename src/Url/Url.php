@@ -24,6 +24,26 @@ final class Url
     ) {
     }
 
+    public function setHref(string $href): bool
+    {
+        $url = (new Parser())->parse($href);
+
+        if ($url === null) {
+            return false;
+        }
+
+        $this->scheme = $url->scheme;
+        $this->username = $url->username;
+        $this->password = $url->password;
+        $this->host = $url->host;
+        $this->port = $url->port;
+        $this->path = $url->path;
+        $this->query = $url->query;
+        $this->fragment = $url->fragment;
+
+        return true;
+    }
+
     public function setProtocol(string $protocol): bool
     {
         $protocol = str_replace(["\t", "\n", "\r"], '', $protocol);
