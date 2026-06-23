@@ -27,6 +27,11 @@ final readonly class DecodeResult
         public ?int $pendingGb18030Second = null,
         public ?int $pendingGb18030Third = null,
         public bool $pendingGb18030Prepend = false,
+        public int $pendingIso2022JpState = 0,
+        public int $pendingIso2022JpOutState = 0,
+        public bool $pendingIso2022JpOutFlag = false,
+        public ?int $pendingIso2022JpLead = null,
+        public ?int $pendingIso2022JpPrepend = null,
     ) {
     }
 }
