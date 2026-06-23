@@ -287,12 +287,12 @@ final class Parser
         }
 
         [$body, $closed, $trailing] = self::pseudoFunctionBody($tokens);
-        if ($trailing !== []) {
-            return self::error(self::firstUnexpectedToken($trailing));
+        if ($name === 'has') {
+            return $this->parseHasPseudoFunction($body, $closed, $trailing);
         }
 
-        if ($name === 'has') {
-            return $this->parseHasPseudoFunction($body, $closed);
+        if ($trailing !== []) {
+            return self::error(self::firstUnexpectedToken($trailing));
         }
 
         $selectorParts = self::splitSelectorList($body);
@@ -320,7 +320,7 @@ final class Parser
             if ($selector === null) {
                 $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($selectorTokens));
                 $invalid = true;
-                continue;
+                break;
             }
 
             if ($selector['errors'] !== []) {
@@ -329,7 +329,7 @@ final class Parser
 
             if ($selector['value'] === '') {
                 $invalid = true;
-                continue;
+                break;
             }
 
             $serialized[] = $selector['value'];
@@ -356,9 +356,10 @@ final class Parser
 
     /**
      * @param list<Token> $body
+     * @param list<Token> $trailing
      * @return array{value: string, errors: list<string>}
      */
-    private function parseHasPseudoFunction(array $body, bool $closed): array
+    private function parseHasPseudoFunction(array $body, bool $closed, array $trailing): array
     {
         [$selectorParts, $errors] = self::splitForgivingSelectorList($body);
         $serialized = [];
@@ -383,6 +384,15 @@ final class Parser
             $errors[] = self::eofPseudoFunctionError();
         }
 
+        if ($trailing !== []) {
+            $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($trailing));
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
         if ($serialized === []) {
             $errors[] = self::emptyPseudoFunctionError('has');
 
@@ -405,7 +415,7 @@ final class Parser
     private static function pseudoFunctionBody(array $tokens): array
     {
         $body = [];
-        $depth = 1;
+        $stack = ['right-parenthesis'];
         $offset = 2;
         $count = count($tokens);
 
@@ -413,16 +423,25 @@ final class Parser
             $token = $tokens[$offset];
 
             if ($token->type === 'function') {
-                $depth++;
+                $stack[] = 'right-parenthesis';
                 $body[] = $token;
                 $offset++;
                 continue;
             }
 
-            if ($token->type === 'right-parenthesis') {
-                $depth--;
+            $closingToken = self::closingTokenFor($token);
+            if ($closingToken !== null) {
+                $stack[] = $closingToken;
+                $body[] = $token;
+                $offset++;
+                continue;
+            }
 
-                if ($depth === 0) {
+            $expected = $stack[array_key_last($stack)];
+            if ($token->type === $expected) {
+                array_pop($stack);
+
+                if ($stack === []) {
                     return [$body, true, array_slice($tokens, $offset + 1)];
                 }
 
@@ -436,6 +455,16 @@ final class Parser
         }
 
         return [$body, false, []];
+    }
+
+    private static function closingTokenFor(Token $token): ?string
+    {
+        return match ($token->type) {
+            'left-curly-bracket' => 'right-curly-bracket',
+            'left-parenthesis' => 'right-parenthesis',
+            'left-square-bracket' => 'right-square-bracket',
+            default => null,
+        };
     }
 
     private static function parseTypeSelector(string $selector): ?string
@@ -562,28 +591,35 @@ final class Parser
     {
         $parts = [];
         $part = [];
-        $depth = 0;
+        $stack = [];
 
         foreach ($tokens as $token) {
-            if ($token->type === 'function') {
-                $depth++;
-                $part[] = $token;
-                continue;
-            }
-
-            if ($token->type === 'right-parenthesis' && $depth > 0) {
-                $depth--;
-                $part[] = $token;
-                continue;
-            }
-
-            if ($token->type === 'comma' && $depth === 0) {
+            if ($token->type === 'comma' && $stack === []) {
                 $part = self::trimTokenList($part);
                 if ($part !== []) {
                     $parts[] = $part;
                 }
 
                 $part = [];
+                continue;
+            }
+
+            if ($token->type === 'function') {
+                $stack[] = 'right-parenthesis';
+                $part[] = $token;
+                continue;
+            }
+
+            $closingToken = self::closingTokenFor($token);
+            if ($closingToken !== null) {
+                $stack[] = $closingToken;
+                $part[] = $token;
+                continue;
+            }
+
+            if ($stack !== [] && $token->type === $stack[array_key_last($stack)]) {
+                array_pop($stack);
+                $part[] = $token;
                 continue;
             }
 
@@ -607,22 +643,10 @@ final class Parser
         $parts = [];
         $errors = [];
         $part = [];
-        $depth = 0;
+        $stack = [];
 
         foreach ($tokens as $token) {
-            if ($token->type === 'function') {
-                $depth++;
-                $part[] = $token;
-                continue;
-            }
-
-            if ($token->type === 'right-parenthesis' && $depth > 0) {
-                $depth--;
-                $part[] = $token;
-                continue;
-            }
-
-            if ($token->type === 'comma' && $depth === 0) {
+            if ($token->type === 'comma' && $stack === []) {
                 $part = self::trimTokenList($part);
                 if ($part === []) {
                     $errors[] = self::unexpectedTokenError(',');
@@ -631,6 +655,25 @@ final class Parser
                 }
 
                 $part = [];
+                continue;
+            }
+
+            if ($token->type === 'function') {
+                $stack[] = 'right-parenthesis';
+                $part[] = $token;
+                continue;
+            }
+
+            $closingToken = self::closingTokenFor($token);
+            if ($closingToken !== null) {
+                $stack[] = $closingToken;
+                $part[] = $token;
+                continue;
+            }
+
+            if ($stack !== [] && $token->type === $stack[array_key_last($stack)]) {
+                array_pop($stack);
+                $part[] = $token;
                 continue;
             }
 
