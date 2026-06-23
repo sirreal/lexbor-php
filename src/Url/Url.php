@@ -19,7 +19,7 @@ final class Url
         public ?int $port,
         public string $path,
         public ?string $query = null,
-        public readonly ?string $fragment = null,
+        public ?string $fragment = null,
         private readonly array $errors = [],
     ) {
     }
@@ -191,6 +191,23 @@ final class Url
         return true;
     }
 
+    public function setHash(string $hash): bool
+    {
+        if ($hash === '') {
+            $this->fragment = null;
+            return true;
+        }
+
+        if (str_starts_with($hash, '#')) {
+            $hash = substr($hash, 1);
+        }
+
+        $hash = str_replace(["\t", "\n", "\r"], '', $hash);
+        $this->fragment = $this->percentEncodeFragment($hash);
+
+        return true;
+    }
+
     public function serialize(): string
     {
         $authority = $this->host;
@@ -255,6 +272,24 @@ final class Url
             $bytes = Utf8::encodeCodePoint($codePoint);
 
             if ($codePoint < 0x80 && $this->isPathByteAllowed($codePoint)) {
+                $encoded .= chr($codePoint);
+                continue;
+            }
+
+            $encoded .= $this->percentEncodeBytes($bytes);
+        }
+
+        return $encoded;
+    }
+
+    private function percentEncodeFragment(string $fragment): string
+    {
+        $encoded = '';
+
+        foreach (Utf8::decode($fragment) as $codePoint) {
+            $bytes = Utf8::encodeCodePoint($codePoint);
+
+            if ($codePoint < 0x80 && $this->isFragmentByteAllowed($codePoint)) {
                 $encoded .= chr($codePoint);
                 continue;
             }
@@ -333,6 +368,13 @@ final class Url
         return $byte >= 0x21
             && $byte <= 0x7E
             && ! in_array($byte, [0x22, 0x23, 0x3C, 0x3E, 0x3F, 0x60], true);
+    }
+
+    private function isFragmentByteAllowed(int $byte): bool
+    {
+        return $byte >= 0x21
+            && $byte <= 0x7E
+            && ! in_array($byte, [0x22, 0x3C, 0x3E, 0x60], true);
     }
 
     private function isQueryByteAllowed(int $byte, bool $isSpecial): bool

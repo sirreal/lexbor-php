@@ -505,6 +505,37 @@ final class ParserTest extends TestCase
         self::assertSame('foo://a/path?#frag', $nonSpecial->serialize());
     }
 
+    public function testHashMutationPreservesPathSearchAndEncodesFragment(): void
+    {
+        $url = (new Parser())->parse('https://lexbor.com/a?x=1#old');
+        $nonSpecial = (new Parser())->parse('foo://a/path?x=1#old');
+
+        self::assertNotNull($url);
+        self::assertNotNull($nonSpecial);
+
+        self::assertTrue($url->setHash('my-best-fragment'));
+        self::assertSame('https://lexbor.com/a?x=1#my-best-fragment', $url->serialize());
+        self::assertTrue($url->setHash(''));
+        self::assertSame('https://lexbor.com/a?x=1', $url->serialize());
+        self::assertTrue($url->setHash('#'));
+        self::assertSame('https://lexbor.com/a?x=1#', $url->serialize());
+        self::assertTrue($url->setHash('#a b'));
+        self::assertSame('https://lexbor.com/a?x=1#a%20b', $url->serialize());
+        self::assertTrue($url->setHash('a?b#c'));
+        self::assertSame('https://lexbor.com/a?x=1#a?b#c', $url->serialize());
+        self::assertTrue($url->setHash("a\nb\tc\rd"));
+        self::assertSame('https://lexbor.com/a?x=1#abcd', $url->serialize());
+        self::assertTrue($url->setHash("\n"));
+        self::assertSame('https://lexbor.com/a?x=1#', $url->serialize());
+        self::assertTrue($url->setHash("\n#x"));
+        self::assertSame('https://lexbor.com/a?x=1##x', $url->serialize());
+        self::assertTrue($url->setHash("#\n#x"));
+        self::assertSame('https://lexbor.com/a?x=1##x', $url->serialize());
+
+        self::assertTrue($nonSpecial->setHash('a?b#c'));
+        self::assertSame('foo://a/path?x=1#a?b#c', $nonSpecial->serialize());
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -1237,6 +1268,48 @@ final class ParserTest extends TestCase
         self::assertSame($entry['scheme'], $url->scheme);
         self::assertSame($entry['host'] ?? '', $url->host);
         self::assertSame($entry['query'] ?? null, $url->query);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamChangesHashProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            if ($index < 36 || $index > 40) {
+                continue;
+            }
+
+            $changes = $entry['change'];
+            $activeChanges = array_filter(
+                $changes,
+                static fn (mixed $value): bool => $value !== null,
+            );
+
+            if (array_keys($activeChanges) !== ['hash']) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesHashProvider')]
+    public function testUpstreamChangesHashFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+        $changes = $entry['change'];
+
+        self::assertNotNull($url);
+        self::assertSame(! ($entry['failed'] ?? false), $url->setHash($changes['hash']));
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['fragment'] ?? null, $url->fragment);
         self::assertSame($entry['path'] ?? '', $url->path);
     }
 
