@@ -171,14 +171,37 @@ final class Parser
 
         $host = $hostPort;
         $port = null;
-        $colon = strrpos($hostPort, ':');
+        $validHostPort = true;
 
-        if ($colon !== false && ctype_digit(substr($hostPort, $colon + 1))) {
-            $host = substr($hostPort, 0, $colon);
-            $port = (int) substr($hostPort, $colon + 1);
+        if (str_starts_with($hostPort, '[')) {
+            $close = strpos($hostPort, ']');
+
+            if ($close === false) {
+                $validHostPort = false;
+            } else {
+                $host = substr($hostPort, 0, $close + 1);
+                $remainder = substr($hostPort, $close + 1);
+
+                if ($remainder !== '') {
+                    if (! str_starts_with($remainder, ':') || ! ctype_digit(substr($remainder, 1))) {
+                        $validHostPort = false;
+                    } else {
+                        $port = (int) substr($remainder, 1);
+                    }
+                }
+            }
+        } else {
+            $colon = strrpos($hostPort, ':');
+
+            if ($colon !== false && ctype_digit(substr($hostPort, $colon + 1))) {
+                $host = substr($hostPort, 0, $colon);
+                $port = (int) substr($hostPort, $colon + 1);
+            }
         }
 
-        if (! ($allowFileDriveHost && preg_match('/^[A-Za-z]\|$/', $host) === 1)) {
+        if (! $validHostPort) {
+            $host = null;
+        } elseif (! ($allowFileDriveHost && preg_match('/^[A-Za-z]\|$/', $host) === 1)) {
             $host = $this->parseHost($host, $parseIpv4);
         }
 
@@ -194,6 +217,14 @@ final class Parser
     {
         if ($host === '') {
             return '';
+        }
+
+        if (str_starts_with($host, '[')) {
+            if (! str_ends_with($host, ']')) {
+                return null;
+            }
+
+            return $this->parseIpv6Host(substr($host, 1, -1));
         }
 
         $host = strtolower($this->percentDecodeHost($host));
@@ -219,6 +250,180 @@ final class Parser
         }
 
         return $host;
+    }
+
+    private function parseIpv6Host(string $host): ?string
+    {
+        $pieces = $this->parseIpv6Pieces(strtolower($host));
+
+        if ($pieces === null) {
+            return null;
+        }
+
+        return '[' . $this->serializeIpv6Pieces($pieces) . ']';
+    }
+
+    /**
+     * @return ?list<int>
+     */
+    private function parseIpv6Pieces(string $host): ?array
+    {
+        if ($host === '' || str_contains($host, ':::') || substr_count($host, '::') > 1) {
+            return null;
+        }
+
+        if (str_contains($host, '::')) {
+            [$left, $right] = explode('::', $host, 2);
+
+            if (str_contains($left, '.')) {
+                return null;
+            }
+
+            $leftPieces = $left !== '' ? $this->parseIpv6PieceSequence($left) : [];
+            $rightPieces = $right !== '' ? $this->parseIpv6PieceSequence($right) : [];
+
+            if ($leftPieces === null || $rightPieces === null) {
+                return null;
+            }
+
+            $missing = 8 - count($leftPieces) - count($rightPieces);
+
+            if ($missing < 1) {
+                return null;
+            }
+
+            return array_merge($leftPieces, array_fill(0, $missing, 0), $rightPieces);
+        }
+
+        $pieces = $this->parseIpv6PieceSequence($host);
+
+        return $pieces !== null && count($pieces) === 8 ? $pieces : null;
+    }
+
+    /**
+     * @return ?list<int>
+     */
+    private function parseIpv6PieceSequence(string $sequence): ?array
+    {
+        if ($sequence === '' || str_starts_with($sequence, ':') || str_ends_with($sequence, ':')) {
+            return null;
+        }
+
+        $parts = explode(':', $sequence);
+        $pieces = [];
+
+        foreach ($parts as $index => $part) {
+            if ($part === '') {
+                return null;
+            }
+
+            if (str_contains($part, '.')) {
+                if ($index !== count($parts) - 1) {
+                    return null;
+                }
+
+                $ipv4Pieces = $this->parseIpv4TailForIpv6($part);
+
+                if ($ipv4Pieces === null) {
+                    return null;
+                }
+
+                array_push($pieces, ...$ipv4Pieces);
+                continue;
+            }
+
+            if (preg_match('/^[0-9a-f]{1,4}$/', $part) !== 1) {
+                return null;
+            }
+
+            $pieces[] = hexdec($part);
+        }
+
+        return count($pieces) <= 8 ? $pieces : null;
+    }
+
+    /**
+     * @return ?array{int, int}
+     */
+    private function parseIpv4TailForIpv6(string $tail): ?array
+    {
+        $parts = explode('.', $tail);
+
+        if (count($parts) !== 4) {
+            return null;
+        }
+
+        $numbers = [];
+
+        foreach ($parts as $part) {
+            if ($part === '' || preg_match('/^[0-9]+$/', $part) !== 1) {
+                return null;
+            }
+
+            if (strlen($part) > 1 && str_starts_with($part, '0')) {
+                return null;
+            }
+
+            $number = (int) $part;
+
+            if ($number > 255) {
+                return null;
+            }
+
+            $numbers[] = $number;
+        }
+
+        return [
+            ($numbers[0] << 8) + $numbers[1],
+            ($numbers[2] << 8) + $numbers[3],
+        ];
+    }
+
+    /**
+     * @param list<int> $pieces
+     */
+    private function serializeIpv6Pieces(array $pieces): string
+    {
+        $compressStart = null;
+        $compressLength = 0;
+        $currentStart = null;
+        $currentLength = 0;
+
+        foreach ($pieces as $index => $piece) {
+            if ($piece === 0) {
+                if ($currentStart === null) {
+                    $currentStart = $index;
+                    $currentLength = 0;
+                }
+
+                $currentLength++;
+                continue;
+            }
+
+            if ($currentLength > $compressLength) {
+                $compressStart = $currentStart;
+                $compressLength = $currentLength;
+            }
+
+            $currentStart = null;
+            $currentLength = 0;
+        }
+
+        if ($currentLength > $compressLength) {
+            $compressStart = $currentStart;
+            $compressLength = $currentLength;
+        }
+
+        if ($compressLength < 2 || $compressStart === null) {
+            return implode(':', array_map(static fn (int $piece): string => dechex($piece), $pieces));
+        }
+
+        $left = array_slice($pieces, 0, $compressStart);
+        $right = array_slice($pieces, $compressStart + $compressLength);
+
+        return implode(':', array_map(static fn (int $piece): string => dechex($piece), $left))
+            . '::'
+            . implode(':', array_map(static fn (int $piece): string => dechex($piece), $right));
     }
 
     private function isIpv4Candidate(string $host): bool

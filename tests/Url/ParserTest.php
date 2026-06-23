@@ -242,6 +242,28 @@ final class ParserTest extends TestCase
         self::assertNull((new Parser())->parse('https://1.2.3.09'));
     }
 
+    public function testIpv6HostWithPortSerializes(): void
+    {
+        $url = (new Parser())->parse('https://[::1]:8443/docs');
+
+        self::assertNotNull($url);
+        self::assertSame('https://[::1]:8443/docs', $url->serialize());
+        self::assertSame('[::1]', $url->host);
+        self::assertSame(8443, $url->port);
+    }
+
+    public function testIpv6Ipv4TailRejectsLeadingZeroParts(): void
+    {
+        self::assertNull((new Parser())->parse('https://[::ffff:192.168.001.001]'));
+    }
+
+    public function testIpv6Ipv4TailMustEndAddress(): void
+    {
+        self::assertNull((new Parser())->parse('https://[192.0.2.1::]'));
+        self::assertNull((new Parser())->parse('https://[192.0.2.1::1]'));
+        self::assertNull((new Parser())->parse('https://[1:2:192.0.2.1::]'));
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -673,6 +695,36 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('upstreamIpv4Provider')]
     public function testUpstreamIpv4Fixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url'], null, $entry['encoding'] ?? 'utf-8');
+
+        if ($entry['failed'] ?? false) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamIpv6Provider(): iterable
+    {
+        foreach (self::urlFixtureEntries('ipv6.ton') as $index => $entry) {
+            yield 'ipv6.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamIpv6Provider')]
+    public function testUpstreamIpv6Fixtures(array $entry): void
     {
         $url = (new Parser())->parse($entry['url'], null, $entry['encoding'] ?? 'utf-8');
 
