@@ -274,10 +274,9 @@ final class Parser
     private function parsePseudoFunctionSelector(array $tokens): ?array
     {
         if (
-            count($tokens) < 3
+            count($tokens) < 2
             || $tokens[0]->type !== 'colon'
             || $tokens[1]->type !== 'function'
-            || $tokens[array_key_last($tokens)]->type !== 'right-parenthesis'
         ) {
             return null;
         }
@@ -287,29 +286,56 @@ final class Parser
             return null;
         }
 
-        $selectorParts = self::splitSelectorList(array_slice($tokens, 2, -1));
+        [$body, $closed, $trailing] = self::pseudoFunctionBody($tokens);
+        if ($trailing !== []) {
+            return self::error(self::firstUnexpectedToken($trailing));
+        }
+
+        $selectorParts = self::splitSelectorList($body);
         if ($selectorParts === []) {
-            return self::emptyPseudoFunction($name);
+            $errors = [];
+
+            if (! $closed) {
+                $errors[] = self::unexpectedTokenError('END-OF-FILE');
+                $errors[] = self::eofPseudoFunctionError();
+            }
+
+            $errors[] = self::emptyPseudoFunctionError($name);
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
         }
 
         $serialized = [];
         $errors = [];
+        $invalid = false;
         foreach ($selectorParts as $selectorTokens) {
             $selector = $this->parseSimpleSelector($selectorTokens);
             if ($selector === null) {
                 $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($selectorTokens));
+                $invalid = true;
                 continue;
             }
 
             if ($selector['errors'] !== []) {
                 array_push($errors, ...$selector['errors']);
+            }
+
+            if ($selector['value'] === '') {
+                $invalid = true;
                 continue;
             }
 
             $serialized[] = $selector['value'];
         }
 
-        if ($errors !== []) {
+        if (! $closed) {
+            $errors[] = self::eofPseudoFunctionError();
+        }
+
+        if ($invalid) {
             $errors[] = self::emptyPseudoFunctionError($name);
 
             return [
@@ -320,8 +346,48 @@ final class Parser
 
         return [
             'value' => sprintf(':%s(%s)', $name, implode(', ', $serialized)),
-            'errors' => [],
+            'errors' => $errors,
         ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{list<Token>, bool, list<Token>}
+     */
+    private static function pseudoFunctionBody(array $tokens): array
+    {
+        $body = [];
+        $depth = 1;
+        $offset = 2;
+        $count = count($tokens);
+
+        while ($offset < $count) {
+            $token = $tokens[$offset];
+
+            if ($token->type === 'function') {
+                $depth++;
+                $body[] = $token;
+                $offset++;
+                continue;
+            }
+
+            if ($token->type === 'right-parenthesis') {
+                $depth--;
+
+                if ($depth === 0) {
+                    return [$body, true, array_slice($tokens, $offset + 1)];
+                }
+
+                $body[] = $token;
+                $offset++;
+                continue;
+            }
+
+            $body[] = $token;
+            $offset++;
+        }
+
+        return [$body, false, []];
     }
 
     private static function parseTypeSelector(string $selector): ?string
@@ -529,6 +595,11 @@ final class Parser
     private static function unexpectedTokenError(string $token): string
     {
         return sprintf('Syntax error. Selectors. Unexpected token: %s', $token);
+    }
+
+    private static function eofPseudoFunctionError(): string
+    {
+        return 'Syntax error. Selectors. End Of File in pseudo function';
     }
 
     /**
