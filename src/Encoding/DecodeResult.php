@@ -24,6 +24,9 @@ final readonly class DecodeResult
         public ?int $pendingFirstCodePoint = null,
         public ?int $pendingSecondCodePoint = null,
         public bool $pendingJis0212 = false,
+        public ?int $pendingGb18030Second = null,
+        public ?int $pendingGb18030Third = null,
+        public bool $pendingGb18030Prepend = false,
     ) {
     }
 }
