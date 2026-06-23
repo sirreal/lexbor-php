@@ -268,4 +268,67 @@ final class ParserTest extends TestCase
         self::assertSame($expected['host'], $url->host);
         self::assertSame($expected['path'], $url->path);
     }
+
+    /**
+     * @return iterable<string, array{string, array<string, string>}>
+     */
+    public static function upstreamFragmentProvider(): iterable
+    {
+        yield 'fragment.ton #1 ascii fragment' => [
+            'https://lexbor.com/#install',
+            [
+                'done' => 'https://lexbor.com/#install',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'fragment' => 'install',
+            ],
+        ];
+        yield 'fragment.ton #2 fragment space' => [
+            'https://lexbor.com/#ins tall',
+            [
+                'done' => 'https://lexbor.com/#ins%20tall',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'fragment' => 'ins%20tall',
+            ],
+        ];
+        yield 'fragment.ton #3 empty fragment' => [
+            'https://lexbor.com/#',
+            [
+                'done' => 'https://lexbor.com/#',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'fragment' => '',
+            ],
+        ];
+        yield 'fragment.ton #4 utf-8 fragment' => [
+            "https://lexbor.com/#\u{0401}",
+            [
+                'done' => 'https://lexbor.com/#%D0%81',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+                'fragment' => '%D0%81',
+            ],
+        ];
+    }
+
+    /**
+     * @param array<string, string> $expected
+     */
+    #[DataProvider('upstreamFragmentProvider')]
+    public function testUpstreamFragmentFixtures(string $source, array $expected): void
+    {
+        $url = (new Parser())->parse($source);
+
+        self::assertNotNull($url);
+        self::assertSame($expected['done'], $url->serialize());
+        self::assertSame($expected['scheme'], $url->scheme);
+        self::assertSame($expected['host'], $url->host);
+        self::assertSame($expected['path'], $url->path);
+        self::assertSame($expected['fragment'], $url->fragment);
+    }
 }

@@ -143,7 +143,7 @@ final class Parser
             $port,
             $this->percentEncodePath($path, $errors),
             $query,
-            $fragment,
+            $fragment !== null ? $this->percentEncodeFragment($fragment, $errors) : null,
             $errors,
         );
     }
@@ -194,6 +194,31 @@ final class Parser
         return $encoded;
     }
 
+    /**
+     * @param list<ValidationError> $errors
+     */
+    private function percentEncodeFragment(string $fragment, array &$errors): string
+    {
+        $encoded = '';
+
+        foreach (Utf8::decode($fragment) as $codePoint) {
+            if ($this->isInvalidUrlUnit($codePoint)) {
+                $this->appendError($errors, ValidationError::InvalidUrlUnit);
+            }
+
+            $bytes = Utf8::encodeCodePoint($codePoint);
+
+            if ($codePoint < 0x80 && $this->isFragmentByteAllowed($codePoint)) {
+                $encoded .= chr($codePoint);
+                continue;
+            }
+
+            $encoded .= $this->percentEncodeBytes($bytes);
+        }
+
+        return $encoded;
+    }
+
     private function isInvalidUrlUnit(int $codePoint): bool
     {
         return ($codePoint >= 0xFDD0 && $codePoint <= 0xFDEF)
@@ -222,6 +247,13 @@ final class Parser
     private function isPathByteAllowed(int $byte): bool
     {
         return $byte >= 0x21 && $byte <= 0x7E;
+    }
+
+    private function isFragmentByteAllowed(int $byte): bool
+    {
+        return $byte >= 0x21
+            && $byte <= 0x7E
+            && ! in_array($byte, [0x22, 0x3C, 0x3E, 0x60], true);
     }
 
     private function percentEncodeBytes(string $bytes): string
