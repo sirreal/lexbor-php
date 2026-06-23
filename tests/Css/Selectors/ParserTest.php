@@ -46,6 +46,23 @@ final class ParserTest extends TestCase
         yield 'selectors.c #29 EOF in unquoted attribute value selector' => ['[refs=link', '[refs="link"]', ['Syntax error. Selectors. End Of File in attribute selector']];
         yield 'selectors.c #30 EOF in string attribute value selector' => ["[refs='a b", '[refs="a b"]', ['Syntax error. Selectors. End Of File in attribute selector']];
         yield 'selectors.c #31 EOF after attribute i modifier' => ['[refs=link i', '[refs="link"i]', ['Syntax error. Selectors. End Of File in attribute selector']];
+        yield 'selectors.c #32 EOF in compound attribute presence selector' => ['div[refs', 'div[refs]', ['Syntax error. Selectors. End Of File in attribute selector']];
+        yield 'selectors.c #33 uppercase i attribute modifier' => ['[refs=link I]', '[refs="link"i]', []];
+        yield 'selectors.c #34 uppercase s attribute modifier' => ['[refs=link S]', '[refs="link"s]', []];
+        yield 'selectors.c #35 escaped i attribute modifier' => ['[refs=link \\69]', '[refs="link"i]', []];
+        yield 'selectors.c #36 escaped uppercase i attribute modifier' => ['[refs=link \\049 ]', '[refs="link"i]', []];
+        yield 'selectors.c #37 escaped s attribute modifier' => ['[refs=link \\000073]', '[refs="link"s]', []];
+        yield 'selectors.c #38 escaped uppercase s attribute modifier' => ['[refs=link \\53]', '[refs="link"s]', []];
+        yield 'selectors.c #39 rejects insensitive attribute modifier' => ['[refs=link insensitive]', '', ['Syntax error. Selectors. Unexpected token: insensitive']];
+        yield 'selectors.c #40 rejects iZZZ attribute modifier' => ['[refs=link iZZZ]', '', ['Syntax error. Selectors. Unexpected token: iZZZ']];
+        yield 'selectors.c #41 rejects sensitive attribute modifier' => ['[refs=link sensitive]', '', ['Syntax error. Selectors. Unexpected token: sensitive']];
+        yield 'selectors.c #42 rejects uppercase Sensitive attribute modifier' => ['[refs=link Sensitive]', '', ['Syntax error. Selectors. Unexpected token: Sensitive']];
+        yield 'selectors.c #43 rejects percentage attribute value' => ['[refs=0%]', '', ['Syntax error. Selectors. Unexpected token: 0%']];
+        yield 'selectors.c #44 rejects empty attribute selector EOF' => ['[', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
+        yield 'selectors.c #45 rejects missing attribute value EOF' => ['[refs=', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
+        yield 'selectors.c #46 rejects missing attribute matcher EOF' => ['[refs~', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
+        yield 'selectors.c #47 rejects presence selector trailing ident' => ['[refs i]', '', ['Syntax error. Selectors. Unexpected token: i']];
+        yield 'selectors.c #48 rejects string attribute name' => ["['refs']", '', ['Syntax error. Selectors. Unexpected token: "refs"']];
     }
 
     /**

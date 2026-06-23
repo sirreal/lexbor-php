@@ -30,16 +30,21 @@ final class Parser
             return $class;
         }
 
-        if (count($tokens) === 1) {
-            return match ($tokens[0]->type) {
-                'ident', 'hash' => ['value' => $tokens[0]->value, 'errors' => []],
-                default => self::error($tokens[0]->value),
-            };
+        $compoundAttribute = $this->parseCompoundAttributeSelector($tokens);
+        if ($compoundAttribute !== null) {
+            return $compoundAttribute;
         }
 
         $attribute = $this->parseAttributeSelector($tokens);
         if ($attribute !== null) {
             return $attribute;
+        }
+
+        if (count($tokens) === 1) {
+            return match ($tokens[0]->type) {
+                'ident', 'hash' => ['value' => $tokens[0]->value, 'errors' => []],
+                default => self::error($tokens[0]->value),
+            };
         }
 
         $typeSelector = self::parseTypeSelector($selector);
@@ -84,6 +89,32 @@ final class Parser
      * @param list<Token> $tokens
      * @return array{value: string, errors: list<string>}|null
      */
+    private function parseCompoundAttributeSelector(array $tokens): ?array
+    {
+        if (
+            count($tokens) < 2
+            || $tokens[0]->type !== 'ident'
+            || $tokens[1]->type !== 'left-square-bracket'
+        ) {
+            return null;
+        }
+
+        $attribute = $this->parseAttributeSelector(array_slice($tokens, 1));
+        if ($attribute === null) {
+            return null;
+        }
+
+        if ($attribute['value'] !== '') {
+            $attribute['value'] = $tokens[0]->value . $attribute['value'];
+        }
+
+        return $attribute;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
     private function parseAttributeSelector(array $tokens): ?array
     {
         if (($tokens[0] ?? null)?->type !== 'left-square-bracket') {
@@ -118,6 +149,13 @@ final class Parser
 
         if ($token === null) {
             return self::attributeEof("[{$name->value}]");
+        }
+
+        if ($token->type === 'delim' && $token->value !== '=') {
+            $lookahead = $offset + 1;
+            self::skipWhitespace($tokens, $lookahead);
+
+            return self::error($tokens[$lookahead]->value ?? 'END-OF-FILE');
         }
 
         if ($token->type !== 'delim' || $token->value !== '=') {
