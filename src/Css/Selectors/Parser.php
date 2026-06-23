@@ -126,6 +126,98 @@ final class Parser
     }
 
     /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseComplexList(string $selector): array
+    {
+        $tokens = $this->tokenize($selector);
+
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        return $this->parseSpecificSelectorList(
+            $tokens,
+            fn (array $part): array => $this->parseRequiredComplexSelector($part),
+            true,
+        );
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseCompoundList(string $selector): array
+    {
+        $tokens = $this->tokenize($selector);
+
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        return $this->parseSpecificSelectorList(
+            $tokens,
+            fn (array $part): array => $this->parseRequiredCompoundSelector($part),
+        );
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseSimpleList(string $selector): array
+    {
+        $tokens = $this->tokenize($selector);
+
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        return $this->parseSpecificSelectorList(
+            $tokens,
+            fn (array $part): array => $this->parseRequiredSimpleSelector($part),
+        );
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseComplex(string $selector): array
+    {
+        $tokens = $this->tokenize($selector);
+
+        return $tokens === [] ? self::error('END-OF-FILE') : $this->parseRequiredComplexSelector($tokens);
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseCompound(string $selector): array
+    {
+        $tokens = $this->tokenize($selector);
+
+        return $tokens === [] ? self::error('END-OF-FILE') : $this->parseRequiredCompoundSelector($tokens);
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseSimple(string $selector): array
+    {
+        $tokens = $this->tokenize($selector);
+
+        return $tokens === [] ? self::error('END-OF-FILE') : $this->parseRequiredSimpleSelector($tokens);
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseRelative(string $selector): array
+    {
+        $tokens = $this->tokenize($selector);
+
+        return $tokens === [] ? self::error('END-OF-FILE') : $this->parseRequiredRelativeSelector($tokens);
+    }
+
+    /**
      * @param list<Token> $tokens
      * @return array{value: string, errors: list<string>}|null
      */
@@ -275,6 +367,66 @@ final class Parser
         }
 
         $selector = $this->parseRelativeSelector($part);
+        if ($selector['errors'] !== []) {
+            return [
+                'value' => '',
+                'errors' => $selector['errors'],
+            ];
+        }
+
+        $serialized[] = $selector['value'];
+
+        return [
+            'value' => implode(', ', $serialized),
+            'errors' => [],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @param callable(list<Token>): array{value: string, errors: list<string>} $parsePart
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseSpecificSelectorList(array $tokens, callable $parsePart, bool $reportTrailingCombinatorComma = false): array
+    {
+        $part = [];
+        $serialized = [];
+        $stack = [];
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'comma' && $stack === []) {
+                $part = self::trimTokenList($part);
+                if ($part === []) {
+                    return self::error(',');
+                }
+
+                if ($reportTrailingCombinatorComma && self::endsWithCombinator($part)) {
+                    return self::error(',');
+                }
+
+                $selector = $parsePart($part);
+                if ($selector['errors'] !== []) {
+                    return [
+                        'value' => '',
+                        'errors' => $selector['errors'],
+                    ];
+                }
+
+                $serialized[] = $selector['value'];
+                $part = [];
+                continue;
+            }
+
+            self::updateTokenStack($stack, $token);
+            $part[] = $token;
+        }
+
+        $part = self::trimTokenList($part);
+        if ($part === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        $selector = $parsePart($part);
         if ($selector['errors'] !== []) {
             return [
                 'value' => '',
@@ -1066,6 +1218,133 @@ final class Parser
             'value' => implode('', $serialized),
             'errors' => [],
         ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseRequiredComplexSelector(array $tokens): array
+    {
+        $tokens = self::trimTokenList($tokens);
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        return $this->parseComplexSelector($tokens) ?? self::error(self::firstUnexpectedToken($tokens));
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseRequiredCompoundSelector(array $tokens): array
+    {
+        $tokens = self::trimTokenList($tokens);
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        $offset = 0;
+        $selector = $this->consumeCompoundSelector($tokens, $offset);
+        if ($selector === null) {
+            return self::error(self::firstUnexpectedToken($tokens));
+        }
+
+        return $this->completeSingularSelector($selector, $tokens, $offset);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseRequiredSimpleSelector(array $tokens): array
+    {
+        $tokens = self::trimTokenList($tokens);
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        if (
+            $tokens[0]->type === 'colon'
+            && ($tokens[1] ?? null)?->type === 'colon'
+        ) {
+            return self::error(':');
+        }
+
+        $offset = 0;
+        $typeSelector = self::consumeTypeSelector($tokens, $offset);
+        if ($typeSelector !== null) {
+            return $this->completeSingularSelector(
+                ['value' => $typeSelector, 'errors' => []],
+                $tokens,
+                $offset,
+            );
+        }
+
+        $selector = $this->consumeNonTypeSimpleSelector($tokens, $offset);
+        if ($selector === null) {
+            return self::error(self::firstUnexpectedToken($tokens));
+        }
+
+        return $this->completeSingularSelector($selector, $tokens, $offset);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseRequiredRelativeSelector(array $tokens): array
+    {
+        $tokens = self::trimTokenList($tokens);
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        $offset = 0;
+        $combinator = '';
+        if (self::isCombinatorAt($tokens, $offset)) {
+            $combinator = self::consumeCombinator($tokens, $offset);
+            self::skipWhitespace($tokens, $offset);
+
+            if (! isset($tokens[$offset])) {
+                return self::error('END-OF-FILE');
+            }
+        }
+
+        $selector = $this->consumeCompoundSelector($tokens, $offset);
+        if ($selector === null) {
+            return self::error(self::firstUnexpectedToken(array_slice($tokens, $offset)));
+        }
+
+        if ($selector['errors'] !== []) {
+            return $selector;
+        }
+
+        if ($combinator !== '') {
+            $selector['value'] = "{$combinator} {$selector['value']}";
+        }
+
+        return $this->completeSingularSelector($selector, $tokens, $offset);
+    }
+
+    /**
+     * @param array{value: string, errors: list<string>} $selector
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function completeSingularSelector(array $selector, array $tokens, int $offset): array
+    {
+        if ($selector['errors'] !== []) {
+            return $selector;
+        }
+
+        self::skipWhitespace($tokens, $offset);
+        if (isset($tokens[$offset])) {
+            return self::error($tokens[$offset]->value);
+        }
+
+        return $selector;
     }
 
     /**

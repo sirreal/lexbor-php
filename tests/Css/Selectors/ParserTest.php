@@ -152,6 +152,32 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, string, list<string>}>
+     */
+    public static function upstreamSelectorEntrypointProvider(): iterable
+    {
+        yield 'selectors.c #128 complex list with nth-child' => ['parseComplexList', 'div > :nth-child(2n+1) span, div', 'div > :nth-child(odd) span, div', []];
+        yield 'selectors.c #129 compound list rejects child combinator' => ['parseCompoundList', 'div > :nth-child(2n+1)', '', ['Syntax error. Selectors. Unexpected token: >']];
+        yield 'selectors.c #130 compound list with nth-child and type selector' => ['parseCompoundList', ':nth-child(2n+1), div', ':nth-child(odd), div', []];
+        yield 'selectors.c #131 simple list with nth-child and type selector' => ['parseSimpleList', ':nth-child(2n+1), div', ':nth-child(odd), div', []];
+        yield 'selectors.c #132 simple list rejects double-colon nth-child' => ['parseSimpleList', '::nth-child(2n+1)', '', ['Syntax error. Selectors. Unexpected token: :']];
+        yield 'selectors.c #133 relative list with nth-child descendants' => ['parseRelativeList', '+ :nth-child(2n+1) div, > span', '+ :nth-child(odd) div, > span', []];
+        yield 'selectors.c #134 complex selector with nth-child descendant' => ['parseComplex', 'div > :nth-child(2n+1) span', 'div > :nth-child(odd) span', []];
+        yield 'selectors.c #135 complex selector rejects selector-list comma' => ['parseComplex', 'div > :nth-child(2n+1) span, div', '', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors.c #136 compound selector with nth-child' => ['parseCompound', 'div:nth-child(2n+1)', 'div:nth-child(odd)', []];
+        yield 'selectors.c #137 compound selector rejects selector-list comma' => ['parseCompound', 'div:nth-child(2n+1), ', '', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors.c #138 compound selector rejects descendant pseudo' => ['parseCompound', 'div :nth-child(2n+1)', '', ['Syntax error. Selectors. Unexpected token: :']];
+        yield 'selectors.c #139 compound selector rejects child combinator' => ['parseCompound', 'div > :nth-child(2n+1)', '', ['Syntax error. Selectors. Unexpected token: >']];
+        yield 'selectors.c #140 simple selector with nth-child' => ['parseSimple', ':nth-child(2n+1)', ':nth-child(odd)', []];
+        yield 'selectors.c #141 simple selector rejects compound nth-child' => ['parseSimple', 'div:nth-child(2n+1)', '', ['Syntax error. Selectors. Unexpected token: :']];
+        yield 'selectors.c #142 simple selector rejects selector-list comma' => ['parseSimple', ':nth-child(2n+1), span', '', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors.c #143 simple selector rejects child combinator' => ['parseSimple', ':nth-child(2n+1) > span', '', ['Syntax error. Selectors. Unexpected token: >']];
+        yield 'selectors.c #144 relative selector with nth-child' => ['parseRelative', '+ :nth-child(2n+1)', '+ :nth-child(odd)', []];
+        yield 'selectors.c #145 relative selector rejects child combinator' => ['parseRelative', '+ :nth-child(2n+1) > span', '', ['Syntax error. Selectors. Unexpected token: >']];
+        yield 'selectors.c #146 relative selector rejects selector-list comma' => ['parseRelative', '+ :nth-child(2n+1), span', '', ['Syntax error. Selectors. Unexpected token: ,']];
+    }
+
+    /**
      * @param list<string> $errors
      */
     #[DataProvider('upstreamSelectorsProvider')]
@@ -169,6 +195,15 @@ final class ParserTest extends TestCase
         self::assertSame(['value' => $value, 'errors' => $errors], (new Parser())->parseRelativeList($selector));
     }
 
+    /**
+     * @param list<string> $errors
+     */
+    #[DataProvider('upstreamSelectorEntrypointProvider')]
+    public function testUpstreamSelectorEntrypointFixtures(string $method, string $selector, string $value, array $errors): void
+    {
+        self::assertSame(['value' => $value, 'errors' => $errors], (new Parser())->{$method}($selector));
+    }
+
     public function testAttributePresenceRejectsTrailingTokens(): void
     {
         $expected = ['value' => '', 'errors' => ['Syntax error. Selectors. Unexpected token: junk']];
@@ -182,6 +217,14 @@ final class ParserTest extends TestCase
         self::assertSame(
             ['value' => '', 'errors' => ['Syntax error. Selectors. Unexpected token: ,']],
             (new Parser())->parse('div, .class ||, #hash'),
+        );
+    }
+
+    public function testComplexListReportsCommaAfterTrailingCombinator(): void
+    {
+        self::assertSame(
+            ['value' => '', 'errors' => ['Syntax error. Selectors. Unexpected token: ,']],
+            (new Parser())->parseComplexList('div, .class >, #hash'),
         );
     }
 
