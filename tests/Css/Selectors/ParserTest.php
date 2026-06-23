@@ -117,12 +117,33 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, list<string>}>
+     */
+    public static function upstreamRelativeSelectorsProvider(): iterable
+    {
+        yield 'selectors.c #100 relative child selector' => ['> div.class', '> div.class', []];
+        yield 'selectors.c #101 relative next-sibling selector' => ['+ div.class', '+ div.class', []];
+        yield 'selectors.c #102 relative following-sibling selector' => ['~ div.class', '~ div.class', []];
+        yield 'selectors.c #103 relative column selector' => ['|| div.class', '|| div.class', []];
+        yield 'selectors.c #104 relative complex combinator selector' => ['> div > .class + #hash ~ [refs=a].super || #id', '> div > .class + #hash ~ [refs="a"].super || #id', []];
+    }
+
+    /**
      * @param list<string> $errors
      */
     #[DataProvider('upstreamSelectorsProvider')]
     public function testUpstreamSelectorFixtures(string $selector, string $value, array $errors): void
     {
         self::assertSame(['value' => $value, 'errors' => $errors], (new Parser())->parse($selector));
+    }
+
+    /**
+     * @param list<string> $errors
+     */
+    #[DataProvider('upstreamRelativeSelectorsProvider')]
+    public function testUpstreamRelativeSelectorFixtures(string $selector, string $value, array $errors): void
+    {
+        self::assertSame(['value' => $value, 'errors' => $errors], (new Parser())->parseRelativeList($selector));
     }
 
     public function testAttributePresenceRejectsTrailingTokens(): void

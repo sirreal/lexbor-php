@@ -106,6 +106,20 @@ final class Parser
     }
 
     /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseRelativeList(string $selector): array
+    {
+        $tokens = $this->stripWhitespaceTokens($this->tokenizer->tokenize($selector));
+
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        return $this->parseRelativeSelectorList($tokens);
+    }
+
+    /**
      * @param list<Token> $tokens
      * @return array{value: string, errors: list<string>}|null
      */
@@ -200,6 +214,61 @@ final class Parser
             return self::error(self::firstUnexpectedToken($part));
         }
 
+        if ($selector['errors'] !== []) {
+            return [
+                'value' => '',
+                'errors' => $selector['errors'],
+            ];
+        }
+
+        $serialized[] = $selector['value'];
+
+        return [
+            'value' => implode(', ', $serialized),
+            'errors' => [],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseRelativeSelectorList(array $tokens): array
+    {
+        $part = [];
+        $serialized = [];
+        $stack = [];
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'comma' && $stack === []) {
+                $part = self::trimTokenList($part);
+                if ($part === []) {
+                    return self::error(',');
+                }
+
+                $selector = $this->parseRelativeSelector($part);
+                if ($selector['errors'] !== []) {
+                    return [
+                        'value' => '',
+                        'errors' => $selector['errors'],
+                    ];
+                }
+
+                $serialized[] = $selector['value'];
+                $part = [];
+                continue;
+            }
+
+            self::updateTokenStack($stack, $token);
+            $part[] = $token;
+        }
+
+        $part = self::trimTokenList($part);
+        if ($part === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        $selector = $this->parseRelativeSelector($part);
         if ($selector['errors'] !== []) {
             return [
                 'value' => '',
@@ -866,6 +935,43 @@ final class Parser
 
         return [
             'value' => implode('', $serialized),
+            'errors' => [],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseRelativeSelector(array $tokens): array
+    {
+        $tokens = self::trimTokenList($tokens);
+        if ($tokens === []) {
+            return self::error('END-OF-FILE');
+        }
+
+        $offset = 0;
+        $combinator = '';
+        if (self::isCombinatorAt($tokens, $offset)) {
+            $combinator = self::consumeCombinator($tokens, $offset);
+            self::skipWhitespace($tokens, $offset);
+
+            if (! isset($tokens[$offset])) {
+                return self::error('END-OF-FILE');
+            }
+        }
+
+        $complex = $this->parseComplexSelector(array_slice($tokens, $offset));
+        if ($complex === null) {
+            return self::error(self::firstUnexpectedToken(array_slice($tokens, $offset)));
+        }
+
+        if ($complex['errors'] !== []) {
+            return $complex;
+        }
+
+        return [
+            'value' => $combinator === '' ? $complex['value'] : "{$combinator} {$complex['value']}",
             'errors' => [],
         ];
     }
