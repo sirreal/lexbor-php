@@ -23,12 +23,32 @@ final class Utf16
         return self::decodeWithReplacement($data, true);
     }
 
+    public static function decodeBigEndianToBuffer(
+        string $data,
+        int $capacity,
+        int $offset = 0,
+        ?int $pendingLeadByte = null,
+        ?int $pendingSurrogate = null,
+    ): DecodeResult {
+        return self::decodeToBuffer($data, $capacity, true, $offset, $pendingLeadByte, $pendingSurrogate);
+    }
+
     /**
      * @return list<int>
      */
     public static function decodeLittleEndianWithReplacement(string $data): array
     {
         return self::decodeWithReplacement($data, false);
+    }
+
+    public static function decodeLittleEndianToBuffer(
+        string $data,
+        int $capacity,
+        int $offset = 0,
+        ?int $pendingLeadByte = null,
+        ?int $pendingSurrogate = null,
+    ): DecodeResult {
+        return self::decodeToBuffer($data, $capacity, false, $offset, $pendingLeadByte, $pendingSurrogate);
     }
 
     public static function encodeBigEndianCodePoint(int $codePoint): string
@@ -46,9 +66,25 @@ final class Utf16
         return self::encodeCodePointWithCapacity($codePoint, $capacity, true);
     }
 
+    /**
+     * @param list<int> $codePoints
+     */
+    public static function encodeBigEndianCodePointsToBuffer(array $codePoints, int $capacity): BufferEncodeResult
+    {
+        return self::encodeCodePointsToBuffer($codePoints, $capacity, true);
+    }
+
     public static function encodeLittleEndianCodePointWithCapacity(int $codePoint, int $capacity): EncodeResult
     {
         return self::encodeCodePointWithCapacity($codePoint, $capacity, false);
+    }
+
+    /**
+     * @param list<int> $codePoints
+     */
+    public static function encodeLittleEndianCodePointsToBuffer(array $codePoints, int $capacity): BufferEncodeResult
+    {
+        return self::encodeCodePointsToBuffer($codePoints, $capacity, false);
     }
 
     /**
@@ -97,6 +133,116 @@ final class Utf16
         return $codePoints;
     }
 
+    private static function decodeToBuffer(
+        string $data,
+        int $capacity,
+        bool $bigEndian,
+        int $offset,
+        ?int $pendingLeadByte,
+        ?int $pendingSurrogate,
+    ): DecodeResult {
+        if ($capacity < 0) {
+            self::unexpected('UTF-16 decode buffer capacity cannot be negative.');
+        }
+
+        $length = strlen($data);
+        $codePoints = [];
+        $highSurrogate = $pendingSurrogate;
+
+        while (true) {
+            if ($pendingLeadByte === null && $offset >= $length) {
+                if ($highSurrogate !== null) {
+                    return new DecodeResult(Status::Continue, $codePoints, $offset, null, $highSurrogate);
+                }
+
+                break;
+            }
+
+            if (count($codePoints) >= $capacity) {
+                return new DecodeResult(Status::SmallBuffer, $codePoints, $offset, $pendingLeadByte, $highSurrogate);
+            }
+
+            if ($pendingLeadByte !== null) {
+                if ($offset >= $length) {
+                    return new DecodeResult(Status::Continue, $codePoints, $offset, $pendingLeadByte, $highSurrogate);
+                }
+
+                $lead = $pendingLeadByte;
+                $unit = self::unitFromBytes($lead, ord($data[$offset]), $bigEndian);
+                $offset++;
+                $pendingLeadByte = null;
+            } else {
+                $lead = ord($data[$offset]);
+                $offset++;
+
+                if ($offset >= $length) {
+                    return new DecodeResult(Status::Continue, $codePoints, $offset, $lead, $highSurrogate);
+                }
+
+                $unit = self::unitFromBytes($lead, ord($data[$offset]), $bigEndian);
+                $offset++;
+            }
+
+            if ($highSurrogate !== null) {
+                if (self::isLowSurrogate($unit)) {
+                    $append = 0x10000 + (($highSurrogate - 0xD800) << 10) + ($unit - 0xDC00);
+
+                    if (count($codePoints) >= $capacity) {
+                        return new DecodeResult(Status::SmallBuffer, $codePoints, $offset, null, $highSurrogate);
+                    }
+
+                    $codePoints[] = $append;
+                    $highSurrogate = null;
+                    continue;
+                }
+
+                $pendingOffset = $offset - 1;
+
+                if (count($codePoints) >= $capacity) {
+                    return new DecodeResult(Status::SmallBuffer, $codePoints, $pendingOffset, $lead);
+                }
+
+                $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                $highSurrogate = null;
+
+                if (count($codePoints) >= $capacity) {
+                    return new DecodeResult(Status::SmallBuffer, $codePoints, $pendingOffset, $lead);
+                }
+
+                $offset = $pendingOffset;
+                $pendingLeadByte = $lead;
+                continue;
+            }
+
+            if (self::isHighSurrogate($unit)) {
+                $highSurrogate = $unit;
+
+                if ($offset >= $length) {
+                    return new DecodeResult(Status::Continue, $codePoints, $offset, null, $highSurrogate);
+                }
+
+                continue;
+            }
+
+            if (self::isLowSurrogate($unit)) {
+                if (count($codePoints) >= $capacity) {
+                    return new DecodeResult(Status::SmallBuffer, $codePoints, $offset);
+                }
+
+                $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                continue;
+            }
+
+            if (count($codePoints) >= $capacity) {
+                return new DecodeResult(Status::SmallBuffer, $codePoints, $offset);
+            }
+
+            $codePoints[] = $unit;
+        }
+
+        return new DecodeResult(Status::Ok, $codePoints, $offset);
+    }
+
     private static function encodeCodePoint(int $codePoint, bool $bigEndian): string
     {
         if ($codePoint < 0 || $codePoint >= 0x110000) {
@@ -135,14 +281,42 @@ final class Utf16
         return new EncodeResult(strlen($bytes), $bytes);
     }
 
+    /**
+     * @param list<int> $codePoints
+     */
+    private static function encodeCodePointsToBuffer(array $codePoints, int $capacity, bool $bigEndian): BufferEncodeResult
+    {
+        if ($capacity < 0) {
+            self::unexpected('UTF-16 encode buffer capacity cannot be negative.');
+        }
+
+        $out = '';
+
+        foreach ($codePoints as $codePoint) {
+            if ($codePoint < 0 || $codePoint >= 0x110000) {
+                return new BufferEncodeResult(Status::ErrorUnexpectedData, $out);
+            }
+
+            $bytes = self::encodeCodePoint($codePoint, $bigEndian);
+
+            if (strlen($out) + strlen($bytes) > $capacity) {
+                return new BufferEncodeResult(Status::SmallBuffer, $out);
+            }
+
+            $out .= $bytes;
+        }
+
+        return new BufferEncodeResult(Status::Ok, $out);
+    }
+
     private static function readUnit(string $data, int $offset, bool $bigEndian): int
     {
-        $first = ord($data[$offset]);
-        $second = ord($data[$offset + 1]);
+        return self::unitFromBytes(ord($data[$offset]), ord($data[$offset + 1]), $bigEndian);
+    }
 
-        return $bigEndian
-            ? (($first << 8) | $second)
-            : (($second << 8) | $first);
+    private static function unitFromBytes(int $first, int $second, bool $bigEndian): int
+    {
+        return $bigEndian ? (($first << 8) | $second) : (($second << 8) | $first);
     }
 
     private static function writeUnit(int $unit, bool $bigEndian): string
