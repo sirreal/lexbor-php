@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Lexbor\Url;
 
+use Lexbor\Core\LexborException;
 use Lexbor\Encoding\Utf8;
+use Lexbor\Punycode\Punycode;
 
 final class Parser
 {
@@ -86,7 +88,11 @@ final class Parser
         }
 
         [$authority, $path] = $this->splitAuthorityAndPath($input);
-        [$username, $password, $host, $port] = $this->parseAuthority($authority, $errors);
+        [$username, $password, $host, $port] = $this->parseAuthority($authority, $errors, $scheme === 'file');
+
+        if ($host === null) {
+            return null;
+        }
 
         if ($scheme === 'file') {
             [$host, $path] = $this->normalizeFileHostAndPath($host, $path);
@@ -135,9 +141,9 @@ final class Parser
 
     /**
      * @param list<ValidationError> $errors
-     * @return array{string, string, string, ?int}
+     * @return array{string, string, ?string, ?int}
      */
-    private function parseAuthority(string $authority, array &$errors): array
+    private function parseAuthority(string $authority, array &$errors, bool $allowFileDriveHost = false): array
     {
         $username = '';
         $password = '';
@@ -161,7 +167,105 @@ final class Parser
             $port = (int) substr($hostPort, $colon + 1);
         }
 
-        return [$username, $password, strtolower($host), $port];
+        if (! ($allowFileDriveHost && preg_match('/^[A-Za-z]\|$/', $host) === 1)) {
+            $host = $this->parseHost($host);
+        }
+
+        if ($host === null) {
+            $this->appendError($errors, ValidationError::InvalidUrlUnit);
+            return [$username, $password, null, $port];
+        }
+
+        return [$username, $password, $host, $port];
+    }
+
+    private function parseHost(string $host): ?string
+    {
+        if ($host === '') {
+            return '';
+        }
+
+        $host = strtolower($this->percentDecodeHost($host));
+
+        if ($this->hasForbiddenDomainCodePoint($host)) {
+            return null;
+        }
+
+        if (! $this->hasNonAsciiByte($host)) {
+            return $host;
+        }
+
+        try {
+            $host = $this->domainToAscii($host);
+        } catch (LexborException) {
+            return null;
+        }
+
+        if ($host === '' || $this->hasForbiddenDomainCodePoint($host)) {
+            return null;
+        }
+
+        return $host;
+    }
+
+    private function percentDecodeHost(string $host): string
+    {
+        return preg_replace_callback(
+            '/%([0-9A-Fa-f]{2})/',
+            static fn (array $match): string => chr(hexdec($match[1])),
+            $host,
+        ) ?? $host;
+    }
+
+    private function hasForbiddenDomainCodePoint(string $host): bool
+    {
+        $length = strlen($host);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $byte = ord($host[$offset]);
+
+            if ($byte > 0x7F) {
+                continue;
+            }
+
+            if ($byte <= 0x20 || $byte === 0x7F || in_array(
+                $byte,
+                [0x23, 0x25, 0x2F, 0x3A, 0x3C, 0x3E, 0x3F, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x7C],
+                true,
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function hasNonAsciiByte(string $value): bool
+    {
+        $length = strlen($value);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            if (ord($value[$offset]) >= 0x80) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function domainToAscii(string $host): string
+    {
+        $labels = explode('.', $host);
+
+        foreach ($labels as $index => $label) {
+            if ($label === '' || ! $this->hasNonAsciiByte($label)) {
+                continue;
+            }
+
+            $labels[$index] = 'xn--' . Punycode::encode($label);
+        }
+
+        return implode('.', $labels);
     }
 
     /**

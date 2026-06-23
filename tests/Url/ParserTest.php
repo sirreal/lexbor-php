@@ -607,6 +607,36 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamDomainProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('domain.ton') as $index => $entry) {
+            yield 'domain.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamDomainProvider')]
+    public function testUpstreamDomainFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url'], null, $entry['encoding'] ?? 'utf-8');
+
+        if ($entry['failed'] ?? false) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
      * @return iterable<string, array{string, ?array<string, mixed>}>
      */
     public static function upstreamFileProvider(): iterable
