@@ -1100,6 +1100,82 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array<string, mixed>>}>
+     */
+    public static function upstreamOtherProvider(): iterable
+    {
+        yield 'other.ton #1 mixed qualified rule block' => ['#id .class {width: 123px; broken declaration; @custom \'https://x.x/\' {size: 10px} height: 45pt}', [
+            [
+                'type' => 'qualified-rule',
+                'prelude' => [
+                    ['type' => 'hash', 'value' => '#id'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                    ['type' => 'delim', 'value' => '.'],
+                    ['type' => 'ident', 'value' => 'class'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'width', 'value' => '123px', 'important' => false],
+                        ],
+                    ],
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'broken'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'declaration'],
+                        ],
+                        'block' => [],
+                    ],
+                    [
+                        'type' => 'at-rule',
+                        'name' => '@custom',
+                        'prelude' => [
+                            ['type' => 'string', 'value' => '"https://x.x/"'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                        ],
+                        'block' => [
+                            [
+                                'type' => 'declarations',
+                                'declarations' => [
+                                    ['name' => 'size', 'value' => '10px', 'important' => false],
+                                ],
+                            ],
+                        ],
+                    ],
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'height', 'value' => '45pt', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'other.ton #2 top-level custom at-rule with declarations' => ['@custom \'https://x.x/\' {size: 10px}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@custom',
+                'prelude' => [
+                    ['type' => 'string', 'value' => '"https://x.x/"'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'declarations',
+                        'declarations' => [
+                            ['name' => 'size', 'value' => '10px', 'important' => false],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+    }
+
+    /**
      * @param list<array<string, mixed>> $expected
      */
     #[DataProvider('upstreamQualifiedProvider')]
@@ -1113,6 +1189,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('upstreamAtProvider')]
     public function testUpstreamAtFixtures(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseListRules($css));
+    }
+
+    /**
+     * @param list<array<string, mixed>> $expected
+     */
+    #[DataProvider('upstreamOtherProvider')]
+    public function testUpstreamOtherFixtures(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseListRules($css));
     }

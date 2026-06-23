@@ -264,11 +264,33 @@ final class Parser
             'prelude' => $prelude,
         ];
 
-        if ($includeEmptyBlock || self::hasParenthesizedCurlyPrelude($prelude)) {
+        if (
+            $includeEmptyBlock
+            || self::hasParenthesizedCurlyPrelude($prelude)
+            || self::isSemicolonBeforeAtRule($tokens, $offset)
+        ) {
             $rule['block'] = [];
         }
 
         return $rule;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function isSemicolonBeforeAtRule(array $tokens, int $offset): bool
+    {
+        if (($tokens[$offset] ?? null)?->type !== 'semicolon') {
+            return false;
+        }
+
+        $offset++;
+
+        while ($offset < count($tokens) && in_array($tokens[$offset]->type, ['whitespace', 'comment'], true)) {
+            $offset++;
+        }
+
+        return ($tokens[$offset] ?? null)?->type === 'at-keyword';
     }
 
     /**
