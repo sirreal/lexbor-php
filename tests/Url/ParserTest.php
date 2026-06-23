@@ -483,6 +483,16 @@ final class ParserTest extends TestCase
         self::assertSame('foo://a/p', $nonSpecial->serialize());
     }
 
+    public function testNegativePortMutationFailsAndPreservesPort(): void
+    {
+        $url = (new Parser())->parse('https://example.com:432');
+
+        self::assertNotNull($url);
+        self::assertFalse($url->setPort('-1'));
+        self::assertSame('https://example.com:432/', $url->serialize());
+        self::assertSame(432, $url->port);
+    }
+
     public function testPathnameMutationPreservesSuffixAndEncodesPathOnlyDelimiters(): void
     {
         $url = (new Parser())->parse('https://lexbor.com/a/b?x=1#frag');
