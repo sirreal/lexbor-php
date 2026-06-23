@@ -42,16 +42,33 @@ final class Parser
             );
         }
 
-        if (! preg_match('/^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/s', $input, $matches)) {
-            if (preg_match('/^file:(.*)$/is', $input, $matches) === 1) {
-                return $this->parseWithScheme('file', $matches[1], $errors, $encoding);
-            }
-
+        if (preg_match('/^([A-Za-z][A-Za-z0-9+.-]*):(.*)$/s', $input, $matches) !== 1) {
             $this->appendError($errors, ValidationError::InvalidUrlUnit);
             return null;
         }
 
-        return $this->parseWithScheme(strtolower($matches[1]), $matches[2], $errors, $encoding);
+        $scheme = strtolower($matches[1]);
+        $body = $matches[2];
+
+        if ($scheme === 'file') {
+            return $this->parseWithScheme(
+                'file',
+                str_starts_with($body, '//') ? substr($body, 2) : $body,
+                $errors,
+                $encoding,
+            );
+        }
+
+        if (str_starts_with($body, '//')) {
+            return $this->parseWithScheme($scheme, substr($body, 2), $errors, $encoding);
+        }
+
+        if ($this->isSpecialScheme($scheme) && $body !== '' && ! str_starts_with($body, '/')) {
+            return $this->parseWithScheme($scheme, $body, $errors, $encoding);
+        }
+
+        $this->appendError($errors, ValidationError::InvalidUrlUnit);
+        return null;
     }
 
     /**

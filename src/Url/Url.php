@@ -13,13 +13,24 @@ final class Url
         public readonly string $scheme,
         public readonly string $username,
         public readonly string $password,
-        public readonly string $host,
+        public string $host,
         public readonly ?int $port,
         public readonly string $path,
         public readonly ?string $query = null,
         public readonly ?string $fragment = null,
         private readonly array $errors = [],
     ) {
+    }
+
+    public function setHostname(string $hostname): bool
+    {
+        if ($hostname === '' && in_array($this->scheme, ['ftp', 'http', 'https', 'ws', 'wss'], true)) {
+            return false;
+        }
+
+        $this->host = strtolower($hostname);
+
+        return true;
     }
 
     public function serialize(): string
