@@ -101,6 +101,73 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function upstreamWidthProvider(): iterable
+    {
+        $values = [
+            'initial',
+            'inherit',
+            'unset',
+            'revert',
+            'auto',
+            '0em',
+            '0ex',
+            '0cap',
+            '0ch',
+            '0ic',
+            '0rem',
+            '0lh',
+            '0rlh',
+            '0vw',
+            '0vh',
+            '0vi',
+            '0vb',
+            '0vmin',
+            '0vmax',
+            '0cm',
+            '0mm',
+            '0Q',
+            '0in',
+            '0pt',
+            '0pc',
+            '0px',
+            '128em',
+            '128ex',
+            '128cap',
+            '128ch',
+            '128ic',
+            '128rem',
+            '128lh',
+            '128rlh',
+            '128vw',
+            '128vh',
+            '128vi',
+            '128vb',
+            '128vmin',
+            '128vmax',
+            '128cm',
+            '128mm',
+            '128Q',
+            '128in',
+            '128pt',
+            '128pc',
+            '128px',
+            '0',
+            '0%',
+            '128%',
+            'min-content',
+            'max-content',
+        ];
+
+        foreach ($values as $index => $value) {
+            yield sprintf('width.ton #%d %s', $index + 1, $value) => ["width: {$value}", [
+                ['type' => 'property', 'name' => 'width', 'value' => $value, 'important' => false],
+            ]];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function widthRegressionProvider(): iterable
     {
         yield 'unitless zero width is valid' => ['width: 0', [
@@ -155,6 +222,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('upstreamSyntaxProvider')]
     public function testUpstreamSyntaxFixtures(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('upstreamWidthProvider')]
+    public function testUpstreamWidthFixtures(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
