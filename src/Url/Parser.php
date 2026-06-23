@@ -42,6 +42,10 @@ final class Parser
         }
 
         if (! preg_match('/^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/s', $input, $matches)) {
+            if (preg_match('/^file:(.*)$/is', $input, $matches) === 1) {
+                return $this->parseWithScheme('file', $matches[1], $errors);
+            }
+
             $this->appendError($errors, ValidationError::InvalidUrlUnit);
             return null;
         }
@@ -52,7 +56,7 @@ final class Parser
     /**
      * @param list<ValidationError> $errors
      */
-    private function parseWithScheme(string $scheme, string $input, array $errors, bool $allowEmptyPath = false): Url
+    private function parseWithScheme(string $scheme, string $input, array $errors, bool $allowEmptyPath = false): ?Url
     {
         [$authority, $path] = $this->splitAuthorityAndPath($input);
         [$username, $password, $host, $port] = $this->parseAuthority($authority, $errors);
@@ -61,7 +65,21 @@ final class Parser
             [$host, $path] = $this->normalizeFileHostAndPath($host, $path);
         }
 
-        return $this->buildUrl($scheme, $username, $password, $host, $port, $path, $errors, $allowEmptyPath);
+        if ($host === '' && $this->requiresHost($scheme)) {
+            $this->appendError($errors, ValidationError::InvalidUrlUnit);
+            return null;
+        }
+
+        return $this->buildUrl(
+            $scheme,
+            $username,
+            $password,
+            $host,
+            $port,
+            $path,
+            $errors,
+            $allowEmptyPath || ! $this->isSpecialScheme($scheme),
+        );
     }
 
     /**
@@ -258,6 +276,16 @@ final class Parser
     {
         return preg_match('/^file:\/\/[A-Za-z]%7C\//i', $input) === 1
             || preg_match('/^file:\/\/[A-Za-z]\|[^\/]/i', $input) === 1;
+    }
+
+    private function requiresHost(string $scheme): bool
+    {
+        return in_array($scheme, ['ftp', 'http', 'https', 'ws', 'wss'], true);
+    }
+
+    private function isSpecialScheme(string $scheme): bool
+    {
+        return $scheme === 'file' || $this->requiresHost($scheme);
     }
 
     /**

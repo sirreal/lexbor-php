@@ -221,6 +221,147 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, ?array<string, string>}>
+     */
+    public static function upstreamSchemeProvider(): iterable
+    {
+        yield 'scheme.ton #1 https' => [
+            'https://lexbor.com',
+            [
+                'done' => 'https://lexbor.com/',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #2 http' => [
+            'http://lexbor.com',
+            [
+                'done' => 'http://lexbor.com/',
+                'scheme' => 'http',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #3 ws' => [
+            'ws://lexbor.com',
+            [
+                'done' => 'ws://lexbor.com/',
+                'scheme' => 'ws',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #4 wss' => [
+            'wss://lexbor.com',
+            [
+                'done' => 'wss://lexbor.com/',
+                'scheme' => 'wss',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #5 ftp' => [
+            'ftp://lexbor.com',
+            [
+                'done' => 'ftp://lexbor.com/',
+                'scheme' => 'ftp',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #6 non-special' => [
+            'my://lexbor.com',
+            [
+                'done' => 'my://lexbor.com',
+                'scheme' => 'my',
+                'host' => 'lexbor.com',
+                'path' => '',
+            ],
+        ];
+        yield 'scheme.ton #7 missing scheme' => [
+            '://lexbor.com',
+            null,
+        ];
+        yield 'scheme.ton #8 non-ascii scheme' => [
+            "\u{0401}://lexbor.com",
+            null,
+        ];
+        yield 'scheme.ton #9 scheme only without colon' => [
+            'http',
+            null,
+        ];
+        yield 'scheme.ton #10 special single slash' => [
+            'http:/',
+            null,
+        ];
+        yield 'scheme.ton #11 special empty host' => [
+            'http://',
+            null,
+        ];
+        yield 'scheme.ton #12 file host' => [
+            'file://lexbor.com',
+            [
+                'done' => 'file://lexbor.com/',
+                'scheme' => 'file',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #13 file empty authority' => [
+            'file://',
+            [
+                'done' => 'file:///',
+                'scheme' => 'file',
+                'host' => '',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #14 file single slash' => [
+            'file:/',
+            [
+                'done' => 'file:///',
+                'scheme' => 'file',
+                'host' => '',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #15 file scheme only' => [
+            'file:',
+            [
+                'done' => 'file:///',
+                'scheme' => 'file',
+                'host' => '',
+                'path' => '/',
+            ],
+        ];
+        yield 'scheme.ton #16 file without colon' => [
+            'file',
+            null,
+        ];
+    }
+
+    /**
+     * @param ?array<string, string> $expected
+     */
+    #[DataProvider('upstreamSchemeProvider')]
+    public function testUpstreamSchemeFixtures(string $source, ?array $expected): void
+    {
+        $url = (new Parser())->parse($source);
+
+        if ($expected === null) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($expected['done'], $url->serialize());
+        self::assertSame($expected['scheme'], $url->scheme);
+        self::assertSame($expected['host'], $url->host);
+        self::assertSame($expected['path'], $url->path);
+    }
+
+    /**
      * @return iterable<string, array{string, ?array<string, mixed>}>
      */
     public static function upstreamFileProvider(): iterable
