@@ -69,6 +69,12 @@ final class ParserTest extends TestCase
         yield 'selectors.c #52 not pseudo function name is case-insensitive' => [':NoT(div)', ':not(div)', []];
         yield 'selectors.c #53 not pseudo function selector list' => [':not(div, #hash, .class)', ':not(div, #hash, .class)', []];
         yield 'selectors.c #54 not pseudo function normalizes selector list whitespace' => [':not( div,#hash,.class )', ':not(div, #hash, .class)', []];
+        yield 'selectors.c #55 rejects invalid not selector after valid selector' => [':not(div, .class 1%)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors.c #56 rejects invalid not selector before valid selector' => [':not(.class 1%, div)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors.c #57 rejects invalid not selector between valid selectors' => [':not(div, .class 1%, #hash)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors.c #58 rejects invalid nested not selector' => [':not(div, :not(1%), span)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()", "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors.c #59 deeply nested not selector' => [':not(div, :not(:not(:not(:not(:not(:not(:not(:not([x])))))))), span)', ':not(div, :not(:not(:not(:not(:not(:not(:not(:not([x])))))))), span)', []];
+        yield 'selectors.c #60 nested not selector list' => [':not(div, :not(.class, :not([x]), #hash), span)', ':not(div, :not(.class, :not([x]), #hash), span)', []];
     }
 
     /**

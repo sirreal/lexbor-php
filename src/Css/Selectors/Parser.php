@@ -293,13 +293,29 @@ final class Parser
         }
 
         $serialized = [];
+        $errors = [];
         foreach ($selectorParts as $selectorTokens) {
-            $value = $this->serializeSimpleSelector($selectorTokens);
-            if ($value === null) {
-                return null;
+            $selector = $this->parseSimpleSelector($selectorTokens);
+            if ($selector === null) {
+                $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($selectorTokens));
+                continue;
             }
 
-            $serialized[] = $value;
+            if ($selector['errors'] !== []) {
+                array_push($errors, ...$selector['errors']);
+                continue;
+            }
+
+            $serialized[] = $selector['value'];
+        }
+
+        if ($errors !== []) {
+            $errors[] = self::emptyPseudoFunctionError($name);
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
         }
 
         return [
@@ -382,24 +398,43 @@ final class Parser
      */
     private function serializeSimpleSelector(array $tokens): ?string
     {
+        $selector = $this->parseSimpleSelector($tokens);
+        if ($selector === null || $selector['errors'] !== []) {
+            return null;
+        }
+
+        return $selector['value'];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
+    private function parseSimpleSelector(array $tokens): ?array
+    {
         $tokens = $this->stripWhitespaceTokens($tokens);
 
         if ($tokens === []) {
             return null;
         }
 
+        $pseudoFunction = $this->parsePseudoFunctionSelector($tokens);
+        if ($pseudoFunction !== null) {
+            return $pseudoFunction;
+        }
+
         $class = $this->parseClassSelector($tokens);
-        if ($class !== null && $class['errors'] === []) {
-            return $class['value'];
+        if ($class !== null) {
+            return $class;
         }
 
         $attribute = $this->parseAttributeSelector($tokens);
-        if ($attribute !== null && $attribute['errors'] === []) {
-            return $attribute['value'];
+        if ($attribute !== null) {
+            return $attribute;
         }
 
         if (count($tokens) === 1 && in_array($tokens[0]->type, ['ident', 'hash'], true)) {
-            return $tokens[0]->value;
+            return ['value' => $tokens[0]->value, 'errors' => []];
         }
 
         return null;
@@ -487,8 +522,13 @@ final class Parser
     {
         return [
             'value' => '',
-            'errors' => [sprintf('Syntax error. Selectors. Unexpected token: %s', $token)],
+            'errors' => [self::unexpectedTokenError($token)],
         ];
+    }
+
+    private static function unexpectedTokenError(string $token): string
+    {
+        return sprintf('Syntax error. Selectors. Unexpected token: %s', $token);
     }
 
     /**
@@ -509,7 +549,12 @@ final class Parser
     {
         return [
             'value' => '',
-            'errors' => [sprintf("Syntax error. Selectors. Pseudo function can't be empty: %s()", $name)],
+            'errors' => [self::emptyPseudoFunctionError($name)],
         ];
+    }
+
+    private static function emptyPseudoFunctionError(string $name): string
+    {
+        return sprintf("Syntax error. Selectors. Pseudo function can't be empty: %s()", $name);
     }
 }
