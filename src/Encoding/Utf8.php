@@ -30,6 +30,144 @@ final class Utf8
         return str_starts_with($data, "\xFF\xFE") ? substr($data, 2) : $data;
     }
 
+    public static function decodeToBuffer(
+        string $data,
+        int $capacity,
+        int $offset = 0,
+        ?int $pendingCodePoint = null,
+        int $pendingNeed = 0,
+        int $pendingLower = 0,
+        int $pendingUpper = 0,
+    ): DecodeResult {
+        if ($capacity < 0) {
+            self::unexpected('UTF-8 decode buffer capacity cannot be negative.');
+        }
+
+        $length = strlen($data);
+        $codePoints = [];
+        $codePoint = $pendingCodePoint ?? 0;
+        $need = $pendingNeed;
+        $lower = $pendingLower;
+        $upper = $pendingUpper;
+
+        while (true) {
+            if ($offset >= $length) {
+                if ($need !== 0) {
+                    return new DecodeResult(
+                        Status::Continue,
+                        $codePoints,
+                        $offset,
+                        pendingUtf8CodePoint: $codePoint,
+                        pendingUtf8Need: $need,
+                        pendingUtf8Lower: $lower,
+                        pendingUtf8Upper: $upper,
+                    );
+                }
+
+                break;
+            }
+
+            if (count($codePoints) >= $capacity) {
+                return new DecodeResult(
+                    Status::SmallBuffer,
+                    $codePoints,
+                    $offset,
+                    pendingUtf8CodePoint: $need === 0 ? null : $codePoint,
+                    pendingUtf8Need: $need,
+                    pendingUtf8Lower: $lower,
+                    pendingUtf8Upper: $upper,
+                );
+            }
+
+            if ($need !== 0) {
+                $byte = ord($data[$offset]);
+
+                if ($lower !== 0 && ($byte < $lower || $byte > $upper)) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    $codePoint = 0;
+                    $need = 0;
+                    $lower = 0;
+                    $upper = 0;
+                    continue;
+                }
+
+                $lower = 0;
+                $upper = 0;
+
+                if (! self::isContinuationByte($byte)) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    $codePoint = 0;
+                    $need = 0;
+                    continue;
+                }
+
+                $offset++;
+                $codePoint = ($codePoint << 6) | ($byte & 0x3F);
+                $need--;
+
+                if ($need === 0) {
+                    $codePoints[] = $codePoint;
+                    $codePoint = 0;
+                }
+
+                continue;
+            }
+
+            $byte = ord($data[$offset]);
+            $offset++;
+
+            if ($byte < 0x80) {
+                $codePoints[] = $byte;
+                continue;
+            }
+
+            if ($byte <= 0xDF) {
+                if ($byte < 0xC2) {
+                    $codePoints[] = self::REPLACEMENT_CODE_POINT;
+                    continue;
+                }
+
+                $codePoint = $byte & 0x1F;
+                $need = 1;
+                continue;
+            }
+
+            if ($byte < 0xF0) {
+                $codePoint = $byte & 0x0F;
+                $need = 2;
+
+                if ($byte === 0xE0) {
+                    $lower = 0xA0;
+                    $upper = 0xBF;
+                } elseif ($byte === 0xED) {
+                    $lower = 0x80;
+                    $upper = 0x9F;
+                }
+
+                continue;
+            }
+
+            if ($byte < 0xF5) {
+                $codePoint = $byte & 0x07;
+                $need = 3;
+
+                if ($byte === 0xF0) {
+                    $lower = 0x90;
+                    $upper = 0xBF;
+                } elseif ($byte === 0xF4) {
+                    $lower = 0x80;
+                    $upper = 0x8F;
+                }
+
+                continue;
+            }
+
+            $codePoints[] = self::REPLACEMENT_CODE_POINT;
+        }
+
+        return new DecodeResult(Status::Ok, $codePoints, $offset);
+    }
+
     /**
      * Decodes with Lexbor's UTF-8 single-decoder error handling.
      *
@@ -279,6 +417,34 @@ final class Utf8
         }
 
         return new EncodeResult(strlen($bytes), $bytes);
+    }
+
+    /**
+     * @param list<int> $codePoints
+     */
+    public static function encodeCodePointsToBuffer(array $codePoints, int $capacity): BufferEncodeResult
+    {
+        if ($capacity < 0) {
+            self::unexpected('UTF-8 encode buffer capacity cannot be negative.');
+        }
+
+        $out = '';
+
+        foreach ($codePoints as $codePoint) {
+            if ($codePoint < 0 || $codePoint >= 0x110000) {
+                return new BufferEncodeResult(Status::Error, $out);
+            }
+
+            $bytes = self::encodeCodePoint($codePoint);
+
+            if (strlen($out) + strlen($bytes) > $capacity) {
+                return new BufferEncodeResult(Status::SmallBuffer, $out);
+            }
+
+            $out .= $bytes;
+        }
+
+        return new BufferEncodeResult(Status::Ok, $out);
     }
 
     private static function requireBytes(string $data, int $offset, int $needed): void

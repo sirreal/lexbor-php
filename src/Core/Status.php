@@ -7,6 +7,7 @@ namespace Lexbor\Core;
 enum Status: string
 {
     case Ok = 'ok';
+    case Error = 'error';
     case Continue = 'continue';
     case SmallBuffer = 'small_buffer';
     case ErrorUnexpectedData = 'error_unexpected_data';

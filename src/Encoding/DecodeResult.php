@@ -17,6 +17,10 @@ final readonly class DecodeResult
         public int $offset,
         public ?int $pendingLeadByte = null,
         public ?int $pendingSurrogate = null,
+        public ?int $pendingUtf8CodePoint = null,
+        public int $pendingUtf8Need = 0,
+        public int $pendingUtf8Lower = 0,
+        public int $pendingUtf8Upper = 0,
     ) {
     }
 }
