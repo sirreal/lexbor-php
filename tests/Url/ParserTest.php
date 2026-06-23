@@ -403,6 +403,45 @@ final class ParserTest extends TestCase
         self::assertSame('foo:///p', $nonSpecialWithoutState->serialize());
     }
 
+    public function testPortMutationHandlesDefaultsRangeAndNoopUrls(): void
+    {
+        $https = (new Parser())->parse('https://lexbor.com:8443/path');
+        $http = (new Parser())->parse('http://lexbor.com:8080/path');
+        $file = (new Parser())->parse('file://example.com/tmp');
+        $nonSpecial = (new Parser())->parse('foo://a:99/p');
+        $emptyHost = (new Parser())->parse('foo:///p');
+
+        self::assertNotNull($https);
+        self::assertNotNull($http);
+        self::assertNotNull($file);
+        self::assertNotNull($nonSpecial);
+        self::assertNotNull($emptyHost);
+
+        self::assertTrue($https->setPort('000443'));
+        self::assertSame('https://lexbor.com/path', $https->serialize());
+        self::assertTrue($https->setPort('000080'));
+        self::assertSame('https://lexbor.com:80/path', $https->serialize());
+        self::assertFalse($https->setPort('65536'));
+        self::assertFalse($https->setPort('00065536'));
+        self::assertFalse($https->setPort('12x34'));
+        self::assertSame('https://lexbor.com:80/path', $https->serialize());
+
+        self::assertTrue($http->setPort('80'));
+        self::assertSame('http://lexbor.com/path', $http->serialize());
+        self::assertTrue($http->setPort(''));
+        self::assertSame('http://lexbor.com/path', $http->serialize());
+
+        self::assertTrue($file->setPort('123'));
+        self::assertTrue($emptyHost->setPort('123'));
+        self::assertSame('file://example.com/tmp', $file->serialize());
+        self::assertSame('foo:///p', $emptyHost->serialize());
+
+        self::assertTrue($nonSpecial->setPort('123'));
+        self::assertSame('foo://a:123/p', $nonSpecial->serialize());
+        self::assertTrue($nonSpecial->setPort(''));
+        self::assertSame('foo://a/p', $nonSpecial->serialize());
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -1010,6 +1049,48 @@ final class ParserTest extends TestCase
         self::assertSame($entry['done'], $url->serialize());
         self::assertSame($entry['scheme'], $url->scheme);
         self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamChangesPortProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            if ($index < 23 || $index > 27) {
+                continue;
+            }
+
+            $changes = $entry['change'];
+            $activeChanges = array_filter(
+                $changes,
+                static fn (mixed $value): bool => $value !== null,
+            );
+
+            if (array_keys($activeChanges) !== ['port']) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesPortProvider')]
+    public function testUpstreamChangesPortFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+        $changes = $entry['change'];
+
+        self::assertNotNull($url);
+        self::assertSame(! ($entry['failed'] ?? false), $url->setPort($changes['port']));
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['port'] ?? null, $url->port);
         self::assertSame($entry['path'] ?? '', $url->path);
     }
 

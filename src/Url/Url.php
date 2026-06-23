@@ -127,6 +127,27 @@ final class Url
         return true;
     }
 
+    public function setPort(string $port): bool
+    {
+        if (! $this->canHaveCredentials()) {
+            return true;
+        }
+
+        if ($port === '') {
+            $this->port = null;
+            return true;
+        }
+
+        if (! ctype_digit($port) || ! $this->isValidPort($port)) {
+            return false;
+        }
+
+        $portNumber = (int) $this->normalizePort($port);
+        $this->port = $portNumber === $this->defaultPort($this->scheme) ? null : $portNumber;
+
+        return true;
+    }
+
     public function serialize(): string
     {
         $authority = $this->host;
@@ -341,10 +362,21 @@ final class Url
             return true;
         }
 
-        $normalized = ltrim($port, '0');
-        $normalized = $normalized === '' ? '0' : $normalized;
+        return $this->isValidPort($port);
+    }
+
+    private function isValidPort(string $port): bool
+    {
+        $normalized = $this->normalizePort($port);
 
         return strlen($normalized) <= 5 && (int) $normalized <= 65535;
+    }
+
+    private function normalizePort(string $port): string
+    {
+        $normalized = ltrim($port, '0');
+
+        return $normalized === '' ? '0' : $normalized;
     }
 
     private function hostForParsing(string $host): string
