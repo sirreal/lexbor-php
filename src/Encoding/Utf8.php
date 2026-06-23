@@ -9,6 +9,21 @@ use Lexbor\Core\Status;
 
 final class Utf8
 {
+    public static function skipUtf8Bom(string $data): string
+    {
+        return str_starts_with($data, "\xEF\xBB\xBF") ? substr($data, 3) : $data;
+    }
+
+    public static function skipUtf16BeBom(string $data): string
+    {
+        return str_starts_with($data, "\xFE\xFF") ? substr($data, 2) : $data;
+    }
+
+    public static function skipUtf16LeBom(string $data): string
+    {
+        return str_starts_with($data, "\xFF\xFE") ? substr($data, 2) : $data;
+    }
+
     /**
      * Decodes with Lexbor's lxb_encoding_decode_valid_utf_8_single semantics.
      *
