@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lexbor\Tests\Unicode;
 
+use Lexbor\Encoding\Utf8;
 use Lexbor\Unicode\Unicode;
 use Lexbor\Unicode\UnicodeData;
 use PHPUnit\Framework\TestCase;
@@ -88,6 +89,47 @@ final class UnicodeTest extends TestCase
                 );
             }
         }
+    }
+
+    public function testUpstreamNormalizationUtf8Fixture(): void
+    {
+        $forms = [
+            Unicode::FORM_NFC => 'nfc',
+            Unicode::FORM_NFD => 'nfd',
+            Unicode::FORM_NFKC => 'nfkc',
+            Unicode::FORM_NFKD => 'nfkd',
+        ];
+
+        foreach (self::normalizationFixtureRows() as $index => $row) {
+            $source = Utf8::encodeCodePoints($row['source']);
+
+            foreach ($forms as $form => $key) {
+                self::assertSame(
+                    Utf8::encodeCodePoints($row[$key]),
+                    Unicode::normalize($source, $form),
+                    "UTF-8 normalization fixture #{$index} {$form}",
+                );
+            }
+        }
+    }
+
+    public function testCompleteUtf8NormalizationReplacesMalformedSequences(): void
+    {
+        $replacement = Utf8::encodeCodePoint(Utf8::REPLACEMENT_CODE_POINT);
+        foreach ([Unicode::FORM_NFC, Unicode::FORM_NFD, Unicode::FORM_NFKC, Unicode::FORM_NFKD] as $form) {
+            self::assertSame($replacement, Unicode::normalize("\xFF", $form));
+            self::assertSame($replacement, Unicode::normalize("\xC3", $form));
+            self::assertSame($replacement, Unicode::normalize("\xE0\x80", $form));
+            self::assertSame(
+                Utf8::encodeCodePoints(Unicode::normalizeCodePoints([0x00C1], $form)),
+                Unicode::normalize("\xC3A", $form),
+            );
+            self::assertSame($replacement, Unicode::normalize("\xF7\xBF\xBF\xBF", $form));
+            self::assertSame('A' . $replacement . Utf8::encodeCodePoint(0x0301), Unicode::normalize("A\xF7\xBF\xBF\xBF\xCC\x81", $form));
+        }
+
+        self::assertSame([0x00C1], Unicode::normalizeCodePoints([0x0041, 0x1FFFFF, 0x0301], Unicode::FORM_NFC));
+        self::assertSame([0x0041, 0x0301], Unicode::normalizeCodePoints([0x0041, 0x1FFFFF, 0x0301], Unicode::FORM_NFD));
     }
 
     public function testGeneratedNormalizationTablesMatchUpstreamResource(): void

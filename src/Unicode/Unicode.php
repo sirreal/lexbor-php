@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lexbor\Unicode;
 
 use InvalidArgumentException;
+use Lexbor\Encoding\Utf8;
 
 final class Unicode
 {
@@ -29,6 +30,7 @@ final class Unicode
     private const int HANGUL_T_COUNT = 28;
     private const int HANGUL_N_COUNT = self::HANGUL_V_COUNT * self::HANGUL_T_COUNT;
     private const int HANGUL_S_COUNT = self::HANGUL_L_COUNT * self::HANGUL_N_COUNT;
+    private const int ERROR_CODE_POINT = 0x1FFFFF;
 
     private function __construct()
     {
@@ -69,6 +71,11 @@ final class Unicode
         return UnicodeData::CANONICAL_COMPOSITION_MAP[$first][$second] ?? null;
     }
 
+    public static function normalize(string $data, string $form): string
+    {
+        return self::encodeForNormalization(self::normalizeCodePoints(self::decodeForNormalization($data), $form));
+    }
+
     /**
      * @param list<int> $codePoints
      * @return list<int>
@@ -98,7 +105,7 @@ final class Unicode
         $normalized = [];
 
         foreach ($buffer as [$codePoint]) {
-            if ($codePoint !== null) {
+            if ($codePoint !== null && $codePoint !== self::ERROR_CODE_POINT) {
                 $normalized[] = $codePoint;
             }
         }
@@ -145,6 +152,98 @@ final class Unicode
     }
 
     /**
+     * @return list<int>
+     */
+    private static function decodeForNormalization(string $data): array
+    {
+        $length = strlen($data);
+        $codePoints = [];
+
+        for ($offset = 0; $offset < $length;) {
+            $first = ord($data[$offset]);
+
+            if ($first < 0x80) {
+                $codePoints[] = $first;
+                $offset++;
+                continue;
+            }
+
+            if (($first & 0xE0) === 0xC0) {
+                if ($length - $offset < 2) {
+                    $codePoints[] = Utf8::REPLACEMENT_CODE_POINT;
+                    break;
+                }
+
+                $second = ord($data[$offset + 1]);
+
+                $codePoints[] = (($first ^ (0xC0 & $first)) << 6)
+                    | ($second ^ (0x80 & $second));
+                $offset += 2;
+                continue;
+            }
+
+            if (($first & 0xF0) === 0xE0) {
+                if ($length - $offset < 3) {
+                    $codePoints[] = Utf8::REPLACEMENT_CODE_POINT;
+                    break;
+                }
+
+                $second = ord($data[$offset + 1]);
+                $third = ord($data[$offset + 2]);
+
+                $codePoints[] = (($first ^ (0xE0 & $first)) << 12)
+                    | (($second ^ (0x80 & $second)) << 6)
+                    | ($third ^ (0x80 & $third));
+                $offset += 3;
+                continue;
+            }
+
+            if (($first & 0xF8) === 0xF0) {
+                if ($length - $offset < 4) {
+                    $codePoints[] = Utf8::REPLACEMENT_CODE_POINT;
+                    break;
+                }
+
+                $second = ord($data[$offset + 1]);
+                $third = ord($data[$offset + 2]);
+                $fourth = ord($data[$offset + 3]);
+
+                $codePoint = (($first ^ (0xF0 & $first)) << 18)
+                    | (($second ^ (0x80 & $second)) << 12)
+                    | (($third ^ (0x80 & $third)) << 6)
+                    | ($fourth ^ (0x80 & $fourth));
+
+                $codePoints[] = $codePoint === self::ERROR_CODE_POINT
+                    ? Utf8::REPLACEMENT_CODE_POINT
+                    : $codePoint;
+                $offset += 4;
+                continue;
+            }
+
+            $codePoints[] = Utf8::REPLACEMENT_CODE_POINT;
+            $offset++;
+        }
+
+        return $codePoints;
+    }
+
+    /**
+     * @param list<int> $codePoints
+     */
+    private static function encodeForNormalization(array $codePoints): string
+    {
+        $data = '';
+
+        foreach ($codePoints as $codePoint) {
+            if ($codePoint >= 0 && $codePoint < 0x110000) {
+                $data .= Utf8::encodeCodePoint($codePoint);
+            }
+        }
+
+        return $data;
+    }
+
+    /**
      * @param list<array{?int, int}> $buffer
      */
     private static function appendOrdered(array &$buffer, int $codePoint): void
@@ -177,6 +276,11 @@ final class Unicode
 
         foreach ($buffer as $index => [$codePoint, $combiningClass]) {
             if ($codePoint === null) {
+                continue;
+            }
+
+            if ($codePoint === self::ERROR_CODE_POINT) {
+                $lastCombiningClass = 0;
                 continue;
             }
 

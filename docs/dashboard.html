@@ -205,7 +205,7 @@
     <main>
         <div class="metrics" aria-label="Project metrics">
             <div class="metric">
-                <strong>1714 / 1714</strong>
+                <strong>1716 / 1716</strong>
                 <span>PHPUnit tests passing</span>
             </div>
             <div class="metric">
@@ -266,9 +266,9 @@
                     <tr>
                         <td>Unicode</td>
                         <td><span class="status done">Implemented slice</span></td>
-                        <td>7 total; 1 ported from unicode/idna_type.c, 1 ported from unicode/composition_test.c, 1 ported from unicode/normalization_forms_code_points.c, 3 generated IDNA type, canonical composition, and normalization table parity walks from unicode/res.h, plus 1 IDNA/composition boundary regression</td>
+                        <td>9 total; 1 ported from unicode/idna_type.c, 1 ported from unicode/composition_test.c, 1 ported from unicode/normalization_forms_code_points.c, 1 ported from unicode/normalization_forms.c, 3 generated IDNA type, canonical composition, and normalization table parity walks from unicode/res.h, plus 2 IDNA/composition/normalization boundary regressions</td>
                         <td><div class="bar" aria-label="100 percent"><span style="width: 100%"></span></div></td>
-                        <td>Initial Unicode IDNA type classifier, canonical composition lookup, and NFC/NFD/NFKC/NFKD code-point normalization implemented from Lexbor's generated Unicode resource table, including compressed non-disallowed type ranges, 968 combining-class entries, 2,081 canonical decompositions, 5,914 compatibility decompositions, 1,045 canonical composition pairs, 964 non-excluded normalization composition pairs, Hangul decomposition/composition, upstream edge coverage for U+E00FF, generated table parity against lxb_unicode_table_map_*, lxb_unicode_idna_entries, normalization entries, decomposition arrays, and composition arrays, plus boundary checks across every generated range; UTF-8 streaming normalization and full IDNA processing remain.</td>
+                        <td>Initial Unicode IDNA type classifier, canonical composition lookup, and NFC/NFD/NFKC/NFKD code-point and complete UTF-8 string normalization implemented from Lexbor's generated Unicode resource table, including complete-input byte-shape UTF-8 decode and error handling, compressed non-disallowed type ranges, 968 combining-class entries, 2,081 canonical decompositions, 5,914 compatibility decompositions, 1,045 canonical composition pairs, 964 non-excluded normalization composition pairs, Hangul decomposition/composition, upstream edge coverage for U+E00FF, generated table parity against lxb_unicode_table_map_*, lxb_unicode_idna_entries, normalization entries, decomposition arrays, and composition arrays, plus boundary checks across every generated range; UTF-8 streaming normalization and full IDNA processing remain.</td>
                     </tr>
                     <tr>
                         <td>URL</td>
