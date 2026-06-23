@@ -10,6 +10,7 @@ use Lexbor\Css\Syntax\Tokenizer;
 final class Parser
 {
     private const array KNOWN_PROPERTIES = [
+        'height' => true,
         'text-decoration' => true,
         'width' => true,
     ];
@@ -208,7 +209,7 @@ final class Parser
         }
 
         return match ($property) {
-            'width' => self::isValidWidth($value, $valueTokens) ? 'property' : 'undef',
+            'height', 'width' => self::isValidLengthSize($value, $valueTokens) ? 'property' : 'undef',
             default => 'undef',
         };
     }
@@ -216,7 +217,7 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
-    private static function isValidWidth(string $value, array $tokens): bool
+    private static function isValidLengthSize(string $value, array $tokens): bool
     {
         $tokens = self::stripWhitespaceTokens($tokens);
         $lowerValue = strtolower($value);
