@@ -876,4 +876,46 @@ final class TokenizerTest extends TestCase
         self::assertSame('Э', $tokens[2]->value);
         self::assertSame(3, $tokens[2]->length);
     }
+
+    public function testUpstreamStyleFixtureDoesNotEmitUndefinedTokens(): void
+    {
+        $css = file_get_contents(__DIR__ . '/../../Fixtures/Css/lexbor.css');
+
+        self::assertIsString($css);
+
+        $tokens = (new Tokenizer())->tokenize($css);
+        $types = array_map(static fn ($token): string => $token->type, $tokens);
+        $knownTypes = [
+            'at-keyword',
+            'bad-string',
+            'bad-url',
+            'CDC',
+            'CDO',
+            'colon',
+            'comma',
+            'comment',
+            'delim',
+            'dimension',
+            'function',
+            'hash',
+            'ident',
+            'left-curly-bracket',
+            'left-parenthesis',
+            'left-square-bracket',
+            'number',
+            'percentage',
+            'right-curly-bracket',
+            'right-parenthesis',
+            'right-square-bracket',
+            'semicolon',
+            'string',
+            'url',
+            'whitespace',
+        ];
+
+        self::assertNotSame([], $tokens);
+        self::assertSame([], array_values(array_diff($types, $knownTypes)));
+        self::assertNotContains('undef', $types);
+        self::assertContains('url', $types);
+    }
 }
