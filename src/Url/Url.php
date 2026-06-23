@@ -18,7 +18,7 @@ final class Url
         public string $host,
         public ?int $port,
         public string $path,
-        public readonly ?string $query = null,
+        public ?string $query = null,
         public readonly ?string $fragment = null,
         private readonly array $errors = [],
     ) {
@@ -173,6 +173,24 @@ final class Url
         return true;
     }
 
+    public function setSearch(string $search): bool
+    {
+        $search = str_replace(["\t", "\n", "\r"], '', $search);
+
+        if ($search === '') {
+            $this->query = null;
+            return true;
+        }
+
+        if (str_starts_with($search, '?')) {
+            $search = substr($search, 1);
+        }
+
+        $this->query = $this->percentEncodeQuery($search);
+
+        return true;
+    }
+
     public function serialize(): string
     {
         $authority = $this->host;
@@ -247,6 +265,27 @@ final class Url
         return $encoded;
     }
 
+    private function percentEncodeQuery(string $query): string
+    {
+        $encoded = '';
+        $isSpecial = $this->isSpecialScheme($this->scheme);
+
+        foreach (Utf8::decode($query) as $codePoint) {
+            foreach (str_split(Utf8::encodeCodePoint($codePoint)) as $byte) {
+                $value = ord($byte);
+
+                if ($value < 0x80 && $this->isQueryByteAllowed($value, $isSpecial)) {
+                    $encoded .= $byte;
+                    continue;
+                }
+
+                $encoded .= sprintf('%%%02X', $value);
+            }
+        }
+
+        return $encoded;
+    }
+
     private function percentEncodeBytes(string $bytes): string
     {
         $encoded = '';
@@ -294,6 +333,17 @@ final class Url
         return $byte >= 0x21
             && $byte <= 0x7E
             && ! in_array($byte, [0x22, 0x23, 0x3C, 0x3E, 0x3F, 0x60], true);
+    }
+
+    private function isQueryByteAllowed(int $byte, bool $isSpecial): bool
+    {
+        return $byte >= 0x21
+            && $byte <= 0x7E
+            && ! in_array(
+                $byte,
+                $isSpecial ? [0x22, 0x23, 0x27, 0x3C, 0x3E] : [0x22, 0x23, 0x3C, 0x3E],
+                true,
+            );
     }
 
     private function parseWithReplacementHost(string $host, bool $allowPort): ?self

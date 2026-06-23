@@ -470,6 +470,41 @@ final class ParserTest extends TestCase
         self::assertSame('foo://a/a\b?x=1#frag', $nonSpecial->serialize());
     }
 
+    public function testSearchMutationPreservesFragmentAndEncodesByScheme(): void
+    {
+        $special = (new Parser())->parse('https://lexbor.com/a?old=1#frag');
+        $nonSpecial = (new Parser())->parse('foo://a/path?old=1#frag');
+
+        self::assertNotNull($special);
+        self::assertNotNull($nonSpecial);
+
+        self::assertTrue($special->setSearch('a=b&x=y'));
+        self::assertSame('https://lexbor.com/a?a=b&x=y#frag', $special->serialize());
+        self::assertTrue($special->setSearch(''));
+        self::assertSame('https://lexbor.com/a#frag', $special->serialize());
+        self::assertTrue($special->setSearch('?'));
+        self::assertSame('https://lexbor.com/a?#frag', $special->serialize());
+        self::assertTrue($special->setSearch("?a b#c='"));
+        self::assertSame('https://lexbor.com/a?a%20b%23c=%27#frag', $special->serialize());
+        self::assertTrue($special->setSearch('a?b'));
+        self::assertSame('https://lexbor.com/a?a?b#frag', $special->serialize());
+        self::assertTrue($special->setSearch("a\nb\tc\rd"));
+        self::assertSame('https://lexbor.com/a?abcd#frag', $special->serialize());
+
+        self::assertTrue($nonSpecial->setSearch("abc='#frag?tail"));
+        self::assertSame("foo://a/path?abc='%23frag?tail#frag", $nonSpecial->serialize());
+        self::assertTrue($nonSpecial->setSearch("a\nb"));
+        self::assertSame('foo://a/path?ab#frag', $nonSpecial->serialize());
+
+        self::assertTrue($special->setSearch("a\nb"));
+        self::assertSame('https://lexbor.com/a?ab#frag', $special->serialize());
+
+        self::assertTrue($nonSpecial->setSearch("abc='"));
+        self::assertSame("foo://a/path?abc='#frag", $nonSpecial->serialize());
+        self::assertTrue($nonSpecial->setSearch('?'));
+        self::assertSame('foo://a/path?#frag', $nonSpecial->serialize());
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -1160,6 +1195,48 @@ final class ParserTest extends TestCase
         self::assertSame($entry['done'], $url->serialize());
         self::assertSame($entry['scheme'], $url->scheme);
         self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamChangesSearchProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            if ($index < 32 || $index > 35) {
+                continue;
+            }
+
+            $changes = $entry['change'];
+            $activeChanges = array_filter(
+                $changes,
+                static fn (mixed $value): bool => $value !== null,
+            );
+
+            if (array_keys($activeChanges) !== ['search']) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesSearchProvider')]
+    public function testUpstreamChangesSearchFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+        $changes = $entry['change'];
+
+        self::assertNotNull($url);
+        self::assertSame(! ($entry['failed'] ?? false), $url->setSearch($changes['search']));
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['query'] ?? null, $url->query);
         self::assertSame($entry['path'] ?? '', $url->path);
     }
 
