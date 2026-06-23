@@ -23,6 +23,7 @@ final readonly class DecodeResult
         public int $pendingUtf8Upper = 0,
         public ?int $pendingFirstCodePoint = null,
         public ?int $pendingSecondCodePoint = null,
+        public bool $pendingJis0212 = false,
     ) {
     }
 }
