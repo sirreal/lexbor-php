@@ -11,8 +11,8 @@ final class Url
      */
     public function __construct(
         public string $scheme,
-        public readonly string $username,
-        public readonly string $password,
+        public string $username,
+        public string $password,
         public string $host,
         public ?int $port,
         public readonly string $path,
@@ -47,6 +47,28 @@ final class Url
 
         $this->scheme = $scheme;
         $this->clearDefaultPort();
+
+        return true;
+    }
+
+    public function setUsername(string $username): bool
+    {
+        if (! $this->canHaveCredentials()) {
+            return true;
+        }
+
+        $this->username = $this->percentEncodeUserInfo($username);
+
+        return true;
+    }
+
+    public function setPassword(string $password): bool
+    {
+        if (! $this->canHaveCredentials()) {
+            return true;
+        }
+
+        $this->password = $this->percentEncodeUserInfo($password);
 
         return true;
     }
@@ -87,6 +109,60 @@ final class Url
     public function errors(): array
     {
         return $this->errors;
+    }
+
+    private function canHaveCredentials(): bool
+    {
+        return $this->host !== '' && $this->scheme !== 'file';
+    }
+
+    private function percentEncodeUserInfo(string $value): string
+    {
+        $encoded = '';
+        $length = strlen($value);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $byte = ord($value[$offset]);
+
+            if ($this->isUserInfoByteAllowed($byte)) {
+                $encoded .= $value[$offset];
+                continue;
+            }
+
+            $encoded .= sprintf('%%%02X', $byte);
+        }
+
+        return $encoded;
+    }
+
+    private function isUserInfoByteAllowed(int $byte): bool
+    {
+        return $byte >= 0x21
+            && $byte <= 0x7E
+            && ! in_array(
+                $byte,
+                [
+                    0x22,
+                    0x23,
+                    0x2F,
+                    0x3A,
+                    0x3B,
+                    0x3C,
+                    0x3D,
+                    0x3E,
+                    0x3F,
+                    0x40,
+                    0x5B,
+                    0x5C,
+                    0x5D,
+                    0x5E,
+                    0x60,
+                    0x7B,
+                    0x7C,
+                    0x7D,
+                ],
+                true,
+            );
     }
 
     private function isSpecialScheme(string $scheme): bool

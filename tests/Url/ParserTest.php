@@ -321,6 +321,22 @@ final class ParserTest extends TestCase
         self::assertSame('http://lexbor.com/', $trailingCarriageReturn->serialize());
     }
 
+    public function testCredentialMutationEncodesUserInfoAndSkipsFileUrls(): void
+    {
+        $url = (new Parser())->parse('https://lexbor.com/');
+        $file = (new Parser())->parse('file:///tmp/a');
+
+        self::assertNotNull($url);
+        self::assertNotNull($file);
+
+        self::assertTrue($url->setUsername('us=er'));
+        self::assertTrue($url->setPassword('pass:word'));
+        self::assertTrue($file->setUsername('user'));
+        self::assertTrue($file->setPassword('pass'));
+        self::assertSame('https://us%3Der:pass%3Aword@lexbor.com/', $url->serialize());
+        self::assertSame('file:///tmp/a', $file->serialize());
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -829,6 +845,54 @@ final class ParserTest extends TestCase
         self::assertSame(! ($entry['failed'] ?? false), $url->setProtocol($entry['change']['protocol']));
         self::assertSame($entry['done'], $url->serialize());
         self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamChangesCredentialsProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            $changes = $entry['change'];
+            $activeChanges = array_filter(
+                $changes,
+                static fn (mixed $value): bool => $value !== null,
+            );
+            $keys = array_keys($activeChanges);
+
+            if ($keys !== ['username'] && $keys !== ['password']) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesCredentialsProvider')]
+    public function testUpstreamChangesCredentialsFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+        $changes = $entry['change'];
+
+        self::assertNotNull($url);
+
+        if ($changes['username'] !== null) {
+            self::assertSame(! ($entry['failed'] ?? false), $url->setUsername($changes['username']));
+        }
+
+        if ($changes['password'] !== null) {
+            self::assertSame(! ($entry['failed'] ?? false), $url->setPassword($changes['password']));
+        }
+
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['username'] ?? '', $url->username);
+        self::assertSame($entry['password'] ?? '', $url->password);
         self::assertSame($entry['host'] ?? '', $url->host);
         self::assertSame($entry['path'] ?? '', $url->path);
     }
