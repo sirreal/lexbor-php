@@ -1102,6 +1102,84 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{array<string, mixed>}>
      */
+    public static function upstreamChangesAggregateProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            if ($index < 1 || $index > 2) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesAggregateProvider')]
+    public function testUpstreamChangesAggregateFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+        $changes = $entry['change'];
+        $succeeded = true;
+
+        self::assertNotNull($url);
+
+        if ($changes['href'] !== null) {
+            $succeeded = $url->setHref($changes['href']) && $succeeded;
+        }
+
+        if ($changes['protocol'] !== null) {
+            $succeeded = $url->setProtocol($changes['protocol']) && $succeeded;
+        }
+
+        if ($changes['username'] !== null) {
+            $succeeded = $url->setUsername($changes['username']) && $succeeded;
+        }
+
+        if ($changes['password'] !== null) {
+            $succeeded = $url->setPassword($changes['password']) && $succeeded;
+        }
+
+        if ($changes['host'] !== null) {
+            $succeeded = $url->setHost($changes['host']) && $succeeded;
+        }
+
+        if ($changes['hostname'] !== null) {
+            $succeeded = $url->setHostname($changes['hostname']) && $succeeded;
+        }
+
+        if ($changes['port'] !== null) {
+            $succeeded = $url->setPort($changes['port']) && $succeeded;
+        }
+
+        if ($changes['pathname'] !== null) {
+            $succeeded = $url->setPathname($changes['pathname']) && $succeeded;
+        }
+
+        if ($changes['search'] !== null) {
+            $succeeded = $url->setSearch($changes['search']) && $succeeded;
+        }
+
+        if ($changes['hash'] !== null) {
+            $succeeded = $url->setHash($changes['hash']) && $succeeded;
+        }
+
+        self::assertSame(! ($entry['failed'] ?? false), $succeeded);
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['username'] ?? '', $url->username);
+        self::assertSame($entry['password'] ?? '', $url->password);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['port'] ?? null, $url->port);
+        self::assertSame($entry['path'] ?? '', $url->path);
+        self::assertSame($entry['query'] ?? null, $url->query);
+        self::assertSame($entry['fragment'] ?? null, $url->fragment);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
     public static function upstreamChangesProtocolProvider(): iterable
     {
         foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
