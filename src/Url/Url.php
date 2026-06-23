@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Lexbor\Url;
 
+use Lexbor\Encoding\Utf8;
+
 final class Url
 {
     /**
@@ -15,7 +17,7 @@ final class Url
         public string $password,
         public string $host,
         public ?int $port,
-        public readonly string $path,
+        public string $path,
         public readonly ?string $query = null,
         public readonly ?string $fragment = null,
         private readonly array $errors = [],
@@ -148,6 +150,29 @@ final class Url
         return true;
     }
 
+    public function setPathname(string $pathname): bool
+    {
+        $pathname = str_replace(["\t", "\n", "\r"], '', $pathname);
+
+        if ($this->isSpecialScheme($this->scheme)) {
+            $pathname = str_replace('\\', '/', $pathname);
+        }
+
+        if ($pathname === '') {
+            $pathname = $this->isSpecialScheme($this->scheme) ? '/' : '';
+        } elseif (! str_starts_with($pathname, '/')) {
+            $pathname = '/' . $pathname;
+        }
+
+        if ($this->scheme === 'file') {
+            $pathname = $this->normalizeFilePathDriveLetter($pathname);
+        }
+
+        $this->path = $this->percentEncodePath($this->normalizePath($pathname));
+
+        return true;
+    }
+
     public function serialize(): string
     {
         $authority = $this->host;
@@ -204,6 +229,36 @@ final class Url
         return $encoded;
     }
 
+    private function percentEncodePath(string $path): string
+    {
+        $encoded = '';
+
+        foreach (Utf8::decode($path) as $codePoint) {
+            $bytes = Utf8::encodeCodePoint($codePoint);
+
+            if ($codePoint < 0x80 && $this->isPathByteAllowed($codePoint)) {
+                $encoded .= chr($codePoint);
+                continue;
+            }
+
+            $encoded .= $this->percentEncodeBytes($bytes);
+        }
+
+        return $encoded;
+    }
+
+    private function percentEncodeBytes(string $bytes): string
+    {
+        $encoded = '';
+        $length = strlen($bytes);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $encoded .= sprintf('%%%02X', ord($bytes[$offset]));
+        }
+
+        return $encoded;
+    }
+
     private function isUserInfoByteAllowed(int $byte): bool
     {
         return $byte >= 0x21
@@ -232,6 +287,13 @@ final class Url
                 ],
                 true,
             );
+    }
+
+    private function isPathByteAllowed(int $byte): bool
+    {
+        return $byte >= 0x21
+            && $byte <= 0x7E
+            && ! in_array($byte, [0x22, 0x23, 0x3C, 0x3E, 0x3F, 0x60], true);
     }
 
     private function parseWithReplacementHost(string $host, bool $allowPort): ?self
@@ -363,6 +425,74 @@ final class Url
         }
 
         return $this->isValidPort($port);
+    }
+
+    private function normalizePath(string $path): string
+    {
+        if ($path === '') {
+            return '';
+        }
+
+        $segments = explode('/', $path);
+        $normalized = [];
+        $lastIndex = count($segments) - 1;
+
+        foreach ($segments as $index => $segment) {
+            if ($this->isSingleDotPathSegment($segment)) {
+                if ($index === $lastIndex) {
+                    $normalized[] = '';
+                }
+
+                continue;
+            }
+
+            if ($this->isDoubleDotPathSegment($segment)) {
+                if (! $this->isFileDriveRootPath($normalized)
+                    && (count($normalized) > 1 || ($normalized !== [] && $normalized[0] !== ''))
+                ) {
+                    array_pop($normalized);
+                }
+
+                if ($index === $lastIndex) {
+                    $normalized[] = '';
+                }
+
+                continue;
+            }
+
+            $normalized[] = $segment;
+        }
+
+        return $normalized === [] ? '' : implode('/', $normalized);
+    }
+
+    /**
+     * @param list<string> $segments
+     */
+    private function isFileDriveRootPath(array $segments): bool
+    {
+        return $this->scheme === 'file'
+            && count($segments) === 2
+            && $segments[0] === ''
+            && preg_match('/^[A-Za-z]:$/', $segments[1]) === 1;
+    }
+
+    private function normalizeFilePathDriveLetter(string $path): string
+    {
+        return preg_replace('/^\/([A-Za-z])\|(?=\/|$)/', '/$1:', $path) ?? $path;
+    }
+
+    private function isSingleDotPathSegment(string $segment): bool
+    {
+        return strcasecmp($segment, '.') === 0 || strcasecmp($segment, '%2e') === 0;
+    }
+
+    private function isDoubleDotPathSegment(string $segment): bool
+    {
+        return strcasecmp($segment, '..') === 0
+            || strcasecmp($segment, '.%2e') === 0
+            || strcasecmp($segment, '%2e.') === 0
+            || strcasecmp($segment, '%2e%2e') === 0;
     }
 
     private function isValidPort(string $port): bool

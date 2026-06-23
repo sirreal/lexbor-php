@@ -442,6 +442,34 @@ final class ParserTest extends TestCase
         self::assertSame('foo://a/p', $nonSpecial->serialize());
     }
 
+    public function testPathnameMutationPreservesSuffixAndEncodesPathOnlyDelimiters(): void
+    {
+        $url = (new Parser())->parse('https://lexbor.com/a/b?x=1#frag');
+        $file = (new Parser())->parse('file:///tmp/a?x=1#frag');
+        $nonSpecial = (new Parser())->parse('foo://a/b?x=1#frag');
+
+        self::assertNotNull($url);
+        self::assertNotNull($file);
+        self::assertNotNull($nonSpecial);
+
+        self::assertTrue($url->setPathname('a?b#c'));
+        self::assertSame('https://lexbor.com/a%3Fb%23c?x=1#frag', $url->serialize());
+        self::assertTrue($url->setPathname("../two words/leaf\n"));
+        self::assertSame('https://lexbor.com/two%20words/leaf?x=1#frag', $url->serialize());
+        self::assertTrue($url->setPathname('a\b'));
+        self::assertSame('https://lexbor.com/a/b?x=1#frag', $url->serialize());
+
+        self::assertTrue($file->setPathname('c|/docs'));
+        self::assertSame('file:///c:/docs?x=1#frag', $file->serialize());
+        self::assertTrue($file->setPathname('c|/../docs'));
+        self::assertSame('file:///c:/docs?x=1#frag', $file->serialize());
+
+        self::assertTrue($nonSpecial->setPathname(''));
+        self::assertSame('foo://a?x=1#frag', $nonSpecial->serialize());
+        self::assertTrue($nonSpecial->setPathname('a\b'));
+        self::assertSame('foo://a/a\b?x=1#frag', $nonSpecial->serialize());
+    }
+
     public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
     {
         $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
@@ -1091,6 +1119,47 @@ final class ParserTest extends TestCase
         self::assertSame($entry['scheme'], $url->scheme);
         self::assertSame($entry['host'] ?? '', $url->host);
         self::assertSame($entry['port'] ?? null, $url->port);
+        self::assertSame($entry['path'] ?? '', $url->path);
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamChangesPathnameProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('changes.ton') as $index => $entry) {
+            if ($index < 28 || $index > 31) {
+                continue;
+            }
+
+            $changes = $entry['change'];
+            $activeChanges = array_filter(
+                $changes,
+                static fn (mixed $value): bool => $value !== null,
+            );
+
+            if (array_keys($activeChanges) !== ['pathname']) {
+                continue;
+            }
+
+            yield 'changes.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamChangesPathnameProvider')]
+    public function testUpstreamChangesPathnameFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url']);
+        $changes = $entry['change'];
+
+        self::assertNotNull($url);
+        self::assertSame(! ($entry['failed'] ?? false), $url->setPathname($changes['pathname']));
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['host'] ?? '', $url->host);
         self::assertSame($entry['path'] ?? '', $url->path);
     }
 
