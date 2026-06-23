@@ -104,6 +104,16 @@ final class ParserTest extends TestCase
         yield 'selectors.c #87 rejects leading selector-list comma' => [', .class', '', ['Syntax error. Selectors. Unexpected token: ,']];
         yield 'selectors.c #88 rejects trailing selector-list comma' => ['.class ,', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
         yield 'selectors.c #89 rejects leading combinator in selector-list item' => ['div, > .class, #hash', '', ['Syntax error. Selectors. Unexpected token: >']];
+        yield 'selectors.c #90 complex combinator selector' => ['div > .class + #hash ~ [refs=a].super || #id', 'div > .class + #hash ~ [refs="a"].super || #id', []];
+        yield 'selectors.c #91 pseudo class on type selector' => ['div:disabled', 'div:disabled', []];
+        yield 'selectors.c #92 rejects unknown pseudo class' => [':godofwar', '', ['Syntax error. Selectors. Unexpected token: godofwar']];
+        yield 'selectors.c #93 has selector with pseudo class' => [':has(:disabled)', ':has(:disabled)', []];
+        yield 'selectors.c #94 rejects has selector with unknown pseudo class' => [':has(:godofwar)', '', ['Syntax error. Selectors. Unexpected token: godofwar', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
+        yield 'selectors.c #95 rejects unknown pseudo element' => ['::godofwar', '', ['Syntax error. Selectors. Unexpected token: godofwar']];
+        yield 'selectors.c #96 rejects has selector with unknown pseudo element' => [':has(::godofwar)', '', ['Syntax error. Selectors. Unexpected token: godofwar', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
+        yield 'selectors.c #97 has selector skips unknown pseudo element' => [':has(div, ::godofwar)', ':has(div)', ['Syntax error. Selectors. Unexpected token: godofwar']];
+        yield 'selectors.c #98 has selector skips unknown pseudo element between valid selectors' => [':has(div, ::godofwar, .class)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: godofwar']];
+        yield 'selectors.c #99 rejects empty selector' => ['', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
     }
 
     /**
@@ -121,5 +131,13 @@ final class ParserTest extends TestCase
 
         self::assertSame($expected, (new Parser())->parse('[refs]junk'));
         self::assertSame($expected, (new Parser())->parse('[refs] junk'));
+    }
+
+    public function testSelectorListReportsCommaAfterColumnCombinator(): void
+    {
+        self::assertSame(
+            ['value' => '', 'errors' => ['Syntax error. Selectors. Unexpected token: ,']],
+            (new Parser())->parse('div, .class ||, #hash'),
+        );
     }
 }

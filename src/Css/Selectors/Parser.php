@@ -9,6 +9,36 @@ use Lexbor\Css\Syntax\Tokenizer;
 
 final class Parser
 {
+    /**
+     * Pseudo-classes accepted by Lexbor's parser without additional function data.
+     *
+     * @var array<string, true>
+     */
+    private const SUPPORTED_PSEUDO_CLASSES = [
+        'active' => true,
+        'any-link' => true,
+        'blank' => true,
+        'checked' => true,
+        'disabled' => true,
+        'empty' => true,
+        'enabled' => true,
+        'first-child' => true,
+        'first-of-type' => true,
+        'focus' => true,
+        'hover' => true,
+        'last-child' => true,
+        'last-of-type' => true,
+        'link' => true,
+        'only-child' => true,
+        'only-of-type' => true,
+        'optional' => true,
+        'placeholder-shown' => true,
+        'read-only' => true,
+        'read-write' => true,
+        'required' => true,
+        'root' => true,
+    ];
+
     public function __construct(
         private readonly Tokenizer $tokenizer = new Tokenizer(),
     ) {
@@ -65,6 +95,11 @@ final class Parser
         $typeSelector = self::parseTypeSelector($selector);
         if ($typeSelector !== null) {
             return ['value' => $typeSelector, 'errors' => []];
+        }
+
+        $complex = $this->parseComplexSelector($tokens);
+        if ($complex !== null) {
+            return $complex;
         }
 
         return self::error(self::firstUnexpectedToken($tokens));
@@ -134,7 +169,7 @@ final class Parser
                     return self::error(',');
                 }
 
-                $selector = $this->parseSimpleSelector($part);
+                $selector = $this->parseSelectorComponent($part);
                 if ($selector === null) {
                     return self::error(self::firstUnexpectedToken($part));
                 }
@@ -160,7 +195,7 @@ final class Parser
             return self::error('END-OF-FILE');
         }
 
-        $selector = $this->parseSimpleSelector($part);
+        $selector = $this->parseSelectorComponent($part);
         if ($selector === null) {
             return self::error(self::firstUnexpectedToken($part));
         }
@@ -401,7 +436,7 @@ final class Parser
         $errors = [];
         $invalid = false;
         foreach ($selectorParts as $selectorTokens) {
-            $selector = $this->parseSimpleSelector($selectorTokens);
+            $selector = $this->parseSelectorComponent($selectorTokens);
             if ($selector === null) {
                 $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($selectorTokens));
                 $invalid = true;
@@ -450,7 +485,7 @@ final class Parser
         $serialized = [];
 
         foreach ($selectorParts as $selectorTokens) {
-            $selector = $this->parseSimpleSelector($selectorTokens);
+            $selector = $this->parseSelectorComponent($selectorTokens);
             if ($selector === null) {
                 $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($selectorTokens));
                 continue;
@@ -630,11 +665,59 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function isCombinatorAt(array $tokens, int $offset): bool
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null || $token->type !== 'delim') {
+            return false;
+        }
+
+        if (in_array($token->value, ['>', '+', '~'], true)) {
+            return true;
+        }
+
+        return $token->value === '|'
+            && ($tokens[$offset + 1] ?? null)?->type === 'delim'
+            && $tokens[$offset + 1]->value === '|';
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function consumeCombinator(array $tokens, int &$offset): string
+    {
+        $token = $tokens[$offset];
+        if ($token->value !== '|') {
+            $offset++;
+
+            return $token->value;
+        }
+
+        $offset += 2;
+
+        return '||';
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function endsWithCombinator(array $tokens): bool
     {
         $tokens = self::trimTokenList($tokens);
+        if ($tokens === []) {
+            return false;
+        }
 
-        return $tokens !== [] && self::isCombinatorToken($tokens[array_key_last($tokens)]);
+        $last = array_key_last($tokens);
+        if (self::isCombinatorToken($tokens[$last])) {
+            return true;
+        }
+
+        return $last > 0
+            && $tokens[$last - 1]->type === 'delim'
+            && $tokens[$last - 1]->value === '|'
+            && $tokens[$last]->type === 'delim'
+            && $tokens[$last]->value === '|';
     }
 
     private static function serializeAttributeValue(?Token $token): ?string
@@ -659,7 +742,7 @@ final class Parser
      */
     private function serializeSimpleSelector(array $tokens): ?string
     {
-        $selector = $this->parseSimpleSelector($tokens);
+        $selector = $this->parseSelectorComponent($tokens);
         if ($selector === null || $selector['errors'] !== []) {
             return null;
         }
@@ -699,6 +782,338 @@ final class Parser
         }
 
         return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
+    private function parseSelectorComponent(array $tokens): ?array
+    {
+        $complex = $this->parseComplexSelector($tokens);
+        if ($complex !== null) {
+            return $complex;
+        }
+
+        return $this->parseSimpleSelector($tokens);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
+    private function parseComplexSelector(array $tokens): ?array
+    {
+        $tokens = self::trimTokenList($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+
+        $offset = 0;
+        $compound = $this->consumeCompoundSelector($tokens, $offset);
+        if ($compound === null) {
+            if (self::isCombinatorAt($tokens, $offset)) {
+                return self::error($tokens[$offset]->value);
+            }
+
+            return null;
+        }
+
+        if ($compound['errors'] !== []) {
+            return $compound;
+        }
+
+        $serialized = [$compound['value']];
+        $count = count($tokens);
+
+        while ($offset < $count) {
+            $hadWhitespace = false;
+            while (($tokens[$offset] ?? null)?->type === 'whitespace') {
+                $hadWhitespace = true;
+                $offset++;
+            }
+
+            if ($offset >= $count) {
+                break;
+            }
+
+            if (self::isCombinatorAt($tokens, $offset)) {
+                $combinator = self::consumeCombinator($tokens, $offset);
+                self::skipWhitespace($tokens, $offset);
+
+                if ($offset >= $count) {
+                    return self::error('END-OF-FILE');
+                }
+            } elseif ($hadWhitespace) {
+                $combinator = ' ';
+            } else {
+                return self::error($tokens[$offset]->value);
+            }
+
+            $compound = $this->consumeCompoundSelector($tokens, $offset);
+            if ($compound === null) {
+                return self::error(self::firstUnexpectedToken(array_slice($tokens, $offset)));
+            }
+
+            if ($compound['errors'] !== []) {
+                return $compound;
+            }
+
+            $serialized[] = $combinator === ' '
+                ? ' ' . $compound['value']
+                : sprintf(' %s %s', $combinator, $compound['value']);
+        }
+
+        return [
+            'value' => implode('', $serialized),
+            'errors' => [],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
+    private function consumeCompoundSelector(array $tokens, int &$offset): ?array
+    {
+        $start = $offset;
+        $serialized = [];
+
+        $typeSelector = self::consumeTypeSelector($tokens, $offset);
+        if ($typeSelector !== null) {
+            $serialized[] = $typeSelector;
+        }
+
+        $count = count($tokens);
+        while ($offset < $count) {
+            if (
+                $tokens[$offset]->type === 'whitespace'
+                || $tokens[$offset]->type === 'comma'
+                || self::isCombinatorAt($tokens, $offset)
+            ) {
+                break;
+            }
+
+            $selector = $this->consumeNonTypeSimpleSelector($tokens, $offset);
+            if ($selector === null) {
+                if ($serialized === []) {
+                    $offset = $start;
+
+                    return null;
+                }
+
+                return self::error($tokens[$offset]->value);
+            }
+
+            if ($selector['errors'] !== []) {
+                return $selector;
+            }
+
+            $serialized[] = $selector['value'];
+        }
+
+        if ($serialized === []) {
+            $offset = $start;
+
+            return null;
+        }
+
+        return [
+            'value' => implode('', $serialized),
+            'errors' => [],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function consumeTypeSelector(array $tokens, int &$offset): ?string
+    {
+        $start = $offset;
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident') {
+            $offset++;
+
+            if (($tokens[$offset] ?? null)?->type === 'delim' && $tokens[$offset]->value === '|') {
+                $name = $tokens[$offset + 1] ?? null;
+                if ($name?->type === 'ident' || ($name?->type === 'delim' && $name->value === '*')) {
+                    $offset += 2;
+
+                    return "{$token->value}|{$name->value}";
+                }
+
+                $offset = $start;
+
+                return null;
+            }
+
+            return $token->value;
+        }
+
+        if ($token->type === 'delim' && $token->value === '*') {
+            if (($tokens[$offset + 1] ?? null)?->type === 'delim' && $tokens[$offset + 1]->value === '|') {
+                $name = $tokens[$offset + 2] ?? null;
+                if ($name?->type === 'ident' || ($name?->type === 'delim' && $name->value === '*')) {
+                    $offset += 3;
+
+                    return "*|{$name->value}";
+                }
+            }
+
+            $offset++;
+
+            return '*';
+        }
+
+        if ($token->type === 'delim' && $token->value === '|') {
+            $name = $tokens[$offset + 1] ?? null;
+            if ($name?->type === 'ident' || ($name?->type === 'delim' && $name->value === '*')) {
+                $offset += 2;
+
+                return "|{$name->value}";
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}|null
+     */
+    private function consumeNonTypeSimpleSelector(array $tokens, int &$offset): ?array
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'hash') {
+            $offset++;
+
+            return ['value' => $token->value, 'errors' => []];
+        }
+
+        if ($token->type === 'delim' && $token->value === '.') {
+            $name = $tokens[$offset + 1] ?? null;
+            if ($name?->type !== 'ident') {
+                return self::error($name?->value ?? 'END-OF-FILE');
+            }
+
+            $offset += 2;
+
+            return ['value' => ".{$name->value}", 'errors' => []];
+        }
+
+        if ($token->type === 'left-square-bracket') {
+            return $this->consumeAttributeSelector($tokens, $offset);
+        }
+
+        if ($token->type === 'colon') {
+            return $this->consumePseudoSelector($tokens, $offset);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function consumeAttributeSelector(array $tokens, int &$offset): array
+    {
+        $end = $offset;
+        $count = count($tokens);
+        while ($end < $count && $tokens[$end]->type !== 'right-square-bracket') {
+            $end++;
+        }
+
+        $closed = $end < $count;
+        $slice = array_slice($tokens, $offset, $closed ? $end - $offset + 1 : null);
+        $offset = $closed ? $end + 1 : $count;
+
+        return $this->parseAttributeSelector($slice) ?? self::error(self::firstUnexpectedToken($slice));
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function consumePseudoSelector(array $tokens, int &$offset): array
+    {
+        $next = $tokens[$offset + 1] ?? null;
+        if ($next?->type === 'colon') {
+            $name = $tokens[$offset + 2] ?? null;
+            $offset += $name === null ? 2 : 3;
+
+            return self::error($name?->value ?? 'END-OF-FILE');
+        }
+
+        if ($next?->type === 'function') {
+            return $this->consumePseudoFunctionSelector($tokens, $offset);
+        }
+
+        if ($next?->type !== 'ident') {
+            $offset += $next === null ? 1 : 2;
+
+            return self::error($next?->value ?? 'END-OF-FILE');
+        }
+
+        $name = strtolower($next->value);
+        $offset += 2;
+
+        if (! isset(self::SUPPORTED_PSEUDO_CLASSES[$name])) {
+            return self::error($next->value);
+        }
+
+        return [
+            'value' => ":{$name}",
+            'errors' => [],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{value: string, errors: list<string>}
+     */
+    private function consumePseudoFunctionSelector(array $tokens, int &$offset): array
+    {
+        $start = $offset;
+        $end = $offset + 2;
+        $stack = ['right-parenthesis'];
+        $count = count($tokens);
+
+        while ($end < $count && $stack !== []) {
+            $token = $tokens[$end];
+
+            if ($token->type === 'function') {
+                $stack[] = 'right-parenthesis';
+                $end++;
+                continue;
+            }
+
+            $closingToken = self::closingTokenFor($token);
+            if ($closingToken !== null) {
+                $stack[] = $closingToken;
+                $end++;
+                continue;
+            }
+
+            if ($token->type === $stack[array_key_last($stack)]) {
+                array_pop($stack);
+            }
+
+            $end++;
+        }
+
+        $slice = array_slice($tokens, $start, $end - $start);
+        $offset = $end;
+
+        return $this->parsePseudoFunctionSelector($slice) ?? self::error(self::firstUnexpectedToken($slice));
     }
 
     /**
