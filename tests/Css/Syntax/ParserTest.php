@@ -781,6 +781,245 @@ final class ParserTest extends TestCase
                 'block' => [],
             ],
         ]];
+        yield 'at.ton #10 bracketed semicolon before malformed block' => ['@Naruto [;] {[}]}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'left-square-bracket', 'value' => '['],
+                    ['type' => 'semicolon', 'value' => ';'],
+                    ['type' => 'right-square-bracket', 'value' => ']'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'left-square-bracket', 'value' => '['],
+                            ['type' => 'right-curly-bracket', 'value' => '}'],
+                            ['type' => 'right-square-bracket', 'value' => ']'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #14 at-rule with qualified block and spaced name' => ['@Naruto {Sasuke Uchiha}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Sasuke'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'Uchiha'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #15 at-rule with adjacent qualified block' => ['@Naruto{Sasuke Uchiha}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Sasuke'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'Uchiha'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #16 at-rule with adjacent empty block' => ['@Naruto{}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #17 duplicate bare at-rule fixture' => ['@Naruto', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #18 leading block whitespace before qualified rule' => ['@Naruto {    Sasuke Uchiha}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Sasuke'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'Uchiha'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #19 trailing block whitespace retained in qualified prelude' => ['@Naruto {Sasuke Uchiha    }', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Sasuke'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'Uchiha'],
+                            ['type' => 'whitespace', 'value' => '    '],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #20 whitespace-only block' => ['@Naruto {    }', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #21 spaced consecutive at-rules with blocks' => ['@Naruto Orochimaru {Sasuke Uchiha} @Red Blue {Yellow}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Sasuke'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'Uchiha'],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'at-rule',
+                'name' => '@Red',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Blue'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Yellow'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #22 adjacent consecutive at-rules with blocks' => ['@Naruto Orochimaru {Sasuke Uchiha}@Red Blue {Yellow}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Sasuke'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'Uchiha'],
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'type' => 'at-rule',
+                'name' => '@Red',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Blue'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Yellow'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #23 semicolon at-rule then spaced block at-rule' => ['@Naruto Orochimaru; @Red Blue {Yellow}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                ],
+                'block' => [],
+            ],
+            [
+                'type' => 'at-rule',
+                'name' => '@Red',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Blue'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Yellow'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #24 semicolon at-rule then adjacent block at-rule' => ['@Naruto Orochimaru;@Red Blue {Yellow}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                ],
+                'block' => [],
+            ],
+            [
+                'type' => 'at-rule',
+                'name' => '@Red',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Blue'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Yellow'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
     }
 
     /**
