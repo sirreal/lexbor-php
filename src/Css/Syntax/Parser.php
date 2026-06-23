@@ -12,7 +12,7 @@ final class Parser
     }
 
     /**
-     * @return list<array{type: string, prelude: list<array{type: string, value: string}>, block: list<array<string, mixed>>}>
+     * @return list<array<string, mixed>>
      */
     public function parseListRules(string $css): array
     {
@@ -25,6 +25,11 @@ final class Parser
 
             if ($offset >= count($tokens)) {
                 break;
+            }
+
+            if ($tokens[$offset]->type === 'at-keyword') {
+                $rules[] = $this->consumeAtRule($tokens, $offset, true, false);
+                continue;
             }
 
             $rules[] = $this->consumeQualifiedRule($tokens, $offset);
@@ -131,13 +136,22 @@ final class Parser
      * @param list<Token> $tokens
      * @return array<string, mixed>
      */
-    private function consumeAtRule(array $tokens, int &$offset): array
+    private function consumeAtRule(
+        array $tokens,
+        int &$offset,
+        bool $includeEmptyBlock = false,
+        bool $includeNestedQualifiedEmptyBlock = true,
+    ): array
     {
         $rule = [
             'type' => 'at-rule',
             'name' => $tokens[$offset]->value,
             'prelude' => [],
         ];
+
+        if ($includeEmptyBlock) {
+            $rule['block'] = [];
+        }
 
         $offset++;
 
@@ -162,7 +176,7 @@ final class Parser
 
                 if ($token->type === 'left-curly-bracket') {
                     $offset++;
-                    $rule['block'] = $this->consumeBlock($tokens, $offset, true);
+                    $rule['block'] = $this->consumeBlock($tokens, $offset, $includeNestedQualifiedEmptyBlock);
 
                     if (! $this->isAtBlockLastItem($tokens, $offset)) {
                         $rule['block'] = self::stripEmptyQualifiedBlocks($rule['block']);

@@ -674,10 +674,129 @@ final class ParserTest extends TestCase
     }
 
     /**
-     * @param list<array{type: string, prelude: list<array{type: string, value: string}>, block: list<array<string, mixed>>}> $expected
+     * @return iterable<string, array{string, list<array<string, mixed>>}>
+     */
+    public static function upstreamAtProvider(): iterable
+    {
+        yield 'at.ton #1 at-rule with qualified block' => ['@Naruto Orochimaru {Sasuke Uchiha}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [
+                    [
+                        'type' => 'qualified-rule',
+                        'prelude' => [
+                            ['type' => 'ident', 'value' => 'Sasuke'],
+                            ['type' => 'whitespace', 'value' => ' '],
+                            ['type' => 'ident', 'value' => 'Uchiha'],
+                        ],
+                    ],
+                ],
+            ],
+        ]];
+        yield 'at.ton #2 at-rule terminated by semicolon' => ['@Naruto Orochimaru;', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                ],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #3 at-rule terminated by EOF' => ['@Naruto Orochimaru', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                ],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #4 bare at-rule terminated by EOF' => ['@Naruto', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #5 at-rule with empty block' => ['@Naruto Orochimaru {}', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'ident', 'value' => 'Orochimaru'],
+                    ['type' => 'whitespace', 'value' => ' '],
+                ],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #6 bare at-rule terminated by semicolon' => ['@Naruto;', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #7 bracketed semicolon remains in prelude' => ['@Naruto [;]', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'left-square-bracket', 'value' => '['],
+                    ['type' => 'semicolon', 'value' => ';'],
+                    ['type' => 'right-square-bracket', 'value' => ']'],
+                ],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #8 function semicolon remains in prelude' => ['@Naruto Orochimaru(;)', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'function', 'value' => 'Orochimaru('],
+                    ['type' => 'semicolon', 'value' => ';'],
+                    ['type' => 'right-parenthesis', 'value' => ')'],
+                ],
+                'block' => [],
+            ],
+        ]];
+        yield 'at.ton #9 parenthesized semicolon remains in prelude' => ['@Naruto (;)', [
+            [
+                'type' => 'at-rule',
+                'name' => '@Naruto',
+                'prelude' => [
+                    ['type' => 'left-parenthesis', 'value' => '('],
+                    ['type' => 'semicolon', 'value' => ';'],
+                    ['type' => 'right-parenthesis', 'value' => ')'],
+                ],
+                'block' => [],
+            ],
+        ]];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $expected
      */
     #[DataProvider('upstreamQualifiedProvider')]
     public function testUpstreamQualifiedFixtures(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseListRules($css));
+    }
+
+    /**
+     * @param list<array<string, mixed>> $expected
+     */
+    #[DataProvider('upstreamAtProvider')]
+    public function testUpstreamAtFixtures(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseListRules($css));
     }
