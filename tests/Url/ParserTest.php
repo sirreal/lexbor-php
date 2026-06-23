@@ -66,6 +66,7 @@ final class ParserTest extends TestCase
     {
         $url = (new Parser())->parse($source);
 
+        self::assertNotNull($url);
         self::assertSame($expected, $url->serialize());
         self::assertSame($expectedErrors, $url->errors());
     }
@@ -79,5 +80,143 @@ final class ParserTest extends TestCase
             [ValidationError::InvalidUrlUnit, ValidationError::InvalidUrlUnit],
             $url->errors(),
         );
+    }
+
+    /**
+     * @return iterable<string, array{string, ?string, ?array<string, mixed>}>
+     */
+    public static function upstreamUrlProvider(): iterable
+    {
+        yield 'url.ton #1 full URL' => [
+            'https://user:pass@lexbor.com:450/docs/lexbor/?search=lxb_status_t#version',
+            null,
+            [
+                'done' => 'https://user:pass@lexbor.com:450/docs/lexbor/?search=lxb_status_t#version',
+                'scheme' => 'https',
+                'username' => 'user',
+                'password' => 'pass',
+                'host' => 'lexbor.com',
+                'port' => 450,
+                'path' => '/docs/lexbor/',
+                'query' => 'search=lxb_status_t',
+                'fragment' => 'version',
+            ],
+        ];
+        yield 'url.ton #2 relative URL with base' => [
+            '/docs/lexbor/?search=lxb_status_t#version',
+            'https://user:pass@lexbor.com:450',
+            [
+                'done' => 'https://user:pass@lexbor.com:450/docs/lexbor/?search=lxb_status_t#version',
+                'scheme' => 'https',
+                'username' => 'user',
+                'password' => 'pass',
+                'host' => 'lexbor.com',
+                'port' => 450,
+                'path' => '/docs/lexbor/',
+                'query' => 'search=lxb_status_t',
+                'fragment' => 'version',
+            ],
+        ];
+        yield 'url.ton #3 host only' => [
+            'https://lexbor.com',
+            null,
+            [
+                'done' => 'https://lexbor.com/',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'path' => '/',
+            ],
+        ];
+        yield 'url.ton #4 host and port' => [
+            'https://lexbor.com:450',
+            null,
+            [
+                'done' => 'https://lexbor.com:450/',
+                'scheme' => 'https',
+                'host' => 'lexbor.com',
+                'port' => 450,
+                'path' => '/',
+            ],
+        ];
+        yield 'url.ton #5 invalid file drive URL' => [
+            'file://c%7C/',
+            null,
+            null,
+        ];
+        yield 'url.ton #6 invalid byte URL' => [
+            " \xD4",
+            null,
+            null,
+        ];
+        yield 'url.ton #7 empty scheme-relative with base' => [
+            '//',
+            'hohoho://lexbor.com/docs/blah',
+            [
+                'done' => 'hohoho://',
+                'scheme' => 'hohoho',
+                'host' => '',
+                'path' => '',
+            ],
+        ];
+    }
+
+    /**
+     * @param ?array<string, mixed> $expected
+     */
+    #[DataProvider('upstreamUrlProvider')]
+    public function testUpstreamUrlFixtures(string $source, ?string $baseSource, ?array $expected): void
+    {
+        $parser = new Parser();
+        $base = $baseSource !== null ? $parser->parse($baseSource) : null;
+
+        if ($baseSource !== null) {
+            self::assertNotNull($base);
+        }
+
+        $url = $parser->parse($source, $base);
+
+        if ($expected === null) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($expected['done'], $url->serialize());
+        self::assertSame($expected['scheme'], $url->scheme);
+        self::assertSame($expected['username'] ?? '', $url->username);
+        self::assertSame($expected['password'] ?? '', $url->password);
+        self::assertSame($expected['host'], $url->host);
+        self::assertSame($expected['port'] ?? null, $url->port);
+        self::assertSame($expected['path'], $url->path);
+        self::assertSame($expected['query'] ?? null, $url->query);
+        self::assertSame($expected['fragment'] ?? null, $url->fragment);
+    }
+
+    public function testHostOnlyUrlCanHaveQueryAndFragment(): void
+    {
+        $url = (new Parser())->parse('https://lexbor.com?query=value#fragment');
+
+        self::assertNotNull($url);
+        self::assertSame('https://lexbor.com/?query=value#fragment', $url->serialize());
+        self::assertSame('lexbor.com', $url->host);
+        self::assertSame('/', $url->path);
+        self::assertSame('query=value', $url->query);
+        self::assertSame('fragment', $url->fragment);
+    }
+
+    public function testSchemeRelativeUrlWithHostNormalizesEmptyPath(): void
+    {
+        $parser = new Parser();
+        $base = $parser->parse('http://base.example/path');
+
+        self::assertNotNull($base);
+
+        $url = $parser->parse('//lexbor.com', $base);
+
+        self::assertNotNull($url);
+        self::assertSame('http://lexbor.com/', $url->serialize());
+        self::assertSame('http', $url->scheme);
+        self::assertSame('lexbor.com', $url->host);
+        self::assertSame('/', $url->path);
     }
 }

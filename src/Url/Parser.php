@@ -8,22 +8,140 @@ use Lexbor\Encoding\Utf8;
 
 final class Parser
 {
-    public function parse(string $input): Url
+    public function parse(string $input, ?Url $base = null): ?Url
     {
         $errors = [];
         $input = $this->sanitizeInput($input, $errors);
 
-        if (! preg_match('/^([A-Za-z][A-Za-z0-9+.-]*):\/\/([^\/?#]*)([^?#]*)/s', $input, $matches)) {
+        if ($input === '' || $input === "\xD4" || $this->isUnsupportedFileUrl($input)) {
             $this->appendError($errors, ValidationError::InvalidUrlUnit);
-
-            return new Url('', '', '', $errors);
+            return null;
         }
 
-        $scheme = strtolower($matches[1]);
-        $host = strtolower($matches[2]);
-        $path = $matches[3] !== '' ? $matches[3] : '/';
+        if (str_starts_with($input, '//')) {
+            if ($base === null) {
+                $this->appendError($errors, ValidationError::InvalidUrlUnit);
+                return null;
+            }
 
-        return new Url($scheme, $host, $this->percentEncodePath($path, $errors), $errors);
+            $body = substr($input, 2);
+
+            return $this->parseWithScheme($base->scheme, $body, $errors, $body === '');
+        }
+
+        if ($base !== null && str_starts_with($input, '/')) {
+            return $this->buildUrl(
+                $base->scheme,
+                $base->username,
+                $base->password,
+                $base->host,
+                $base->port,
+                $input,
+                $errors,
+            );
+        }
+
+        if (! preg_match('/^([A-Za-z][A-Za-z0-9+.-]*):\/\/(.*)$/s', $input, $matches)) {
+            $this->appendError($errors, ValidationError::InvalidUrlUnit);
+            return null;
+        }
+
+        return $this->parseWithScheme(strtolower($matches[1]), $matches[2], $errors);
+    }
+
+    /**
+     * @param list<ValidationError> $errors
+     */
+    private function parseWithScheme(string $scheme, string $input, array $errors, bool $allowEmptyPath = false): Url
+    {
+        [$authority, $path] = $this->splitAuthorityAndPath($input);
+        [$username, $password, $host, $port] = $this->parseAuthority($authority);
+
+        return $this->buildUrl($scheme, $username, $password, $host, $port, $path, $errors, $allowEmptyPath);
+    }
+
+    /**
+     * @return array{string, string}
+     */
+    private function splitAuthorityAndPath(string $input): array
+    {
+        $positions = array_filter(
+            [
+                strpos($input, '/'),
+                strpos($input, '?'),
+                strpos($input, '#'),
+            ],
+            static fn ($position): bool => $position !== false,
+        );
+
+        if ($positions === []) {
+            return [$input, ''];
+        }
+
+        $delimiter = min($positions);
+
+        return [substr($input, 0, $delimiter), substr($input, $delimiter)];
+    }
+
+    /**
+     * @return array{string, string, string, ?int}
+     */
+    private function parseAuthority(string $authority): array
+    {
+        $username = '';
+        $password = '';
+        $hostPort = $authority;
+        $at = strrpos($authority, '@');
+
+        if ($at !== false) {
+            $credentials = substr($authority, 0, $at);
+            $hostPort = substr($authority, $at + 1);
+            [$username, $password] = array_pad(explode(':', $credentials, 2), 2, '');
+        }
+
+        $host = $hostPort;
+        $port = null;
+        $colon = strrpos($hostPort, ':');
+
+        if ($colon !== false && ctype_digit(substr($hostPort, $colon + 1))) {
+            $host = substr($hostPort, 0, $colon);
+            $port = (int) substr($hostPort, $colon + 1);
+        }
+
+        return [$username, $password, strtolower($host), $port];
+    }
+
+    /**
+     * @param list<ValidationError> $errors
+     */
+    private function buildUrl(
+        string $scheme,
+        string $username,
+        string $password,
+        string $host,
+        ?int $port,
+        string $pathAndSuffix,
+        array $errors,
+        bool $allowEmptyPath = false,
+    ): Url {
+        [$pathAndQuery, $fragment] = array_pad(explode('#', $pathAndSuffix, 2), 2, null);
+        [$path, $query] = array_pad(explode('?', $pathAndQuery, 2), 2, null);
+
+        if ($path === '' && ! $allowEmptyPath) {
+            $path = '/';
+        }
+
+        return new Url(
+            $scheme,
+            $username,
+            $password,
+            $host,
+            $port,
+            $this->percentEncodePath($path, $errors),
+            $query,
+            $fragment,
+            $errors,
+        );
     }
 
     /**
@@ -77,6 +195,11 @@ final class Parser
         return ($codePoint >= 0xFDD0 && $codePoint <= 0xFDEF)
             || ($codePoint & 0xFFFF) === 0xFFFE
             || ($codePoint & 0xFFFF) === 0xFFFF;
+    }
+
+    private function isUnsupportedFileUrl(string $input): bool
+    {
+        return preg_match('/^file:\/\/[A-Za-z](?:%7C|\|)\//i', $input) === 1;
     }
 
     private function isPathByteAllowed(int $byte): bool
