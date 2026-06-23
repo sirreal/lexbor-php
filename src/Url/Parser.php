@@ -64,6 +64,10 @@ final class Parser
         string $encoding,
         bool $allowEmptyPath = false,
     ): ?Url {
+        if ($this->isSpecialScheme($scheme)) {
+            $input = $this->normalizeSpecialPathBackslashes($input);
+        }
+
         [$authority, $path] = $this->splitAuthorityAndPath($input);
         [$username, $password, $host, $port] = $this->parseAuthority($authority, $errors);
 
@@ -163,6 +167,8 @@ final class Parser
         if ($path === '' && ! $allowEmptyPath) {
             $path = '/';
         }
+
+        $path = $this->normalizePath($path);
 
         return new Url(
             $scheme,
@@ -334,9 +340,84 @@ final class Parser
         return ['', '/' . strtoupper($matches[1]) . ':' . $path];
     }
 
+    private function normalizeSpecialPathBackslashes(string $input): string
+    {
+        $positions = array_filter(
+            [
+                strpos($input, '?'),
+                strpos($input, '#'),
+            ],
+            static fn ($position): bool => $position !== false,
+        );
+
+        if ($positions === []) {
+            return str_replace('\\', '/', $input);
+        }
+
+        $delimiter = min($positions);
+
+        return str_replace('\\', '/', substr($input, 0, $delimiter)) . substr($input, $delimiter);
+    }
+
+    private function normalizePath(string $path): string
+    {
+        if ($path === '') {
+            return '';
+        }
+
+        $segments = explode('/', $path);
+        $normalized = [];
+        $lastIndex = count($segments) - 1;
+
+        foreach ($segments as $index => $segment) {
+            if ($this->isSingleDotPathSegment($segment)) {
+                if ($index === $lastIndex) {
+                    $normalized[] = '';
+                }
+
+                continue;
+            }
+
+            if ($this->isDoubleDotPathSegment($segment)) {
+                if (count($normalized) > 1 || ($normalized !== [] && $normalized[0] !== '')) {
+                    array_pop($normalized);
+                }
+
+                if ($index === $lastIndex) {
+                    $normalized[] = '';
+                }
+
+                continue;
+            }
+
+            $normalized[] = $segment;
+        }
+
+        if ($normalized === []) {
+            return '';
+        }
+
+        return implode('/', $normalized);
+    }
+
+    private function isSingleDotPathSegment(string $segment): bool
+    {
+        return strcasecmp($segment, '.') === 0 || strcasecmp($segment, '%2e') === 0;
+    }
+
+    private function isDoubleDotPathSegment(string $segment): bool
+    {
+        return strcasecmp($segment, '..') === 0
+            || strcasecmp($segment, '.%2e') === 0
+            || strcasecmp($segment, '%2e.') === 0
+            || strcasecmp($segment, '%2e%2e') === 0;
+    }
+
     private function isPathByteAllowed(int $byte): bool
     {
-        return $byte >= 0x21 && $byte <= 0x7E;
+        return $byte >= 0x21
+            && $byte <= 0x7E
+            && ! in_array($byte, [0x22, 0x23, 0x3C, 0x3E, 0x3F, 0x60], true);
     }
 
     private function isFragmentByteAllowed(int $byte): bool

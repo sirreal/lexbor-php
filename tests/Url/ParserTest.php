@@ -220,6 +220,26 @@ final class ParserTest extends TestCase
         self::assertSame('/', $url->path);
     }
 
+    public function testSpecialSchemeBackslashNormalizationStopsAtQuery(): void
+    {
+        $url = (new Parser())->parse('https://lexbor.com\docs?q=\path');
+
+        self::assertNotNull($url);
+        self::assertSame('https://lexbor.com/docs?q=\path', $url->serialize());
+        self::assertSame('/docs', $url->path);
+        self::assertSame('q=\path', $url->query);
+    }
+
+    public function testSpecialSchemeBackslashNormalizationStopsAtFragment(): void
+    {
+        $url = (new Parser())->parse('https://lexbor.com\docs#frag\path');
+
+        self::assertNotNull($url);
+        self::assertSame('https://lexbor.com/docs#frag\path', $url->serialize());
+        self::assertSame('/docs', $url->path);
+        self::assertSame('frag\path', $url->fragment);
+    }
+
     /**
      * @return iterable<string, array{string, ?array<string, string>}>
      */
@@ -517,6 +537,41 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamPathProvider(): iterable
+    {
+        foreach (self::urlFixtureEntries('path.ton') as $index => $entry) {
+            yield 'path.ton #' . ($index + 1) => [$entry];
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamPathProvider')]
+    public function testUpstreamPathFixtures(array $entry): void
+    {
+        $url = (new Parser())->parse($entry['url'], null, $entry['encoding'] ?? 'utf-8');
+
+        if ($entry['failed'] ?? false) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['path'] ?? '', $url->path);
+        self::assertSame($entry['query'] ?? null, $url->query);
+        self::assertSame($entry['fragment'] ?? null, $url->fragment);
+
+        if (array_key_exists('path_length', $entry)) {
+            self::assertSame($entry['path_length'], self::pathSegmentCount($url->path));
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, ?array<string, mixed>}>
      */
     public static function upstreamFileProvider(): iterable
@@ -763,5 +818,32 @@ final class ParserTest extends TestCase
         self::assertSame($expected['password'] ?? '', $url->password);
         self::assertSame($expected['host'], $url->host);
         self::assertSame($expected['path'], $url->path);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function urlFixtureEntries(string $filename): array
+    {
+        $path = dirname(__DIR__) . '/Fixtures/Url/' . $filename;
+        $contents = file_get_contents($path);
+
+        if ($contents === false) {
+            throw new \RuntimeException("Unable to read URL fixture: {$filename}");
+        }
+
+        $json = preg_replace('/\/\*.*?\*\//s', '', $contents);
+        $entries = json_decode($json ?? '', true, flags: JSON_THROW_ON_ERROR);
+
+        if (! is_array($entries)) {
+            throw new \RuntimeException("URL fixture did not decode to a list: {$filename}");
+        }
+
+        return $entries;
+    }
+
+    private static function pathSegmentCount(string $path): int
+    {
+        return $path === '' ? 0 : substr_count($path, '/');
     }
 }
