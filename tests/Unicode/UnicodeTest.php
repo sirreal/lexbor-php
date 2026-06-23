@@ -70,6 +70,48 @@ final class UnicodeTest extends TestCase
         self::assertSame(self::compositionPairCount($expected), UnicodeData::CANONICAL_COMPOSITION_PAIR_COUNT);
     }
 
+    public function testUpstreamNormalizationCodePointFixture(): void
+    {
+        $forms = [
+            Unicode::FORM_NFC => 'nfc',
+            Unicode::FORM_NFD => 'nfd',
+            Unicode::FORM_NFKC => 'nfkc',
+            Unicode::FORM_NFKD => 'nfkd',
+        ];
+
+        foreach (self::normalizationFixtureRows() as $index => $row) {
+            foreach ($forms as $form => $key) {
+                self::assertSame(
+                    $row[$key],
+                    Unicode::normalizeCodePoints($row['source'], $form),
+                    "Normalization fixture #{$index} {$form}",
+                );
+            }
+        }
+    }
+
+    public function testGeneratedNormalizationTablesMatchUpstreamResource(): void
+    {
+        [
+            'combiningClass' => $combiningClass,
+            'canonicalDecomposition' => $canonicalDecomposition,
+            'compatibilityDecomposition' => $compatibilityDecomposition,
+            'normalizationComposition' => $normalizationComposition,
+        ] = self::expectedNormalizationTables();
+
+        self::assertSame($combiningClass, UnicodeData::COMBINING_CLASS_MAP);
+        self::assertSame(count($combiningClass), UnicodeData::COMBINING_CLASS_CODE_POINT_COUNT);
+
+        self::assertSame($canonicalDecomposition, UnicodeData::CANONICAL_DECOMPOSITION_MAP);
+        self::assertSame(count($canonicalDecomposition), UnicodeData::CANONICAL_DECOMPOSITION_COUNT);
+
+        self::assertSame($compatibilityDecomposition, UnicodeData::COMPATIBILITY_DECOMPOSITION_MAP);
+        self::assertSame(count($compatibilityDecomposition), UnicodeData::COMPATIBILITY_DECOMPOSITION_COUNT);
+
+        self::assertSame($normalizationComposition, UnicodeData::NORMALIZATION_COMPOSITION_MAP);
+        self::assertSame(self::compositionPairCount($normalizationComposition), UnicodeData::NORMALIZATION_COMPOSITION_PAIR_COUNT);
+    }
+
     /**
      * @return array{list<array{int, int, int}>, int}
      */
@@ -269,6 +311,176 @@ final class UnicodeTest extends TestCase
     }
 
     /**
+     * @return array{
+     *     combiningClass: array<int, int>,
+     *     canonicalDecomposition: array<int, list<int>>,
+     *     compatibilityDecomposition: array<int, list<int>>,
+     *     normalizationComposition: array<int, array<int, int>>
+     * }
+     */
+    private static function expectedNormalizationTables(): array
+    {
+        static $cached = null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $sourcePath = dirname(__DIR__, 2) . '/upstream/lexbor/source/lexbor/unicode/res.h';
+        $source = file_get_contents($sourcePath);
+
+        if ($source === false) {
+            throw new RuntimeException("Unable to read upstream Unicode resource: {$sourcePath}");
+        }
+
+        preg_match_all(
+            '/\{\s*(\d+)\s*,\s*(\d+)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_entries'),
+            $entryMatches,
+            PREG_SET_ORDER,
+        );
+
+        $unicodeEntries = [];
+        foreach ($entryMatches as $match) {
+            $unicodeEntries[] = [(int) $match[1], (int) $match[2]];
+        }
+
+        preg_match_all(
+            '/\{\s*([^,{}]+),\s*([^,{}]+),\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_normalization_entries'),
+            $normalizationMatches,
+            PREG_SET_ORDER,
+        );
+
+        $normalizationEntries = [];
+        foreach ($normalizationMatches as $match) {
+            $type = self::parseDecompositionType($match[1]);
+
+            $normalizationEntries[] = [
+                'typeMask' => $type & ~(1 << 7),
+                'canonicalSeparately' => ($type & (1 << 7)) !== 0,
+                'ccc' => (int) $match[3],
+                'length' => (int) $match[4],
+                'decomposition' => (int) $match[5],
+                'composition' => (int) $match[6],
+            ];
+        }
+
+        preg_match_all(
+            '/0x[0-9A-Fa-f]+|\d+/',
+            self::captureArray($source, 'lxb_unicode_decomposition_cps'),
+            $decompositionCpMatches,
+        );
+
+        $decompositionCodePoints = [];
+        foreach ($decompositionCpMatches[0] as $number) {
+            $decompositionCodePoints[] = self::parseNumber($number);
+        }
+
+        preg_match_all(
+            '/\{\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_composition_entries'),
+            $compositionEntryMatches,
+            PREG_SET_ORDER,
+        );
+
+        $compositionEntries = [];
+        foreach ($compositionEntryMatches as $match) {
+            $compositionEntries[] = [(int) $match[1], (int) $match[2], (int) $match[3]];
+        }
+
+        preg_match_all(
+            '/\{\s*(0x[0-9A-Fa-f]+|\d+)\s*,\s*(true|false)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_composition_cps'),
+            $compositionCpMatches,
+            PREG_SET_ORDER,
+        );
+
+        $compositionCodePoints = [];
+        foreach ($compositionCpMatches as $match) {
+            $compositionCodePoints[] = [self::parseNumber($match[1]), $match[2] === 'true'];
+        }
+
+        $combiningClass = [];
+        $canonicalDecomposition = [];
+        $compatibilityDecomposition = [];
+        $normalizationComposition = [];
+
+        foreach (self::unicodeTableMaps($source) as [$start, , $indexes]) {
+            foreach ($indexes as $offset => $entryIndex) {
+                $codePoint = $start + $offset;
+                [$normalizationIndex] = $unicodeEntries[$entryIndex] ?? [0, 0];
+                $normalization = $normalizationEntries[$normalizationIndex] ?? null;
+
+                if ($normalization === null) {
+                    continue;
+                }
+
+                if ($normalization['ccc'] !== 0) {
+                    $combiningClass[$codePoint] = $normalization['ccc'];
+                }
+
+                if ($normalization['length'] > 0) {
+                    $compatibility = array_slice(
+                        $decompositionCodePoints,
+                        $normalization['decomposition'],
+                        $normalization['length'],
+                    );
+
+                    $compatibilityDecomposition[$codePoint] = $compatibility;
+
+                    if ($normalization['typeMask'] === 0) {
+                        $canonical = $compatibility;
+
+                        if ($normalization['canonicalSeparately']) {
+                            $canonicalLengthOffset = $normalization['decomposition'] + $normalization['length'];
+                            $canonicalLength = $decompositionCodePoints[$canonicalLengthOffset] ?? 0;
+                            $canonical = array_slice(
+                                $decompositionCodePoints,
+                                $canonicalLengthOffset + 1,
+                                $canonicalLength,
+                            );
+                        }
+
+                        $canonicalDecomposition[$codePoint] = $canonical;
+                    }
+                }
+
+                $compositionIndex = $normalization['composition'];
+                [$length, $index, $secondStart] = $compositionEntries[$compositionIndex] ?? [0, 0, 0];
+
+                for ($i = 0; $i < $length; $i++) {
+                    [$composed, $excluded] = $compositionCodePoints[$index + $i] ?? [0, false];
+                    if ($composed === 0 || $excluded) {
+                        continue;
+                    }
+
+                    $normalizationComposition[$codePoint][$secondStart + $i] = $composed;
+                }
+            }
+        }
+
+        ksort($combiningClass);
+        ksort($canonicalDecomposition);
+        ksort($compatibilityDecomposition);
+        ksort($normalizationComposition);
+
+        foreach ($normalizationComposition as &$seconds) {
+            ksort($seconds);
+        }
+        unset($seconds);
+
+        $cached = [
+            'combiningClass' => $combiningClass,
+            'canonicalDecomposition' => $canonicalDecomposition,
+            'compatibilityDecomposition' => $compatibilityDecomposition,
+            'normalizationComposition' => $normalizationComposition,
+        ];
+
+        return $cached;
+    }
+
+    /**
      * @return list<array{int, int, int}>
      */
     private static function compositionFixtureRows(): array
@@ -298,6 +510,55 @@ final class UnicodeTest extends TestCase
         }
 
         return $rows;
+    }
+
+    /**
+     * @return iterable<int, array{source: list<int>, nfc: list<int>, nfd: list<int>, nfkc: list<int>, nfkd: list<int>}>
+     */
+    private static function normalizationFixtureRows(): iterable
+    {
+        $sourcePath = dirname(__DIR__, 2) . '/upstream/lexbor/test/lexbor/unicode/unicode_normalization_test_res.h';
+        if (!is_file($sourcePath)) {
+            throw new RuntimeException("Unable to read upstream Unicode normalization fixture: {$sourcePath}");
+        }
+
+        $byIndex = [];
+
+        foreach (new \SplFileObject($sourcePath) as $line) {
+            if (
+                !is_string($line)
+                || preg_match(
+                    '/^static const lxb_codepoint_t lxb_unicode_test_(source|nfc|nfd|nfkc|nfkd)_(\d+)\[\d+\] = \{([^}]*)\};$/',
+                    rtrim($line),
+                    $match,
+                ) !== 1
+            ) {
+                continue;
+            }
+
+            $byIndex[(int) $match[2]][$match[1]] = self::parseCodePointList($match[3], stripSentinel: true);
+
+            if (count($byIndex[(int) $match[2]]) !== 5) {
+                continue;
+            }
+
+            $index = (int) $match[2];
+            $row = $byIndex[$index];
+
+            foreach (['source', 'nfc', 'nfd', 'nfkc', 'nfkd'] as $key) {
+                if (!isset($row[$key])) {
+                    throw new RuntimeException("Missing {$key} normalization fixture for row {$index}.");
+                }
+            }
+
+            unset($byIndex[$index]);
+
+            yield $index => $row;
+        }
+
+        if ($byIndex !== []) {
+            throw new RuntimeException('Unterminated Unicode normalization fixture row.');
+        }
     }
 
     /**
@@ -387,5 +648,67 @@ final class UnicodeTest extends TestCase
         }
 
         return (int) $number;
+    }
+
+    private static function parseDecompositionType(string $expression): int
+    {
+        $typeByName = [
+            '0' => 0,
+            'LXB_UNICODE_DECOMPOSITION_TYPE__UNDEF' => 0x00,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_CIRCLE' => 0x01,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_COMPAT' => 0x02,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_FINAL' => 0x03,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_FONT' => 0x04,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_FRACTION' => 0x05,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_INITIAL' => 0x06,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_ISOLATED' => 0x07,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_MEDIAL' => 0x08,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_NARROW' => 0x09,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_NOBREAK' => 0x0A,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_SMALL' => 0x0B,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_SQUARE' => 0x0C,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_SUB' => 0x0D,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_SUPER' => 0x0E,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_VERTICAL' => 0x0F,
+            'LXB_UNICODE_DECOMPOSITION_TYPE_WIDE' => 0x10,
+        ];
+
+        $type = 0;
+
+        foreach (explode('|', $expression) as $part) {
+            $part = trim($part);
+
+            if ($part === 'LXB_UNICODE_CANONICAL_SEPARATELY') {
+                $type |= 1 << 7;
+                continue;
+            }
+
+            if (!array_key_exists($part, $typeByName)) {
+                throw new RuntimeException("Unknown decomposition type {$part}.");
+            }
+
+            $type |= $typeByName[$part];
+        }
+
+        return $type;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function parseCodePointList(string $source, bool $stripSentinel = false): array
+    {
+        preg_match_all('/0x[0-9A-Fa-f]+|\d+/', $source, $matches);
+
+        $codePoints = [];
+        foreach ($matches[0] as $number) {
+            $codePoints[] = self::parseNumber($number);
+        }
+
+        if ($stripSentinel && end($codePoints) === 0x10FFFF) {
+            array_pop($codePoints);
+        }
+
+        return $codePoints;
     }
 }

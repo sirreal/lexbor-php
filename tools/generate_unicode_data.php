@@ -27,6 +27,29 @@ $typeByName = [
     'LXB_UNICODE_IDNA_VALID' => 5,
 ];
 
+$decompositionTypeByName = [
+    '0' => 0,
+    'LXB_UNICODE_DECOMPOSITION_TYPE__UNDEF' => 0x00,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_CIRCLE' => 0x01,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_COMPAT' => 0x02,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_FINAL' => 0x03,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_FONT' => 0x04,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_FRACTION' => 0x05,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_INITIAL' => 0x06,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_ISOLATED' => 0x07,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_MEDIAL' => 0x08,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_NARROW' => 0x09,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_NOBREAK' => 0x0A,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_SMALL' => 0x0B,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_SQUARE' => 0x0C,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_SUB' => 0x0D,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_SUPER' => 0x0E,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_VERTICAL' => 0x0F,
+    'LXB_UNICODE_DECOMPOSITION_TYPE_WIDE' => 0x10,
+];
+
+$canonicalSeparatelyFlag = 1 << 7;
+
 preg_match_all(
     '/\{\s*(\d+)\s*,\s*(\d+)\s*\}/',
     captureArray($source, 'lxb_unicode_entries'),
@@ -65,7 +88,28 @@ preg_match_all(
 
 $normalizationEntries = [];
 foreach ($normalizationMatches as $match) {
-    $normalizationEntries[] = (int) $match[6];
+    $type = parseDecompositionType($match[1], $decompositionTypeByName, $canonicalSeparatelyFlag);
+
+    $normalizationEntries[] = [
+        'type' => $type,
+        'typeMask' => $type & ~$canonicalSeparatelyFlag,
+        'canonicalSeparately' => ($type & $canonicalSeparatelyFlag) !== 0,
+        'ccc' => (int) $match[3],
+        'length' => (int) $match[4],
+        'decomposition' => (int) $match[5],
+        'composition' => (int) $match[6],
+    ];
+}
+
+preg_match_all(
+    '/0x[0-9A-Fa-f]+|\d+/',
+    captureArray($source, 'lxb_unicode_decomposition_cps'),
+    $decompositionCpMatches,
+);
+
+$decompositionCodePoints = [];
+foreach ($decompositionCpMatches[0] as $number) {
+    $decompositionCodePoints[] = parseNumber($number);
 }
 
 preg_match_all(
@@ -81,7 +125,7 @@ foreach ($compositionEntryMatches as $match) {
 }
 
 preg_match_all(
-    '/\{\s*(0x[0-9A-Fa-f]+|\d+)\s*,\s*(?:true|false)\s*\}/',
+    '/\{\s*(0x[0-9A-Fa-f]+|\d+)\s*,\s*(true|false)\s*\}/',
     captureArray($source, 'lxb_unicode_composition_cps'),
     $compositionCpMatches,
     PREG_SET_ORDER,
@@ -89,14 +133,22 @@ preg_match_all(
 
 $compositionCodePoints = [];
 foreach ($compositionCpMatches as $match) {
-    $compositionCodePoints[] = parseNumber($match[1]);
+    $compositionCodePoints[] = [
+        parseNumber($match[1]),
+        $match[2] === 'true',
+    ];
 }
 
 $ranges = [];
 $current = null;
 $nonDisallowedCount = 0;
+$combiningClassMap = [];
+$canonicalDecompositionMap = [];
+$compatibilityDecompositionMap = [];
 $compositionMap = [];
 $compositionPairCount = 0;
+$normalizationCompositionMap = [];
+$normalizationCompositionPairCount = 0;
 
 foreach (unicodeTableMaps($source) as [$start, $endExclusive, $indexes]) {
     foreach ($indexes as $offset => $entryIndex) {
@@ -104,17 +156,55 @@ foreach (unicodeTableMaps($source) as [$start, $endExclusive, $indexes]) {
         [$normalizationIndex, $idnaIndex] = $unicodeEntries[$entryIndex] ?? [0, 0];
         $type = $idnaIndex === 0 ? 2 : ($idnaEntries[$idnaIndex] ?? 2);
 
-        $compositionIndex = $normalizationEntries[$normalizationIndex] ?? 0;
+        $normalization = $normalizationEntries[$normalizationIndex] ?? null;
+        if ($normalization !== null) {
+            if ($normalization['ccc'] !== 0) {
+                $combiningClassMap[$codePoint] = $normalization['ccc'];
+            }
+
+            if ($normalization['length'] > 0) {
+                $compatibility = array_slice(
+                    $decompositionCodePoints,
+                    $normalization['decomposition'],
+                    $normalization['length'],
+                );
+
+                $compatibilityDecompositionMap[$codePoint] = $compatibility;
+
+                if ($normalization['typeMask'] === 0) {
+                    $canonical = $compatibility;
+
+                    if ($normalization['canonicalSeparately']) {
+                        $canonicalLengthOffset = $normalization['decomposition'] + $normalization['length'];
+                        $canonicalLength = $decompositionCodePoints[$canonicalLengthOffset] ?? 0;
+                        $canonical = array_slice(
+                            $decompositionCodePoints,
+                            $canonicalLengthOffset + 1,
+                            $canonicalLength,
+                        );
+                    }
+
+                    $canonicalDecompositionMap[$codePoint] = $canonical;
+                }
+            }
+        }
+
+        $compositionIndex = $normalization['composition'] ?? 0;
         [$length, $index, $secondStart] = $compositionEntries[$compositionIndex] ?? [0, 0, 0];
 
         for ($i = 0; $i < $length; $i++) {
-            $composed = $compositionCodePoints[$index + $i] ?? 0;
+            [$composed, $excluded] = $compositionCodePoints[$index + $i] ?? [0, false];
             if ($composed === 0) {
                 continue;
             }
 
             $compositionMap[$codePoint][$secondStart + $i] = $composed;
             $compositionPairCount++;
+
+            if (!$excluded) {
+                $normalizationCompositionMap[$codePoint][$secondStart + $i] = $composed;
+                $normalizationCompositionPairCount++;
+            }
         }
 
         if ($type === 2) {
@@ -178,6 +268,42 @@ foreach ($ranges as [$start, $end, $type]) {
 }
 
 $output .= "    ];\n\n";
+$output .= '    public const int COMBINING_CLASS_CODE_POINT_COUNT = ' . count($combiningClassMap) . ";\n\n";
+$output .= "    /**\n";
+$output .= "     * @var array<int, int>\n";
+$output .= "     */\n";
+$output .= "    public const array COMBINING_CLASS_MAP = [\n";
+
+ksort($combiningClassMap);
+foreach ($combiningClassMap as $codePoint => $ccc) {
+    $output .= sprintf("        0x%X => %d,\n", $codePoint, $ccc);
+}
+
+$output .= "    ];\n\n";
+$output .= '    public const int CANONICAL_DECOMPOSITION_COUNT = ' . count($canonicalDecompositionMap) . ";\n\n";
+$output .= "    /**\n";
+$output .= "     * @var array<int, list<int>>\n";
+$output .= "     */\n";
+$output .= "    public const array CANONICAL_DECOMPOSITION_MAP = [\n";
+
+ksort($canonicalDecompositionMap);
+foreach ($canonicalDecompositionMap as $codePoint => $decomposition) {
+    $output .= sprintf("        0x%X => [%s],\n", $codePoint, formatCodePointList($decomposition));
+}
+
+$output .= "    ];\n\n";
+$output .= '    public const int COMPATIBILITY_DECOMPOSITION_COUNT = ' . count($compatibilityDecompositionMap) . ";\n\n";
+$output .= "    /**\n";
+$output .= "     * @var array<int, list<int>>\n";
+$output .= "     */\n";
+$output .= "    public const array COMPATIBILITY_DECOMPOSITION_MAP = [\n";
+
+ksort($compatibilityDecompositionMap);
+foreach ($compatibilityDecompositionMap as $codePoint => $decomposition) {
+    $output .= sprintf("        0x%X => [%s],\n", $codePoint, formatCodePointList($decomposition));
+}
+
+$output .= "    ];\n\n";
 $output .= '    public const int CANONICAL_COMPOSITION_PAIR_COUNT = ' . $compositionPairCount . ";\n\n";
 $output .= "    /**\n";
 $output .= "     * @var array<int, array<int, int>>\n";
@@ -197,15 +323,36 @@ foreach ($compositionMap as $first => $seconds) {
 }
 
 $output .= "    ];\n";
+$output .= "\n";
+$output .= '    public const int NORMALIZATION_COMPOSITION_PAIR_COUNT = ' . $normalizationCompositionPairCount . ";\n\n";
+$output .= "    /**\n";
+$output .= "     * @var array<int, array<int, int>>\n";
+$output .= "     */\n";
+$output .= "    public const array NORMALIZATION_COMPOSITION_MAP = [\n";
+
+ksort($normalizationCompositionMap);
+foreach ($normalizationCompositionMap as $first => $seconds) {
+    ksort($seconds);
+    $output .= sprintf("        0x%X => [\n", $first);
+
+    foreach ($seconds as $second => $composed) {
+        $output .= sprintf("            0x%X => 0x%X,\n", $second, $composed);
+    }
+
+    $output .= "        ],\n";
+}
+
+$output .= "    ];\n";
 $output .= "}\n";
 
 file_put_contents($outputPath, $output);
 
 printf(
-    "Generated %s with %d IDNA type ranges covering %d non-disallowed code points and %d canonical composition pairs.\n",
+    "Generated %s with %d IDNA type ranges covering %d non-disallowed code points, %d decomposition mappings, and %d canonical composition pairs.\n",
     $outputPath,
     count($ranges),
     $nonDisallowedCount,
+    count($compatibilityDecompositionMap),
     $compositionPairCount,
 );
 
@@ -231,6 +378,42 @@ function parseNumber(string $number): int
     }
 
     return (int) $number;
+}
+
+/**
+ * @param array<string, int> $typeByName
+ */
+function parseDecompositionType(string $expression, array $typeByName, int $canonicalSeparatelyFlag): int
+{
+    $type = 0;
+
+    foreach (explode('|', $expression) as $part) {
+        $part = trim($part);
+
+        if ($part === 'LXB_UNICODE_CANONICAL_SEPARATELY') {
+            $type |= $canonicalSeparatelyFlag;
+            continue;
+        }
+
+        if (!array_key_exists($part, $typeByName)) {
+            throw new RuntimeException("Unknown decomposition type {$part}.");
+        }
+
+        $type |= $typeByName[$part];
+    }
+
+    return $type;
+}
+
+/**
+ * @param list<int> $codePoints
+ */
+function formatCodePointList(array $codePoints): string
+{
+    return implode(', ', array_map(
+        static fn (int $codePoint): string => sprintf('0x%X', $codePoint),
+        $codePoints,
+    ));
 }
 
 /**
