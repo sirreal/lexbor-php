@@ -842,6 +842,12 @@ final class ParserTest extends TestCase
         yield 'flex-basis accepts length' => ['flex-basis: 12px', [
             ['type' => 'property', 'name' => 'flex-basis', 'value' => '12px', 'important' => false],
         ]];
+        yield 'flex-basis serializes q unit with Lexbor uppercase spelling' => ['flex-basis: 2q', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => '2Q', 'important' => false],
+        ]];
+        yield 'flex-basis lowercases mixed-case px unit' => ['flex-basis: 2PX', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => '2px', 'important' => false],
+        ]];
         yield 'flex-basis accepts negative length like Lexbor width handler' => ['flex-basis: -1px', [
             ['type' => 'property', 'name' => 'flex-basis', 'value' => '-1px', 'important' => false],
         ]];
@@ -976,6 +982,9 @@ final class ParserTest extends TestCase
         yield 'flex accepts grow and length basis' => ['flex: 1 12px', [
             ['type' => 'property', 'name' => 'flex', 'value' => '1 12px', 'important' => false],
         ]];
+        yield 'flex serializes q basis unit with Lexbor uppercase spelling' => ['flex: 1 2q', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 2Q', 'important' => false],
+        ]];
         yield 'flex accepts grow and auto basis' => ['flex: 1 auto', [
             ['type' => 'property', 'name' => 'flex', 'value' => '1 auto', 'important' => false],
         ]];
@@ -1041,6 +1050,109 @@ final class ParserTest extends TestCase
         ]];
         yield 'flex keeps important flag' => ['flex: 2 3 auto !important', [
             ['type' => 'property', 'name' => 'flex', 'value' => '2 3 auto', 'important' => true],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function floatSupportDeclarationProvider(): iterable
+    {
+        yield 'float-reference accepts inline' => ['float-reference: inline', [
+            ['type' => 'property', 'name' => 'float-reference', 'value' => 'inline', 'important' => false],
+        ]];
+        yield 'float-reference accepts column' => ['float-reference: column', [
+            ['type' => 'property', 'name' => 'float-reference', 'value' => 'column', 'important' => false],
+        ]];
+        yield 'float-reference accepts region' => ['float-reference: region', [
+            ['type' => 'property', 'name' => 'float-reference', 'value' => 'region', 'important' => false],
+        ]];
+        yield 'float-reference accepts page' => ['float-reference: page', [
+            ['type' => 'property', 'name' => 'float-reference', 'value' => 'page', 'important' => false],
+        ]];
+        yield 'float-reference accepts css-wide keyword' => ['float-reference: inherit', [
+            ['type' => 'property', 'name' => 'float-reference', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'float-reference lowercases mixed-case keyword' => ['float-reference: CoLuMn', [
+            ['type' => 'property', 'name' => 'float-reference', 'value' => 'column', 'important' => false],
+        ]];
+        yield 'float-reference rejects float keyword' => ['float-reference: left', [
+            ['type' => 'undef', 'name' => 'float-reference', 'value' => 'left', 'important' => false],
+        ]];
+        yield 'float-reference rejects multiple keywords' => ['float-reference: inline page', [
+            ['type' => 'undef', 'name' => 'float-reference', 'value' => 'inline page', 'important' => false],
+        ]];
+        yield 'float-reference rejects comment-split keyword' => ['float-reference: in/**/line', [
+            ['type' => 'undef', 'name' => 'float-reference', 'value' => 'inline', 'important' => false],
+        ]];
+        yield 'float-defer accepts integer' => ['float-defer: -2', [
+            ['type' => 'property', 'name' => 'float-defer', 'value' => '-2', 'important' => false],
+        ]];
+        yield 'float-defer accepts exponent integer' => ['float-defer: 1e2', [
+            ['type' => 'property', 'name' => 'float-defer', 'value' => '100', 'important' => false],
+        ]];
+        yield 'float-defer accepts last' => ['float-defer: last', [
+            ['type' => 'property', 'name' => 'float-defer', 'value' => 'last', 'important' => false],
+        ]];
+        yield 'float-defer accepts none' => ['float-defer: none', [
+            ['type' => 'property', 'name' => 'float-defer', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'float-defer accepts css-wide keyword' => ['float-defer: revert', [
+            ['type' => 'property', 'name' => 'float-defer', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'float-defer lowercases mixed-case keyword' => ['float-defer: LaSt', [
+            ['type' => 'property', 'name' => 'float-defer', 'value' => 'last', 'important' => false],
+        ]];
+        yield 'float-defer rejects decimal number' => ['float-defer: 1.5', [
+            ['type' => 'undef', 'name' => 'float-defer', 'value' => '1.5', 'important' => false],
+        ]];
+        yield 'float-defer rejects percentage' => ['float-defer: 1%', [
+            ['type' => 'undef', 'name' => 'float-defer', 'value' => '1%', 'important' => false],
+        ]];
+        yield 'float-defer rejects unknown keyword' => ['float-defer: auto', [
+            ['type' => 'undef', 'name' => 'float-defer', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'float-defer rejects comment-split integer' => ['float-defer: 1/**/2', [
+            ['type' => 'undef', 'name' => 'float-defer', 'value' => '12', 'important' => false],
+        ]];
+        yield 'float-offset accepts unitless zero' => ['float-offset: 0', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '0', 'important' => false],
+        ]];
+        yield 'float-offset accepts length' => ['float-offset: -1.5em', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '-1.5em', 'important' => false],
+        ]];
+        yield 'float-offset lowercases mixed-case length unit' => ['float-offset: 2PX', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'float-offset serializes q unit with Lexbor uppercase spelling' => ['float-offset: 2q', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '2Q', 'important' => false],
+        ]];
+        yield 'float-offset accepts percentage' => ['float-offset: 25%', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '25%', 'important' => false],
+        ]];
+        yield 'float-offset accepts signed percentage' => ['float-offset: -10%', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '-10%', 'important' => false],
+        ]];
+        yield 'float-offset accepts css-wide keyword' => ['float-offset: unset', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'float-offset rejects auto' => ['float-offset: auto', [
+            ['type' => 'undef', 'name' => 'float-offset', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'float-offset rejects nonzero number' => ['float-offset: 1', [
+            ['type' => 'undef', 'name' => 'float-offset', 'value' => '1', 'important' => false],
+        ]];
+        yield 'float-offset rejects non-length dimension' => ['float-offset: 1deg', [
+            ['type' => 'undef', 'name' => 'float-offset', 'value' => '1deg', 'important' => false],
+        ]];
+        yield 'float-offset rejects multiple values' => ['float-offset: 1px 2px', [
+            ['type' => 'undef', 'name' => 'float-offset', 'value' => '1px 2px', 'important' => false],
+        ]];
+        yield 'float-offset rejects comment-split length' => ['float-offset: 1/**/px', [
+            ['type' => 'undef', 'name' => 'float-offset', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'float-offset keeps important flag' => ['float-offset: 5px !important', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '5px', 'important' => true],
         ]];
     }
 
@@ -1184,6 +1296,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('flexShorthandDeclarationProvider')]
     public function testFlexShorthandDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('floatSupportDeclarationProvider')]
+    public function testFloatSupportDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

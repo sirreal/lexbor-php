@@ -25,6 +25,9 @@ final class Parser
         'flex-grow' => true,
         'flex-shrink' => true,
         'flex-wrap' => true,
+        'float-defer' => true,
+        'float-offset' => true,
+        'float-reference' => true,
         'height' => true,
         'hyphens' => true,
         'inset-block-end' => true,
@@ -251,6 +254,18 @@ final class Parser
         'content' => true,
         'max-content' => true,
         'min-content' => true,
+    ];
+
+    private const array FLOAT_REFERENCE_KEYWORDS = [
+        'column' => true,
+        'inline' => true,
+        'page' => true,
+        'region' => true,
+    ];
+
+    private const array FLOAT_DEFER_KEYWORDS = [
+        'last' => true,
+        'none' => true,
     ];
 
     private const array KEYWORD_PROPERTIES = [
@@ -602,6 +617,9 @@ final class Parser
             'flex' => self::parseFlex($valueTokens) !== null ? 'property' : 'undef',
             'flex-basis' => self::isValidFlexBasis($valueTokens) ? 'property' : 'undef',
             'flex-flow' => self::isValidFlexFlow($valueTokens) ? 'property' : 'undef',
+            'float-defer' => self::floatDeferValue($valueTokens) !== null ? 'property' : 'undef',
+            'float-offset' => self::floatOffsetValue($valueTokens) !== null ? 'property' : 'undef',
+            'float-reference' => self::singleKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
             'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
             'flex-grow', 'flex-shrink' => self::isValidNonNegativeNumber($valueTokens) ? 'property' : 'undef',
@@ -786,28 +804,7 @@ final class Parser
      */
     private static function isValidFlexBasis(array $tokens): bool
     {
-        $token = self::singleValueToken($tokens);
-
-        if ($token === null) {
-            return false;
-        }
-
-        if ($token->type === 'ident') {
-            $value = strtolower($token->value);
-
-            return isset(self::CSS_WIDE_KEYWORDS[$value])
-                || isset(self::FLEX_BASIS_KEYWORDS[$value]);
-        }
-
-        if ($token->type === 'number') {
-            return $token->value === '0';
-        }
-
-        if ($token->type === 'percentage') {
-            return self::isSignedPercentage($token->value);
-        }
-
-        return $token->type === 'dimension' && self::isValidLengthDimension($token->value);
+        return self::flexBasisValue($tokens) !== null;
     }
 
     /**
@@ -955,6 +952,57 @@ final class Parser
         }
 
         return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @param array<string, true> $keywords
+     */
+    private static function singleKeywordValue(array $tokens, array $keywords): ?string
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null || $token->type !== 'ident') {
+            return null;
+        }
+
+        $value = strtolower($token->value);
+
+        return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]) ? $value : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function floatDeferValue(array $tokens): ?string
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset(self::FLOAT_DEFER_KEYWORDS[$value]) ? $value : null;
+        }
+
+        return $token->type === 'number' && self::isLongInteger($token->value) ? $token->value : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function floatOffsetValue(array $tokens): ?string
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+
+        if (count($components) !== 1) {
+            return null;
+        }
+
+        return self::lengthPercentageComponentValue($components[0], true);
     }
 
     /**
@@ -1127,8 +1175,24 @@ final class Parser
             return self::singleValueToken($tokens)?->value ?? $fallback;
         }
 
+        if ($property === 'float-reference') {
+            return self::singleKeywordValue($tokens, self::FLOAT_REFERENCE_KEYWORDS) ?? $fallback;
+        }
+
+        if ($property === 'float-defer') {
+            return self::floatDeferValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'float-offset') {
+            return self::floatOffsetValue($tokens) ?? $fallback;
+        }
+
         if ($property === 'flex') {
             return self::serializeFlex($tokens) ?? $fallback;
+        }
+
+        if ($property === 'flex-basis') {
+            return self::flexBasisValue($tokens) ?? $fallback;
         }
 
         if ($property === 'flex-flow') {
@@ -1139,7 +1203,6 @@ final class Parser
             in_array($property, ['margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top'], true)
             || in_array($property, ['padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top'], true)
             || in_array($property, ['bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top'], true)
-            || $property === 'flex-basis'
         ) {
             return implode(' ', array_map(
                 static fn (array $component): string => self::serializeComponentValue($component),
@@ -1218,6 +1281,40 @@ final class Parser
     }
 
     /**
+     * @param list<Token> $tokens
+     */
+    private static function flexBasisValue(array $tokens): ?string
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+
+        if (count($components) !== 1 || count($components[0]) !== 1) {
+            return null;
+        }
+
+        $token = $components[0][0];
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset(self::FLEX_BASIS_KEYWORDS[$value]) ? $value : null;
+        }
+
+        if ($token->type === 'number') {
+            return $token->value === '0' ? $token->value : null;
+        }
+
+        if ($token->type === 'percentage') {
+            return self::isSignedPercentage($token->value) ? $token->value : null;
+        }
+
+        if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
+            return self::canonicalLengthDimensionValue($token->value);
+        }
+
+        return null;
+    }
+
+    /**
      * @param list<Token> $component
      */
     private static function flexNumberValue(array $component): ?string
@@ -1255,10 +1352,54 @@ final class Parser
         }
 
         if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
-            return strtolower($token->value);
+            return self::canonicalLengthDimensionValue($token->value);
         }
 
         return null;
+    }
+
+    /**
+     * @param list<Token> $component
+     */
+    private static function lengthPercentageComponentValue(array $component, bool $allowCssWide): ?string
+    {
+        if (count($component) !== 1) {
+            return null;
+        }
+
+        $token = $component[0];
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return $allowCssWide && isset(self::CSS_WIDE_KEYWORDS[$value]) ? $value : null;
+        }
+
+        if ($token->type === 'number') {
+            return $token->value === '0' ? $token->value : null;
+        }
+
+        if ($token->type === 'percentage') {
+            return self::isSignedPercentage($token->value) ? $token->value : null;
+        }
+
+        if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
+            return self::canonicalLengthDimensionValue($token->value);
+        }
+
+        return null;
+    }
+
+    private static function canonicalLengthDimensionValue(string $value): string
+    {
+        if (! preg_match('/^([+-]?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?)([a-zA-Z]+)$/i', $value, $matches)) {
+            return $value;
+        }
+
+        $unit = strtolower($matches[2]);
+        $unit = $unit === 'q' ? 'Q' : $unit;
+
+        return $matches[1] . $unit;
     }
 
     /**
