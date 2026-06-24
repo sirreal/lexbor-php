@@ -69,6 +69,7 @@ final class Parser
         'text-decoration' => true,
         'text-justify' => true,
         'text-orientation' => true,
+        'text-transform' => true,
         'top' => true,
         'unicode-bidi' => true,
         'visibility' => true,
@@ -293,6 +294,12 @@ final class Parser
         'left' => true,
         'near' => true,
         'right' => true,
+    ];
+
+    private const array TEXT_TRANSFORM_CASE_KEYWORDS = [
+        'capitalize' => true,
+        'lowercase' => true,
+        'uppercase' => true,
     ];
 
     private const array KEYWORD_PROPERTIES = [
@@ -658,6 +665,7 @@ final class Parser
             'opacity' => self::isValidNumberPercentage($valueTokens) ? 'property' : 'undef',
             'order' => self::isValidInteger($valueTokens) ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
+            'text-transform' => self::textTransformValue($valueTokens) !== null ? 'property' : 'undef',
             'z-index' => self::isValidIntegerKeyword($valueTokens, ['auto' => true]) ? 'property' : 'undef',
             default => isset(self::KEYWORD_PROPERTIES[$property]) && self::isValidKeywordProperty($property, $valueTokens) ? 'property' : 'undef',
         };
@@ -1111,6 +1119,78 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function textTransformValue(array $tokens): ?string
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+
+        if ($components === []) {
+            return null;
+        }
+
+        $case = null;
+        $fullWidth = false;
+        $fullSizeKana = false;
+
+        foreach ($components as $component) {
+            if (count($component) !== 1 || $component[0]->type !== 'ident') {
+                return null;
+            }
+
+            $value = strtolower($component[0]->value);
+
+            if (isset(self::CSS_WIDE_KEYWORDS[$value]) || $value === 'none') {
+                return count($components) === 1 ? $value : null;
+            }
+
+            if (isset(self::TEXT_TRANSFORM_CASE_KEYWORDS[$value])) {
+                if ($case !== null) {
+                    return null;
+                }
+
+                $case = $value;
+                continue;
+            }
+
+            if ($value === 'full-width') {
+                if ($fullWidth) {
+                    return null;
+                }
+
+                $fullWidth = true;
+                continue;
+            }
+
+            if ($value === 'full-size-kana') {
+                if ($fullSizeKana) {
+                    return null;
+                }
+
+                $fullSizeKana = true;
+                continue;
+            }
+
+            return null;
+        }
+
+        $parts = [];
+        if ($case !== null) {
+            $parts[] = $case;
+        }
+
+        if ($fullWidth) {
+            $parts[] = 'full-width';
+        }
+
+        if ($fullSizeKana) {
+            $parts[] = 'full-size-kana';
+        }
+
+        return $parts === [] ? null : implode(' ', $parts);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function isValidNumberPercentage(array $tokens): bool
     {
         $token = self::singleValueToken($tokens);
@@ -1304,6 +1384,10 @@ final class Parser
 
         if ($property === 'flex-flow') {
             return self::serializeFlexFlow($tokens) ?? $fallback;
+        }
+
+        if ($property === 'text-transform') {
+            return self::textTransformValue($tokens) ?? $fallback;
         }
 
         if (

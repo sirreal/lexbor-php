@@ -735,6 +735,85 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function textTransformDeclarationProvider(): iterable
+    {
+        yield 'text-transform accepts none' => ['text-transform: none', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'text-transform accepts capitalize' => ['text-transform: capitalize', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'capitalize', 'important' => false],
+        ]];
+        yield 'text-transform accepts uppercase' => ['text-transform: uppercase', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'uppercase', 'important' => false],
+        ]];
+        yield 'text-transform accepts lowercase' => ['text-transform: lowercase', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'lowercase', 'important' => false],
+        ]];
+        yield 'text-transform accepts full-width' => ['text-transform: full-width', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'full-width', 'important' => false],
+        ]];
+        yield 'text-transform accepts full-size-kana' => ['text-transform: full-size-kana', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'full-size-kana', 'important' => false],
+        ]];
+        yield 'text-transform accepts css-wide keyword' => ['text-transform: inherit', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'text-transform lowercases mixed-case keyword' => ['text-transform: UpPeRcAsE', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'uppercase', 'important' => false],
+        ]];
+        yield 'text-transform accepts case then full-width' => ['text-transform: uppercase full-width', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'uppercase full-width', 'important' => false],
+        ]];
+        yield 'text-transform serializes case before full-width' => ['text-transform: full-width uppercase', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'uppercase full-width', 'important' => false],
+        ]];
+        yield 'text-transform serializes all groups in Lexbor order' => ['text-transform: full-size-kana full-width lowercase', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'lowercase full-width full-size-kana', 'important' => false],
+        ]];
+        yield 'text-transform accepts width and kana without case' => ['text-transform: full-width full-size-kana', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'full-width full-size-kana', 'important' => false],
+        ]];
+        yield 'text-transform treats comments between keywords as whitespace' => ['text-transform: uppercase/**/full-size-kana', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'uppercase full-size-kana', 'important' => false],
+        ]];
+        yield 'text-transform keeps important flag' => ['text-transform: lowercase full-width !important', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'lowercase full-width', 'important' => true],
+        ]];
+        yield 'text-transform rejects none with extra keyword' => ['text-transform: none uppercase', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'none uppercase', 'important' => false],
+        ]];
+        yield 'text-transform rejects css-wide keyword with extra keyword' => ['text-transform: inherit uppercase', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'inherit uppercase', 'important' => false],
+        ]];
+        yield 'text-transform rejects duplicate case group' => ['text-transform: uppercase lowercase', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'uppercase lowercase', 'important' => false],
+        ]];
+        yield 'text-transform rejects duplicate full-width' => ['text-transform: full-width full-width', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'full-width full-width', 'important' => false],
+        ]];
+        yield 'text-transform rejects duplicate full-size-kana' => ['text-transform: full-size-kana full-size-kana', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'full-size-kana full-size-kana', 'important' => false],
+        ]];
+        yield 'text-transform rejects unknown keyword' => ['text-transform: math-auto', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'math-auto', 'important' => false],
+        ]];
+        yield 'text-transform rejects comment-split keyword' => ['text-transform: upper-/**/case', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'upper-case', 'important' => false],
+        ]];
+        yield 'text-transform rejects number' => ['text-transform: 1', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => '1', 'important' => false],
+        ]];
+        yield 'text-transform rejects function' => ['text-transform: calc(1)', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'calc(1)', 'important' => false],
+        ]];
+        yield 'text-transform rejects non-ident extra token' => ['text-transform: uppercase 1', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'uppercase 1', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function flexKeywordDeclarationProvider(): iterable
     {
         $validKeywords = [
@@ -1390,6 +1469,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textKeywordDeclarationProvider')]
     public function testTextKeywordDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('textTransformDeclarationProvider')]
+    public function testTextTransformDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
