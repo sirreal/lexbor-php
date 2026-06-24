@@ -123,8 +123,35 @@ final class ParserTest extends TestCase
         yield 'selectors.c #89 rejects leading combinator in selector-list item' => ['div, > .class, #hash', '', ['Syntax error. Selectors. Unexpected token: >']];
         yield 'selectors.c #90 complex combinator selector' => ['div > .class + #hash ~ [refs=a].super || #id', 'div > .class + #hash ~ [refs="a"].super || #id', []];
         yield 'selectors.c #91 pseudo class on type selector' => ['div:disabled', 'div:disabled', []];
+        foreach ([
+            'current',
+            'default',
+            'focus-visible',
+            'focus-within',
+            'fullscreen',
+            'future',
+            'in-range',
+            'indeterminate',
+            'invalid',
+            'local-link',
+            'out-of-range',
+            'past',
+            'scope',
+            'target',
+            'target-within',
+            'user-invalid',
+            'valid',
+            'visited',
+            'warning',
+        ] as $pseudoClass) {
+            yield "selectors regression rejects unsupported {$pseudoClass} pseudo class" => [":{$pseudoClass}", '', [
+                "Syntax error. Selectors. Not supported: {$pseudoClass}",
+                "Syntax error. Selectors. Unexpected token: {$pseudoClass}",
+            ]];
+        }
         yield 'selectors.c #92 rejects unknown pseudo class' => [':godofwar', '', ['Syntax error. Selectors. Unexpected token: godofwar']];
         yield 'selectors.c #93 has selector with pseudo class' => [':has(:disabled)', ':has(:disabled)', []];
+        yield 'selectors regression rejects has selector with unsupported target pseudo class' => [':has(:target)', '', ['Syntax error. Selectors. Not supported: target', 'Syntax error. Selectors. Unexpected token: target', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
         yield 'selectors.c #94 rejects has selector with unknown pseudo class' => [':has(:godofwar)', '', ['Syntax error. Selectors. Unexpected token: godofwar', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
         yield 'selectors regression rejects unsupported dir pseudo function' => [':dir(ltr)', '', ['Syntax error. Selectors. Not supported: dir', 'Syntax error. Selectors. Unexpected token: dir(']];
         yield 'selectors regression rejects unsupported lang pseudo function' => [':lang(en)', '', ['Syntax error. Selectors. Not supported: lang', 'Syntax error. Selectors. Unexpected token: lang(']];

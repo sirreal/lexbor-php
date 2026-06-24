@@ -40,6 +40,28 @@ final class Parser
         'root' => true,
     ];
 
+    private const array UNSUPPORTED_PSEUDO_CLASSES = [
+        'current' => true,
+        'default' => true,
+        'focus-visible' => true,
+        'focus-within' => true,
+        'fullscreen' => true,
+        'future' => true,
+        'in-range' => true,
+        'indeterminate' => true,
+        'invalid' => true,
+        'local-link' => true,
+        'out-of-range' => true,
+        'past' => true,
+        'scope' => true,
+        'target' => true,
+        'target-within' => true,
+        'user-invalid' => true,
+        'valid' => true,
+        'visited' => true,
+        'warning' => true,
+    ];
+
     public function __construct(
         private readonly Tokenizer $tokenizer = new Tokenizer(),
     ) {
@@ -1921,6 +1943,16 @@ final class Parser
 
         $name = strtolower($next->value);
         $offset += 2;
+
+        if (isset(self::UNSUPPORTED_PSEUDO_CLASSES[$name])) {
+            return [
+                'value' => '',
+                'errors' => [
+                    self::notSupportedError($name),
+                    self::unexpectedTokenError($next->value),
+                ],
+            ];
+        }
 
         if (! isset(self::SUPPORTED_PSEUDO_CLASSES[$name])) {
             return self::error($next->value);
