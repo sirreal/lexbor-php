@@ -1070,14 +1070,26 @@ final class ParserTest extends TestCase
         yield 'position lowercases mixed-case keyword' => ['position: StIcKy', [
             ['type' => 'property', 'name' => 'position', 'value' => 'sticky', 'important' => false],
         ]];
+        yield 'position accepts normal leading whitespace' => ['position:   fixed', [
+            ['type' => 'property', 'name' => 'position', 'value' => 'fixed', 'important' => false],
+        ]];
         yield 'clear lowercases mixed-case keyword' => ['clear: Inline-End', [
             ['type' => 'property', 'name' => 'clear', 'value' => 'inline-end', 'important' => false],
+        ]];
+        yield 'clear accepts normal leading whitespace' => ['clear:   inline-start', [
+            ['type' => 'property', 'name' => 'clear', 'value' => 'inline-start', 'important' => false],
         ]];
         yield 'direction lowercases mixed-case keyword' => ['direction: RtL', [
             ['type' => 'property', 'name' => 'direction', 'value' => 'rtl', 'important' => false],
         ]];
+        yield 'direction accepts normal leading whitespace' => ['direction:   rtl', [
+            ['type' => 'property', 'name' => 'direction', 'value' => 'rtl', 'important' => false],
+        ]];
         yield 'visibility lowercases mixed-case keyword' => ['visibility: ColLapSe', [
             ['type' => 'property', 'name' => 'visibility', 'value' => 'collapse', 'important' => false],
+        ]];
+        yield 'visibility accepts normal leading whitespace' => ['visibility:   hidden', [
+            ['type' => 'property', 'name' => 'visibility', 'value' => 'hidden', 'important' => false],
         ]];
         yield 'align-content lowercases mixed-case keyword' => ['align-content: Space-Between', [
             ['type' => 'property', 'name' => 'align-content', 'value' => 'space-between', 'important' => false],
@@ -1093,6 +1105,9 @@ final class ParserTest extends TestCase
         ]];
         yield 'overflow-x lowercases mixed-case keyword' => ['overflow-x: HiDdEn', [
             ['type' => 'property', 'name' => 'overflow-x', 'value' => 'hidden', 'important' => false],
+        ]];
+        yield 'overflow-x accepts normal leading whitespace' => ['overflow-x:   scroll', [
+            ['type' => 'property', 'name' => 'overflow-x', 'value' => 'scroll', 'important' => false],
         ]];
         yield 'overflow-wrap lowercases mixed-case keyword' => ['overflow-wrap: Break-Word', [
             ['type' => 'property', 'name' => 'overflow-wrap', 'value' => 'break-word', 'important' => false],
@@ -1123,6 +1138,30 @@ final class ParserTest extends TestCase
         ]];
         yield 'text-align rejects comment-separated leading whitespace like Lexbor' => ['text-align: /**/  center', [
             ['type' => 'undef', 'name' => 'text-align', 'value' => 'center', 'important' => false],
+        ]];
+        yield 'clear rejects comment-separated leading whitespace like Lexbor' => ['clear: /**/  inline-start', [
+            ['type' => 'undef', 'name' => 'clear', 'value' => 'inline-start', 'important' => false],
+        ]];
+        yield 'direction rejects comment-separated leading whitespace like Lexbor' => ['direction: /**/  rtl', [
+            ['type' => 'undef', 'name' => 'direction', 'value' => 'rtl', 'important' => false],
+        ]];
+        yield 'visibility rejects comment-separated leading whitespace like Lexbor' => ['visibility: /**/  hidden', [
+            ['type' => 'undef', 'name' => 'visibility', 'value' => 'hidden', 'important' => false],
+        ]];
+        yield 'overflow-x rejects comment-separated leading whitespace like Lexbor' => ['overflow-x: /**/  scroll', [
+            ['type' => 'undef', 'name' => 'overflow-x', 'value' => 'scroll', 'important' => false],
+        ]];
+        yield 'overflow-y rejects comment-separated leading whitespace like Lexbor' => ['overflow-y: /**/  clip', [
+            ['type' => 'undef', 'name' => 'overflow-y', 'value' => 'clip', 'important' => false],
+        ]];
+        yield 'overflow-wrap rejects comment-separated leading whitespace like Lexbor' => ['overflow-wrap: /**/  break-word', [
+            ['type' => 'undef', 'name' => 'overflow-wrap', 'value' => 'break-word', 'important' => false],
+        ]];
+        yield 'word-wrap rejects comment-separated leading whitespace like Lexbor' => ['word-wrap: /**/  anywhere', [
+            ['type' => 'undef', 'name' => 'word-wrap', 'value' => 'anywhere', 'important' => false],
+        ]];
+        yield 'white-space rejects comment-separated leading whitespace like Lexbor' => ['white-space: /**/  pre-wrap', [
+            ['type' => 'undef', 'name' => 'white-space', 'value' => 'pre-wrap', 'important' => false],
         ]];
         yield 'visibility accepts trailing whitespace-comment-whitespace like Lexbor' => ['visibility: hidden /**/  ', [
             ['type' => 'property', 'name' => 'visibility', 'value' => 'hidden', 'important' => false],
