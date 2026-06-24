@@ -674,6 +674,7 @@ final class ParserTest extends TestCase
             'text-orientation' => ['mixed', 'upright', 'sideways'],
             'text-overflow' => ['clip', 'ellipsis'],
             'unicode-bidi' => ['normal', 'embed', 'isolate', 'bidi-override', 'isolate-override', 'plaintext'],
+            'white-space' => ['normal', 'pre', 'nowrap', 'pre-wrap', 'break-spaces', 'pre-line'],
             'writing-mode' => ['horizontal-tb', 'vertical-rl', 'vertical-lr', 'sideways-rl', 'sideways-lr'],
         ];
 
@@ -742,6 +743,21 @@ final class ParserTest extends TestCase
         ]];
         yield 'unicode-bidi rejects comment-split keyword' => ['unicode-bidi: isolate-/**/override', [
             ['type' => 'undef', 'name' => 'unicode-bidi', 'value' => 'isolate-override', 'important' => false],
+        ]];
+        yield 'white-space lowercases mixed-case keyword' => ['white-space: PrE-WrAp', [
+            ['type' => 'property', 'name' => 'white-space', 'value' => 'pre-wrap', 'important' => false],
+        ]];
+        yield 'white-space rejects overflow-wrap keyword' => ['white-space: break-word', [
+            ['type' => 'undef', 'name' => 'white-space', 'value' => 'break-word', 'important' => false],
+        ]];
+        yield 'white-space rejects multiple keywords' => ['white-space: pre wrap', [
+            ['type' => 'undef', 'name' => 'white-space', 'value' => 'pre wrap', 'important' => false],
+        ]];
+        yield 'white-space rejects comment-split keyword' => ['white-space: pre-/**/wrap', [
+            ['type' => 'undef', 'name' => 'white-space', 'value' => 'pre-wrap', 'important' => false],
+        ]];
+        yield 'white-space keeps important flag' => ['white-space: nowrap !important', [
+            ['type' => 'property', 'name' => 'white-space', 'value' => 'nowrap', 'important' => true],
         ]];
         yield 'writing-mode rejects horizontal' => ['writing-mode: horizontal', [
             ['type' => 'undef', 'name' => 'writing-mode', 'value' => 'horizontal', 'important' => false],

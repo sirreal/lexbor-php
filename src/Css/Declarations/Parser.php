@@ -76,6 +76,7 @@ final class Parser
         'top' => true,
         'unicode-bidi' => true,
         'visibility' => true,
+        'white-space' => true,
         'width' => true,
         'word-wrap' => true,
         'word-spacing' => true,
@@ -474,6 +475,14 @@ final class Parser
             'collapse' => true,
             'hidden' => true,
             'visible' => true,
+        ],
+        'white-space' => [
+            'break-spaces' => true,
+            'normal' => true,
+            'nowrap' => true,
+            'pre' => true,
+            'pre-line' => true,
+            'pre-wrap' => true,
         ],
         'word-wrap' => [
             'anywhere' => true,
@@ -1472,6 +1481,10 @@ final class Parser
 
         if ($property === 'text-overflow') {
             return self::singleKeywordValue($tokens, self::KEYWORD_PROPERTIES['text-overflow']) ?? $fallback;
+        }
+
+        if ($property === 'white-space') {
+            return self::singleKeywordValue($tokens, self::KEYWORD_PROPERTIES['white-space']) ?? $fallback;
         }
 
         if (isset(self::KEYWORD_PROPERTIES[$property])) {
