@@ -2050,6 +2050,9 @@ final class ParserTest extends TestCase
      */
     public static function baselineDeclarationProvider(): iterable
     {
+        yield 'alignment-baseline accepts normal leading whitespace' => ['alignment-baseline:   baseline', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'baseline', 'important' => false],
+        ]];
         yield 'alignment-baseline accepts baseline' => ['alignment-baseline: baseline', [
             ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'baseline', 'important' => false],
         ]];
@@ -2095,6 +2098,9 @@ final class ParserTest extends TestCase
         yield 'alignment-baseline rejects comment-separated leading whitespace like Lexbor' => ['alignment-baseline: /**/  baseline', [
             ['type' => 'undef', 'name' => 'alignment-baseline', 'value' => 'baseline', 'important' => false],
         ]];
+        yield 'baseline-source accepts normal leading whitespace' => ['baseline-source:   first', [
+            ['type' => 'property', 'name' => 'baseline-source', 'value' => 'first', 'important' => false],
+        ]];
         yield 'baseline-source accepts auto' => ['baseline-source: auto', [
             ['type' => 'property', 'name' => 'baseline-source', 'value' => 'auto', 'important' => false],
         ]];
@@ -2124,6 +2130,9 @@ final class ParserTest extends TestCase
         ]];
         yield 'baseline-source rejects comment-separated leading whitespace like Lexbor' => ['baseline-source: /**/  first', [
             ['type' => 'undef', 'name' => 'baseline-source', 'value' => 'first', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts normal leading whitespace' => ['dominant-baseline:   auto', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'auto', 'important' => false],
         ]];
         yield 'dominant-baseline accepts auto' => ['dominant-baseline: auto', [
             ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'auto', 'important' => false],
@@ -2173,6 +2182,9 @@ final class ParserTest extends TestCase
         yield 'dominant-baseline rejects comment-separated leading whitespace like Lexbor' => ['dominant-baseline: /**/  auto', [
             ['type' => 'undef', 'name' => 'dominant-baseline', 'value' => 'auto', 'important' => false],
         ]];
+        yield 'baseline-shift accepts normal leading whitespace before keyword' => ['baseline-shift:   sub', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'sub', 'important' => false],
+        ]];
         yield 'baseline-shift accepts sub' => ['baseline-shift: sub', [
             ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'sub', 'important' => false],
         ]];
@@ -2192,6 +2204,9 @@ final class ParserTest extends TestCase
             ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'initial', 'important' => false],
         ]];
         yield 'baseline-shift accepts length' => ['baseline-shift: -2px', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => '-2px', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts normal leading whitespace before length' => ['baseline-shift:   -2px', [
             ['type' => 'property', 'name' => 'baseline-shift', 'value' => '-2px', 'important' => false],
         ]];
         yield 'baseline-shift lowercases mixed-case length unit' => ['baseline-shift: 2PX', [
@@ -2235,6 +2250,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'baseline-shift rejects comment-separated leading whitespace like Lexbor' => ['baseline-shift: /**/  sub', [
             ['type' => 'undef', 'name' => 'baseline-shift', 'value' => 'sub', 'important' => false],
+        ]];
+        yield 'baseline-shift rejects length with comment-separated leading whitespace like Lexbor' => ['baseline-shift: /**/  -2px', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => '-2px', 'important' => false],
+        ]];
+        yield 'baseline-shift rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['baseline-shift: /**/  initial', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => 'initial', 'important' => false],
         ]];
     }
 
