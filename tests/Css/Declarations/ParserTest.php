@@ -549,6 +549,69 @@ final class ParserTest extends TestCase
         yield 'font-weight keeps important flag' => ['font-weight: 700 !important', [
             ['type' => 'property', 'name' => 'font-weight', 'value' => '700', 'important' => true],
         ]];
+        yield 'font-stretch accepts normal' => ['font-stretch: normal', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'font-stretch accepts ultra-condensed' => ['font-stretch: ultra-condensed', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'ultra-condensed', 'important' => false],
+        ]];
+        yield 'font-stretch accepts extra-condensed' => ['font-stretch: extra-condensed', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'extra-condensed', 'important' => false],
+        ]];
+        yield 'font-stretch accepts condensed' => ['font-stretch: condensed', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'condensed', 'important' => false],
+        ]];
+        yield 'font-stretch accepts semi-condensed' => ['font-stretch: semi-condensed', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'semi-condensed', 'important' => false],
+        ]];
+        yield 'font-stretch accepts semi-expanded' => ['font-stretch: semi-expanded', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'semi-expanded', 'important' => false],
+        ]];
+        yield 'font-stretch accepts expanded' => ['font-stretch: expanded', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'expanded', 'important' => false],
+        ]];
+        yield 'font-stretch accepts extra-expanded' => ['font-stretch: extra-expanded', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'extra-expanded', 'important' => false],
+        ]];
+        yield 'font-stretch accepts ultra-expanded' => ['font-stretch: ultra-expanded', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'ultra-expanded', 'important' => false],
+        ]];
+        yield 'font-stretch accepts css-wide keyword' => ['font-stretch: inherit', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'font-stretch lowercases mixed-case keyword' => ['font-stretch: SeMi-ExPaNdEd', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => 'semi-expanded', 'important' => false],
+        ]];
+        yield 'font-stretch accepts percentage' => ['font-stretch: 87.5%', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => '87.5%', 'important' => false],
+        ]];
+        yield 'font-stretch accepts normalized exponent percentage' => ['font-stretch: 1e2%', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => '100%', 'important' => false],
+        ]];
+        yield 'font-stretch rejects negative percentage' => ['font-stretch: -1%', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => '-1%', 'important' => false],
+        ]];
+        yield 'font-stretch rejects number' => ['font-stretch: 100', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => '100', 'important' => false],
+        ]];
+        yield 'font-stretch rejects length' => ['font-stretch: 100px', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => '100px', 'important' => false],
+        ]];
+        yield 'font-stretch rejects multiple values' => ['font-stretch: normal 100%', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => 'normal 100%', 'important' => false],
+        ]];
+        yield 'font-stretch rejects unknown keyword' => ['font-stretch: narrower', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => 'narrower', 'important' => false],
+        ]];
+        yield 'font-stretch rejects comment-split keyword' => ['font-stretch: semi-/**/expanded', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => 'semi-expanded', 'important' => false],
+        ]];
+        yield 'font-stretch rejects comment-split percentage' => ['font-stretch: 10/**/%', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => '10%', 'important' => false],
+        ]];
+        yield 'font-stretch keeps important flag' => ['font-stretch: 120% !important', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => '120%', 'important' => true],
+        ]];
         yield 'line-height accepts normal' => ['line-height: normal', [
             ['type' => 'property', 'name' => 'line-height', 'value' => 'normal', 'important' => false],
         ]];
