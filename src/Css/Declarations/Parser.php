@@ -1305,7 +1305,7 @@ final class Parser
         [$valueTokens, $important] = self::extractImportant($valueTokens);
         $value = self::serializeComponentValue($valueTokens);
         $property = strtolower($name);
-        $classificationTokens = in_array($property, [
+        $usesLexborLeadingTokens = isset(self::KEYWORD_PROPERTIES[$property]) || in_array($property, [
             'alignment-baseline',
             'background-color',
             'baseline-shift',
@@ -1321,6 +1321,8 @@ final class Parser
             'border-top-color',
             'color',
             'dominant-baseline',
+            'float',
+            'float-reference',
             'font-family',
             'text-decoration-color',
             'text-decoration',
@@ -1329,9 +1331,8 @@ final class Parser
             'vertical-align',
             'wrap-flow',
             'wrap-through',
-        ], true)
-            ? [...$leadingValueTokens, ...$valueTokens]
-            : $valueTokens;
+        ], true);
+        $classificationTokens = $usesLexborLeadingTokens ? [...$leadingValueTokens, ...$valueTokens] : $valueTokens;
         $type = $this->classifyDeclaration($name, $value, $classificationTokens);
 
         return [
@@ -1430,7 +1431,7 @@ final class Parser
             'float' => self::floatValue($valueTokens) !== null ? 'property' : 'undef',
             'float-defer' => self::floatDeferValue($valueTokens) !== null ? 'property' : 'undef',
             'float-offset' => self::floatOffsetValue($valueTokens) !== null ? 'property' : 'undef',
-            'float-reference' => self::singleKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
+            'float-reference' => self::singleLexborKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
             'font-family' => self::fontFamilyValue($valueTokens) !== null ? 'property' : 'undef',
             'font-size' => self::fontSizeValue($valueTokens) !== null ? 'property' : 'undef',
             'font-stretch' => self::fontStretchValue($valueTokens) !== null ? 'property' : 'undef',
@@ -1837,7 +1838,7 @@ final class Parser
      */
     private static function floatValue(array $tokens): ?string
     {
-        return self::singleKeywordValue($tokens, self::FLOAT_KEYWORDS)
+        return self::singleLexborKeywordValue($tokens, self::FLOAT_KEYWORDS)
             ?? self::floatSnapValue($tokens);
     }
 
@@ -1846,6 +1847,14 @@ final class Parser
      */
     private static function floatSnapValue(array $tokens): ?string
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type !== 'function') {
+            return null;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $tokens = self::nonIgnorableTokens($tokens);
 
         if (count($tokens) !== 3 && count($tokens) !== 5) {
@@ -3746,16 +3755,7 @@ final class Parser
      */
     private static function isValidKeywordProperty(string $property, array $tokens): bool
     {
-        $tokens = self::nonIgnorableTokens($tokens);
-
-        if (count($tokens) !== 1 || $tokens[0]->type !== 'ident') {
-            return false;
-        }
-
-        $value = strtolower($tokens[0]->value);
-
-        return isset(self::CSS_WIDE_KEYWORDS[$value])
-            || isset(self::KEYWORD_PROPERTIES[$property][$value]);
+        return self::singleLexborKeywordValue($tokens, self::KEYWORD_PROPERTIES[$property]) !== null;
     }
 
     /**
@@ -3768,19 +3768,19 @@ final class Parser
         }
 
         if ($property === 'text-overflow') {
-            return self::singleKeywordValue($tokens, self::KEYWORD_PROPERTIES['text-overflow']) ?? $fallback;
+            return self::singleLexborKeywordValue($tokens, self::KEYWORD_PROPERTIES['text-overflow']) ?? $fallback;
         }
 
         if ($property === 'white-space') {
-            return self::singleKeywordValue($tokens, self::KEYWORD_PROPERTIES['white-space']) ?? $fallback;
+            return self::singleLexborKeywordValue($tokens, self::KEYWORD_PROPERTIES['white-space']) ?? $fallback;
         }
 
         if ($property === 'word-break') {
-            return self::singleKeywordValue($tokens, self::KEYWORD_PROPERTIES['word-break']) ?? $fallback;
+            return self::singleLexborKeywordValue($tokens, self::KEYWORD_PROPERTIES['word-break']) ?? $fallback;
         }
 
         if (isset(self::KEYWORD_PROPERTIES[$property])) {
-            return self::serializeIdentSequence($tokens) ?? $fallback;
+            return self::singleLexborKeywordValue($tokens, self::KEYWORD_PROPERTIES[$property]) ?? $fallback;
         }
 
         if ($property === 'tab-size') {
@@ -3868,7 +3868,7 @@ final class Parser
         }
 
         if ($property === 'float-reference') {
-            return self::singleKeywordValue($tokens, self::FLOAT_REFERENCE_KEYWORDS) ?? $fallback;
+            return self::singleLexborKeywordValue($tokens, self::FLOAT_REFERENCE_KEYWORDS) ?? $fallback;
         }
 
         if ($property === 'float-defer') {

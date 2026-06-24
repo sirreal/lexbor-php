@@ -930,6 +930,85 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function genericKeywordLexborFidelityProvider(): iterable
+    {
+        yield 'box-sizing lowercases mixed-case keyword' => ['box-sizing: Border-Box', [
+            ['type' => 'property', 'name' => 'box-sizing', 'value' => 'border-box', 'important' => false],
+        ]];
+        yield 'position lowercases mixed-case keyword' => ['position: StIcKy', [
+            ['type' => 'property', 'name' => 'position', 'value' => 'sticky', 'important' => false],
+        ]];
+        yield 'clear lowercases mixed-case keyword' => ['clear: Inline-End', [
+            ['type' => 'property', 'name' => 'clear', 'value' => 'inline-end', 'important' => false],
+        ]];
+        yield 'direction lowercases mixed-case keyword' => ['direction: RtL', [
+            ['type' => 'property', 'name' => 'direction', 'value' => 'rtl', 'important' => false],
+        ]];
+        yield 'visibility lowercases mixed-case keyword' => ['visibility: ColLapSe', [
+            ['type' => 'property', 'name' => 'visibility', 'value' => 'collapse', 'important' => false],
+        ]];
+        yield 'align-content lowercases mixed-case keyword' => ['align-content: Space-Between', [
+            ['type' => 'property', 'name' => 'align-content', 'value' => 'space-between', 'important' => false],
+        ]];
+        yield 'align-items lowercases mixed-case keyword' => ['align-items: BaseLine', [
+            ['type' => 'property', 'name' => 'align-items', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'align-self lowercases mixed-case keyword' => ['align-self: Flex-End', [
+            ['type' => 'property', 'name' => 'align-self', 'value' => 'flex-end', 'important' => false],
+        ]];
+        yield 'justify-content lowercases mixed-case keyword' => ['justify-content: Flex-Start', [
+            ['type' => 'property', 'name' => 'justify-content', 'value' => 'flex-start', 'important' => false],
+        ]];
+        yield 'overflow-x lowercases mixed-case keyword' => ['overflow-x: HiDdEn', [
+            ['type' => 'property', 'name' => 'overflow-x', 'value' => 'hidden', 'important' => false],
+        ]];
+        yield 'overflow-wrap lowercases mixed-case keyword' => ['overflow-wrap: Break-Word', [
+            ['type' => 'property', 'name' => 'overflow-wrap', 'value' => 'break-word', 'important' => false],
+        ]];
+        yield 'text-align lowercases mixed-case keyword' => ['text-align: Match-Parent', [
+            ['type' => 'property', 'name' => 'text-align', 'value' => 'match-parent', 'important' => false],
+        ]];
+        yield 'text-align-all lowercases mixed-case keyword' => ['text-align-all: JuStIfY', [
+            ['type' => 'property', 'name' => 'text-align-all', 'value' => 'justify', 'important' => false],
+        ]];
+        yield 'text-align-last lowercases mixed-case keyword' => ['text-align-last: RiGhT', [
+            ['type' => 'property', 'name' => 'text-align-last', 'value' => 'right', 'important' => false],
+        ]];
+        yield 'unicode-bidi lowercases mixed-case keyword' => ['unicode-bidi: IsOlAtE-Override', [
+            ['type' => 'property', 'name' => 'unicode-bidi', 'value' => 'isolate-override', 'important' => false],
+        ]];
+        yield 'writing-mode lowercases mixed-case keyword' => ['writing-mode: Vertical-RL', [
+            ['type' => 'property', 'name' => 'writing-mode', 'value' => 'vertical-rl', 'important' => false],
+        ]];
+        yield 'box-sizing rejects comment-separated leading whitespace like Lexbor' => ['box-sizing: /**/  border-box', [
+            ['type' => 'undef', 'name' => 'box-sizing', 'value' => 'border-box', 'important' => false],
+        ]];
+        yield 'position rejects comment-separated leading whitespace like Lexbor' => ['position: /**/  fixed', [
+            ['type' => 'undef', 'name' => 'position', 'value' => 'fixed', 'important' => false],
+        ]];
+        yield 'align-content rejects comment-separated leading whitespace like Lexbor' => ['align-content: /**/  stretch', [
+            ['type' => 'undef', 'name' => 'align-content', 'value' => 'stretch', 'important' => false],
+        ]];
+        yield 'text-align rejects comment-separated leading whitespace like Lexbor' => ['text-align: /**/  center', [
+            ['type' => 'undef', 'name' => 'text-align', 'value' => 'center', 'important' => false],
+        ]];
+        yield 'visibility accepts trailing whitespace-comment-whitespace like Lexbor' => ['visibility: hidden /**/  ', [
+            ['type' => 'property', 'name' => 'visibility', 'value' => 'hidden', 'important' => false],
+        ]];
+        yield 'writing-mode keeps important flag' => ['writing-mode: vertical-lr !important', [
+            ['type' => 'property', 'name' => 'writing-mode', 'value' => 'vertical-lr', 'important' => true],
+        ]];
+        yield 'overflow-y rejects multiple keywords' => ['overflow-y: hidden scroll', [
+            ['type' => 'undef', 'name' => 'overflow-y', 'value' => 'hidden scroll', 'important' => false],
+        ]];
+        yield 'clear rejects comment-split keyword' => ['clear: inline-/**/start', [
+            ['type' => 'undef', 'name' => 'clear', 'value' => 'inline-start', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function hangingPunctuationDeclarationProvider(): iterable
     {
         yield 'hanging-punctuation accepts none' => ['hanging-punctuation: none', [
@@ -2896,6 +2975,12 @@ final class ParserTest extends TestCase
         yield 'float keeps important flag' => ['float: snap-inline(2px, near) !important', [
             ['type' => 'property', 'name' => 'float', 'value' => 'snap-inline(2px, near)', 'important' => true],
         ]];
+        yield 'float rejects keyword with comment-separated leading whitespace like Lexbor' => ['float: /**/  left', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'left', 'important' => false],
+        ]];
+        yield 'float rejects snap function with comment-separated leading whitespace like Lexbor' => ['float: /**/  snap-block(2px)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(2px)', 'important' => false],
+        ]];
         yield 'float rejects auto keyword' => ['float: auto', [
             ['type' => 'undef', 'name' => 'float', 'value' => 'auto', 'important' => false],
         ]];
@@ -2971,6 +3056,9 @@ final class ParserTest extends TestCase
         ]];
         yield 'float-reference lowercases mixed-case keyword' => ['float-reference: CoLuMn', [
             ['type' => 'property', 'name' => 'float-reference', 'value' => 'column', 'important' => false],
+        ]];
+        yield 'float-reference rejects comment-separated leading whitespace like Lexbor' => ['float-reference: /**/  inline', [
+            ['type' => 'undef', 'name' => 'float-reference', 'value' => 'inline', 'important' => false],
         ]];
         yield 'float-reference rejects float keyword' => ['float-reference: left', [
             ['type' => 'undef', 'name' => 'float-reference', 'value' => 'left', 'important' => false],
@@ -3111,6 +3199,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('keywordDeclarationProvider')]
     public function testKeywordDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('genericKeywordLexborFidelityProvider')]
+    public function testGenericKeywordLexborFidelity(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
