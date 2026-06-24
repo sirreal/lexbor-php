@@ -1330,6 +1330,7 @@ final class Parser
             'font-family',
             'font-size',
             'font-stretch',
+            'font-style',
             'font-weight',
             'letter-spacing',
             'line-height',
@@ -3417,6 +3418,14 @@ final class Parser
      */
     private static function fontStyleValue(array $tokens): ?string
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type !== 'ident') {
+            return null;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $components = self::splitWhitespaceSeparatedComponents($tokens);
 
         if ($components === [] || count($components[0]) !== 1 || $components[0][0]->type !== 'ident') {

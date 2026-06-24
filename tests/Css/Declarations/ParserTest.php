@@ -2117,6 +2117,9 @@ final class ParserTest extends TestCase
         yield 'font-style accepts css-wide keyword' => ['font-style: inherit', [
             ['type' => 'property', 'name' => 'font-style', 'value' => 'inherit', 'important' => false],
         ]];
+        yield 'font-style accepts normal leading whitespace' => ['font-style:   italic', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'italic', 'important' => false],
+        ]];
         yield 'font-style lowercases mixed-case keyword' => ['font-style: ItAlIc', [
             ['type' => 'property', 'name' => 'font-style', 'value' => 'italic', 'important' => false],
         ]];
@@ -2134,6 +2137,9 @@ final class ParserTest extends TestCase
         ]];
         yield 'font-style accepts raw turn value like Lexbor' => ['font-style: oblique .5turn', [
             ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique 0.5turn', 'important' => false],
+        ]];
+        yield 'font-style accepts trailing whitespace-comment-whitespace like Lexbor' => ['font-style: oblique 10deg /**/  ', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique 10deg', 'important' => false],
         ]];
         yield 'font-style treats comment between oblique and angle as separator' => ['font-style: oblique/**/10deg', [
             ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique 10deg', 'important' => false],
@@ -2166,6 +2172,15 @@ final class ParserTest extends TestCase
             ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique', 'important' => false],
         ]];
         yield 'font-style rejects comment-split angle' => ['font-style: oblique 10/**/deg', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique 10deg', 'important' => false],
+        ]];
+        yield 'font-style rejects keyword with comment-separated leading whitespace like Lexbor' => ['font-style: /**/  italic', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'italic', 'important' => false],
+        ]];
+        yield 'font-style rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['font-style: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'font-style rejects oblique angle with comment-separated leading whitespace like Lexbor' => ['font-style: /**/  oblique 10deg', [
             ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique 10deg', 'important' => false],
         ]];
         yield 'font-style keeps important flag' => ['font-style: oblique -15deg !important', [
