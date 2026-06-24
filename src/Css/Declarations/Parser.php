@@ -25,6 +25,7 @@ final class Parser
         'flex-grow' => true,
         'flex-shrink' => true,
         'flex-wrap' => true,
+        'float' => true,
         'float-defer' => true,
         'float-offset' => true,
         'float-reference' => true,
@@ -266,6 +267,32 @@ final class Parser
     private const array FLOAT_DEFER_KEYWORDS = [
         'last' => true,
         'none' => true,
+    ];
+
+    private const array FLOAT_KEYWORDS = [
+        'block-end' => true,
+        'block-start' => true,
+        'bottom' => true,
+        'inline-end' => true,
+        'inline-start' => true,
+        'left' => true,
+        'none' => true,
+        'right' => true,
+        'snap-block' => true,
+        'snap-inline' => true,
+        'top' => true,
+    ];
+
+    private const array FLOAT_SNAP_BLOCK_KEYWORDS = [
+        'end' => true,
+        'near' => true,
+        'start' => true,
+    ];
+
+    private const array FLOAT_SNAP_INLINE_KEYWORDS = [
+        'left' => true,
+        'near' => true,
+        'right' => true,
     ];
 
     private const array KEYWORD_PROPERTIES = [
@@ -617,6 +644,7 @@ final class Parser
             'flex' => self::parseFlex($valueTokens) !== null ? 'property' : 'undef',
             'flex-basis' => self::isValidFlexBasis($valueTokens) ? 'property' : 'undef',
             'flex-flow' => self::isValidFlexFlow($valueTokens) ? 'property' : 'undef',
+            'float' => self::floatValue($valueTokens) !== null ? 'property' : 'undef',
             'float-defer' => self::floatDeferValue($valueTokens) !== null ? 'property' : 'undef',
             'float-offset' => self::floatOffsetValue($valueTokens) !== null ? 'property' : 'undef',
             'float-reference' => self::singleKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
@@ -1008,6 +1036,81 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function floatValue(array $tokens): ?string
+    {
+        return self::singleKeywordValue($tokens, self::FLOAT_KEYWORDS)
+            ?? self::floatSnapValue($tokens);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function floatSnapValue(array $tokens): ?string
+    {
+        $tokens = self::nonIgnorableTokens($tokens);
+
+        if (count($tokens) !== 3 && count($tokens) !== 5) {
+            return null;
+        }
+
+        $function = $tokens[0];
+        if ($function->type !== 'function') {
+            return null;
+        }
+
+        if (! str_ends_with($function->value, '(')) {
+            return null;
+        }
+
+        $name = strtolower(substr($function->value, 0, -1));
+        if ($name !== 'snap-block' && $name !== 'snap-inline') {
+            return null;
+        }
+
+        $length = self::floatSnapLengthValue($tokens[1]);
+        if ($length === null) {
+            return null;
+        }
+
+        if ($tokens[2]->type === 'right-parenthesis' && count($tokens) === 3) {
+            return $name . '(' . $length . ')';
+        }
+
+        if (
+            $tokens[2]->type !== 'comma'
+            || count($tokens) !== 5
+            || $tokens[3]->type !== 'ident'
+            || $tokens[4]->type !== 'right-parenthesis'
+        ) {
+            return null;
+        }
+
+        $snapType = strtolower($tokens[3]->value);
+        $snapKeywords = $name === 'snap-block'
+            ? self::FLOAT_SNAP_BLOCK_KEYWORDS
+            : self::FLOAT_SNAP_INLINE_KEYWORDS;
+
+        return isset($snapKeywords[$snapType])
+            ? $name . '(' . $length . ', ' . $snapType . ')'
+            : null;
+    }
+
+    private static function floatSnapLengthValue(Token $token): ?string
+    {
+        if ($token->type === 'number') {
+            return $token->value === '0' ? $token->value : null;
+        }
+
+        if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
+            return self::canonicalLengthDimensionValue($token->value);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function isValidNumberPercentage(array $tokens): bool
     {
         $token = self::singleValueToken($tokens);
@@ -1173,6 +1276,10 @@ final class Parser
 
         if (in_array($property, ['flex-grow', 'flex-shrink'], true)) {
             return self::singleValueToken($tokens)?->value ?? $fallback;
+        }
+
+        if ($property === 'float') {
+            return self::floatValue($tokens) ?? $fallback;
         }
 
         if ($property === 'float-reference') {

@@ -1056,6 +1056,136 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function floatDeclarationProvider(): iterable
+    {
+        yield 'float accepts none keyword' => ['float: none', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'float accepts left keyword' => ['float: left', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'left', 'important' => false],
+        ]];
+        yield 'float accepts right keyword' => ['float: right', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'right', 'important' => false],
+        ]];
+        yield 'float accepts top keyword' => ['float: top', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'top', 'important' => false],
+        ]];
+        yield 'float accepts bottom keyword' => ['float: bottom', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'bottom', 'important' => false],
+        ]];
+        yield 'float accepts block-start keyword' => ['float: block-start', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'block-start', 'important' => false],
+        ]];
+        yield 'float accepts block-end keyword' => ['float: block-end', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'block-end', 'important' => false],
+        ]];
+        yield 'float accepts inline-start keyword' => ['float: inline-start', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'inline-start', 'important' => false],
+        ]];
+        yield 'float accepts inline-end keyword' => ['float: inline-end', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'inline-end', 'important' => false],
+        ]];
+        yield 'float accepts snap-block keyword' => ['float: snap-block', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-block', 'important' => false],
+        ]];
+        yield 'float accepts snap-inline keyword' => ['float: snap-inline', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-inline', 'important' => false],
+        ]];
+        yield 'float accepts css-wide keyword' => ['float: inherit', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'float lowercases mixed-case keyword' => ['float: RiGhT', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'right', 'important' => false],
+        ]];
+        yield 'float accepts snap-block function with length' => ['float: snap-block(2px)', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-block(2px)', 'important' => false],
+        ]];
+        yield 'float snap-block serializes q length with Lexbor uppercase spelling' => ['float: snap-block(2q, start)', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-block(2Q, start)', 'important' => false],
+        ]];
+        yield 'float snap-block accepts zero length and end snap' => ['float: snap-block(0, end)', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-block(0, end)', 'important' => false],
+        ]];
+        yield 'float snap-block accepts near snap' => ['float: snap-block(2em, near)', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-block(2em, near)', 'important' => false],
+        ]];
+        yield 'float snap-inline lowercases mixed-case length unit' => ['float: snap-inline(3PX, left)', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-inline(3px, left)', 'important' => false],
+        ]];
+        yield 'float snap-inline accepts right snap' => ['float: snap-inline(4px, right)', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-inline(4px, right)', 'important' => false],
+        ]];
+        yield 'float snap-inline accepts near snap' => ['float: snap-inline(5px, near)', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-inline(5px, near)', 'important' => false],
+        ]];
+        yield 'float lowercases mixed-case snap function' => ['float: SNAP-BLOCK(2PX, StArT)', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-block(2px, start)', 'important' => false],
+        ]];
+        yield 'float normalizes snap function spacing' => ['float: snap-block( 2px , start )', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-block(2px, start)', 'important' => false],
+        ]];
+        yield 'float trims whitespace before trailing comment' => ['float: snap-inline(2px) /**/;', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-inline(2px)', 'important' => false],
+        ]];
+        yield 'float keeps important flag' => ['float: snap-inline(2px, near) !important', [
+            ['type' => 'property', 'name' => 'float', 'value' => 'snap-inline(2px, near)', 'important' => true],
+        ]];
+        yield 'float rejects auto keyword' => ['float: auto', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'float rejects multiple keywords' => ['float: left right', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'left right', 'important' => false],
+        ]];
+        yield 'float snap-block rejects inline snap keyword' => ['float: snap-block(2px, left)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(2px, left)', 'important' => false],
+        ]];
+        yield 'float snap-inline rejects block snap keyword' => ['float: snap-inline(2px, start)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-inline(2px, start)', 'important' => false],
+        ]];
+        yield 'float rejects unknown snap keyword' => ['float: snap-block(2px, middle)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(2px, middle)', 'important' => false],
+        ]];
+        yield 'float rejects too many snap arguments' => ['float: snap-block(2px, start, end)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(2px, start, end)', 'important' => false],
+        ]];
+        yield 'float rejects tokens after closed snap-block function' => ['float: snap-block(2px), start', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(2px), start', 'important' => false],
+        ]];
+        yield 'float rejects tokens after closed snap-inline function' => ['float: snap-inline(2px), right', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-inline(2px), right', 'important' => false],
+        ]];
+        yield 'float rejects snap percentage' => ['float: snap-block(2%)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(2%)', 'important' => false],
+        ]];
+        yield 'float rejects nonzero unitless snap length' => ['float: snap-block(1)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(1)', 'important' => false],
+        ]];
+        yield 'float rejects non-length snap dimension' => ['float: snap-block(1deg)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(1deg)', 'important' => false],
+        ]];
+        yield 'float rejects empty snap function' => ['float: snap-block()', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block()', 'important' => false],
+        ]];
+        yield 'float rejects unknown function' => ['float: calc(2px)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'calc(2px)', 'important' => false],
+        ]];
+        yield 'float rejects comment-split snap length' => ['float: snap-block(2/**/px)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(2px)', 'important' => false],
+        ]];
+        yield 'float rejects escaped parenthesis in snap-block function name' => ['float: snap-block\((2px)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block((2px)', 'important' => false],
+        ]];
+        yield 'float rejects escaped parenthesis in snap-inline function name' => ['float: snap-inline\28 (2px, left)', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-inline((2px, left)', 'important' => false],
+        ]];
+        yield 'float rejects missing snap close parenthesis' => ['float: snap-block(2px', [
+            ['type' => 'undef', 'name' => 'float', 'value' => 'snap-block(2px', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function floatSupportDeclarationProvider(): iterable
     {
         yield 'float-reference accepts inline' => ['float-reference: inline', [
@@ -1296,6 +1426,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('flexShorthandDeclarationProvider')]
     public function testFlexShorthandDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('floatDeclarationProvider')]
+    public function testFloatDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
