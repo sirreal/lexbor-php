@@ -149,6 +149,23 @@ final class MatcherTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<string>}>
+     */
+    public static function upstreamLexborContainsPseudoSelectorProvider(): iterable
+    {
+        yield 'selectors match lexbor-contains string' => ['div p span:lexbor-contains("abc")', ['1']];
+        yield 'selectors match lexbor-contains string i modifier' => ['div p span:lexbor-contains("abc" i)', ['1', '2', '3', '4', '5']];
+        yield 'selectors match lexbor-contains tight string i modifier' => ['div p span:lexbor-contains("abc"i)', ['1', '2', '3', '4', '5']];
+        yield 'selectors match lexbor-contains mixed-case string' => ['div p span:lexbor-contains("AbC")', ['2']];
+        yield 'selectors match lexbor-contains missing string i modifier' => ['div p span:lexbor-contains("cba"i)', []];
+        yield 'selectors match lexbor-contains spaced string i modifier' => ['div p span:lexbor-contains(  "abc"   i)', ['1', '2', '3', '4', '5']];
+        yield 'selectors match lexbor-contains trailing-spaced string i modifier' => ['div p span:lexbor-contains(   "abc"   i   )', ['1', '2', '3', '4', '5']];
+        yield 'selectors match lexbor-contains spaced mixed-case string' => ['div p span:lexbor-contains(   "AbC" )', ['2']];
+        yield 'selectors match lexbor-contains ident i modifier' => ['div p span:lexbor-contains(abc i)', ['1', '2', '3', '4', '5']];
+        yield 'selectors match lexbor-contains mixed-case ident' => ['div p span:lexbor-contains(AbC)', ['2']];
+    }
+
+    /**
      * @return iterable<string, array{string, string, int}>
      */
     public static function upstreamMatchingEdgeSelectorProvider(): iterable
@@ -284,6 +301,51 @@ final class MatcherTest extends TestCase
         self::assertSame(
             $expected,
             self::attributeValues((new Matcher())->find($document, $selector), $labelAttribute),
+        );
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('upstreamLexborContainsPseudoSelectorProvider')]
+    public function testFindMatchesUpstreamLexborContainsPseudoSelector(string $selector, array $expected): void
+    {
+        $document = $this->fixtureDocument();
+
+        self::assertSame(
+            $expected,
+            self::attributeValues((new Matcher())->find($document->bodyElement(), $selector), 'span'),
+        );
+    }
+
+    public function testLexborContainsMatchesOnlyImmediateTextChildren(): void
+    {
+        $document = new Document();
+        self::assertSame(
+            Status::Ok,
+            $document->parse('<!doctype html><body><div id=nested><span>abc</span></div><div id=split>a<span></span>b</div><div id=direct>xyz</div></body>'),
+        );
+
+        $matcher = new Matcher();
+
+        self::assertSame(
+            [],
+            self::attributeValues($matcher->find($document->bodyElement(), 'div:lexbor-contains(abc)'), 'id'),
+        );
+        self::assertSame(
+            [],
+            self::attributeValues($matcher->find($document->bodyElement(), 'div:lexbor-contains(ab)'), 'id'),
+        );
+
+        $emptyNeedleDocument = new Document();
+        self::assertSame(
+            Status::Ok,
+            $emptyNeedleDocument->parse('<!doctype html><body><div id=empty></div><div id=comment><!--x--></div><div id=nested><span></span></div><div id=direct>x</div></body>'),
+        );
+
+        self::assertSame(
+            ['direct'],
+            self::attributeValues($matcher->find($emptyNeedleDocument->bodyElement(), 'div:lexbor-contains("")'), 'id'),
         );
     }
 

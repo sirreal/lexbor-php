@@ -10,6 +10,7 @@ use Lexbor\Css\Syntax\Tokenizer;
 use Lexbor\Dom\Comment;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
+use Lexbor\Dom\Text;
 use Lexbor\Html\Document;
 
 final class Matcher
@@ -579,7 +580,7 @@ final class Matcher
 
     /**
      * @param list<Token> $tokens
-     * @return array{name: string, selectors: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>}|array{name: string, a: int, b: int, of: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null}|null
+     * @return array{name: string, selectors: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>}|array{name: string, a: int, b: int, of: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null}|array{name: string, needle: string, caseInsensitive: bool}|null
      */
     private function parseFunctionalPseudoSelector(array $tokens, int &$offset): ?array
     {
@@ -589,7 +590,7 @@ final class Matcher
         }
 
         $name = strtolower(substr($function->value, 0, -1));
-        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type'], true)) {
+        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type', 'lexbor-contains'], true)) {
             return null;
         }
 
@@ -634,6 +635,10 @@ final class Matcher
             return $nth;
         }
 
+        if ($name === 'lexbor-contains') {
+            return $this->parseLexborContainsPseudoSelector($body);
+        }
+
         $selectors = match ($name) {
             'not' => $this->parseSelectorTokenList($body),
             'has' => $this->parseForgivingRelativeSelectorTokenList($body),
@@ -646,6 +651,43 @@ final class Matcher
         return [
             'name' => $name,
             'selectors' => $selectors,
+        ];
+    }
+
+    /**
+     * @param list<Token> $body
+     * @return array{name: string, needle: string, caseInsensitive: bool}|null
+     */
+    private function parseLexborContainsPseudoSelector(array $body): ?array
+    {
+        $offset = 0;
+        $needle = self::attributeValue($body[$offset] ?? null);
+        if ($needle === null) {
+            return null;
+        }
+
+        $offset++;
+        self::skipWhitespace($body, $offset);
+
+        $caseInsensitive = false;
+        if (($body[$offset] ?? null)?->type === 'ident') {
+            if (strtolower($body[$offset]->value) !== 'i') {
+                return null;
+            }
+
+            $caseInsensitive = true;
+            $offset++;
+            self::skipWhitespace($body, $offset);
+        }
+
+        if (isset($body[$offset])) {
+            return null;
+        }
+
+        return [
+            'name' => 'lexbor-contains',
+            'needle' => $needle,
+            'caseInsensitive' => $caseInsensitive,
         ];
     }
 
@@ -935,7 +977,7 @@ final class Matcher
     }
 
     /**
-     * @param array{name: string, selectors?: list<array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string}>, a?: int, b?: int, of?: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null} $pseudo
+     * @param array{name: string, selectors?: list<array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string}>, a?: int, b?: int, of?: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null, needle?: string, caseInsensitive?: bool} $pseudo
      */
     private function matchesFunctionalPseudo(Element $element, array $pseudo, ?Element $scopeRoot): bool
     {
@@ -955,6 +997,7 @@ final class Matcher
             'nth-last-child' => $this->matchesNthChild($element, $pseudo, true),
             'nth-of-type' => $this->matchesNthOfType($element, $pseudo, false),
             'nth-last-of-type' => $this->matchesNthOfType($element, $pseudo, true),
+            'lexbor-contains' => self::hasTextChildContaining($element, $pseudo['needle'], $pseudo['caseInsensitive']),
             default => false,
         };
     }
@@ -1381,6 +1424,17 @@ final class Matcher
         }
 
         return true;
+    }
+
+    private static function hasTextChildContaining(Element $element, string $needle, bool $caseInsensitive): bool
+    {
+        for ($child = $element->firstChild; $child !== null; $child = $child->next) {
+            if ($child instanceof Text && self::contains($child->data, $needle, $caseInsensitive)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function hasPreviousElementSibling(Element $element, Element $previous): bool
