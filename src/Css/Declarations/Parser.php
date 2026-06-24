@@ -1368,6 +1368,7 @@ final class Parser
             'text-decoration',
             'text-decoration-line',
             'text-decoration-style',
+            'text-indent',
             'text-transform',
             'vertical-align',
             'wrap-flow',
@@ -3212,6 +3213,14 @@ final class Parser
      */
     private static function textIndentValue(array $tokens): ?string
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (! isset($tokens[$offset]) || self::isIgnorableToken($tokens[$offset])) {
+            return null;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $tokens = self::nonIgnorableTokens($tokens);
 
         if ($tokens === [] || count($tokens) > 3) {

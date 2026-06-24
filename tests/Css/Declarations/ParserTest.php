@@ -2489,6 +2489,9 @@ final class ParserTest extends TestCase
      */
     public static function textIndentDeclarationProvider(): iterable
     {
+        yield 'text-indent accepts normal leading whitespace' => ['text-indent:   2px', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px', 'important' => false],
+        ]];
         yield 'text-indent accepts length' => ['text-indent: 2px', [
             ['type' => 'property', 'name' => 'text-indent', 'value' => '2px', 'important' => false],
         ]];
@@ -2536,6 +2539,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'text-indent treats comments between keyword and length as whitespace' => ['text-indent: hanging/**/2px', [
             ['type' => 'property', 'name' => 'text-indent', 'value' => '2px hanging', 'important' => false],
+        ]];
+        yield 'text-indent rejects length with comment-separated leading whitespace like Lexbor' => ['text-indent: /**/  2px', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'text-indent rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['text-indent: /**/  unset', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'text-indent rejects keyword-first value with comment-separated leading whitespace like Lexbor' => ['text-indent: /**/  hanging 2px', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'hanging 2px', 'important' => false],
         ]];
         yield 'text-indent keeps important flag' => ['text-indent: 2em each-line !important', [
             ['type' => 'property', 'name' => 'text-indent', 'value' => '2em each-line', 'important' => true],
