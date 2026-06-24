@@ -57,6 +57,25 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
+    public static function upstreamSerializeExtProcessingInstructionProvider(): iterable
+    {
+        yield 'processing_instruction.ton #1 xml instruction becomes comment' => [
+            '<div><?xml version="1.0"?></div>',
+            '<div><!--?xml version="1.0"?--></div>',
+        ];
+        yield 'processing_instruction.ton #2 php instruction becomes comment' => [
+            "<div><?php echo 'hello'; ?></div>",
+            "<div><!--?php echo 'hello'; ?--></div>",
+        ];
+        yield 'processing_instruction.ton #5 adjacent instructions become comments' => [
+            '<div><?xml version="1.0"?><?php echo 1; ?></div>',
+            '<div><!--?xml version="1.0"?--><!--?php echo 1; ?--></div>',
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function upstreamSerializeExtTextEntityProvider(): iterable
     {
         yield 'text.ton #1 paragraph text' => ['<p>hello</p>', '<p>hello</p>'];
@@ -228,6 +247,15 @@ final class SerializeTest extends TestCase
 
     #[DataProvider('upstreamSerializeExtCommentProvider')]
     public function testUpstreamSerializeExtCommentFixtures(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('upstreamSerializeExtProcessingInstructionProvider')]
+    public function testUpstreamSerializeExtProcessingInstructionFixtures(string $html, string $expected): void
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));

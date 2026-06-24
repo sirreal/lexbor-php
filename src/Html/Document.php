@@ -167,7 +167,7 @@ final class Document extends Node
     private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void
     {
         $stack = [$root];
-        $pattern = '~<!--(?<comment>.*?)-->|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z][A-Za-z0-9:-]*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~s';
+        $pattern = '~<!--(?<comment>.*?)-->|<(?<bogus_comment>\?[^>]*)>|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z][A-Za-z0-9:-]*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~s';
         $offset = 0;
 
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
@@ -180,6 +180,12 @@ final class Document extends Node
 
             if (($match['comment'][1] ?? -1) !== -1) {
                 $this->appendComment($stack[count($stack) - 1], $match['comment'][0]);
+                $offset = $tagEnd;
+                continue;
+            }
+
+            if (($match['bogus_comment'][1] ?? -1) !== -1) {
+                $this->appendComment($stack[count($stack) - 1], $match['bogus_comment'][0]);
                 $offset = $tagEnd;
                 continue;
             }
