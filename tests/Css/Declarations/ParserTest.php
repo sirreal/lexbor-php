@@ -994,6 +994,115 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function textDecorationDeclarationProvider(): iterable
+    {
+        yield 'text-decoration-line accepts none' => ['text-decoration-line: none', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'text-decoration-line accepts underline' => ['text-decoration-line: underline', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration-line accepts overline' => ['text-decoration-line: overline', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'overline', 'important' => false],
+        ]];
+        yield 'text-decoration-line accepts line-through' => ['text-decoration-line: line-through', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'line-through', 'important' => false],
+        ]];
+        yield 'text-decoration-line accepts blink' => ['text-decoration-line: blink', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'blink', 'important' => false],
+        ]];
+        yield 'text-decoration-line accepts css-wide keyword' => ['text-decoration-line: inherit', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'text-decoration-line lowercases mixed-case keyword' => ['text-decoration-line: UnderLine', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration-line accepts all line keywords' => ['text-decoration-line: underline overline line-through blink', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'underline overline line-through blink', 'important' => false],
+        ]];
+        yield 'text-decoration-line serializes in Lexbor order' => ['text-decoration-line: blink line-through overline underline', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'underline overline line-through blink', 'important' => false],
+        ]];
+        yield 'text-decoration-line treats comments between keywords as separators' => ['text-decoration-line: underline/**/blink', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'underline blink', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects whitespace-comment-whitespace separator like Lexbor' => ['text-decoration-line: underline /**/ blink', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'underline  blink', 'important' => false],
+        ]];
+        yield 'text-decoration-line keeps important flag' => ['text-decoration-line: overline !important', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'overline', 'important' => true],
+        ]];
+        yield 'text-decoration-line rejects duplicate keyword' => ['text-decoration-line: underline underline', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'underline underline', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects none with line keyword' => ['text-decoration-line: none underline', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'none underline', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects line keyword with none' => ['text-decoration-line: underline none', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'underline none', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects css-wide keyword with line keyword' => ['text-decoration-line: initial underline', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'initial underline', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects line keyword with css-wide keyword' => ['text-decoration-line: underline initial', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'underline initial', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects unknown keyword' => ['text-decoration-line: strikethrough', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'strikethrough', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects non-ident token' => ['text-decoration-line: 1', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => '1', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects comment-split keyword' => ['text-decoration-line: under/**/line', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration-style accepts solid' => ['text-decoration-style: solid', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'solid', 'important' => false],
+        ]];
+        yield 'text-decoration-style accepts double' => ['text-decoration-style: double', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'double', 'important' => false],
+        ]];
+        yield 'text-decoration-style accepts dotted' => ['text-decoration-style: dotted', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'dotted', 'important' => false],
+        ]];
+        yield 'text-decoration-style accepts dashed' => ['text-decoration-style: dashed', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'dashed', 'important' => false],
+        ]];
+        yield 'text-decoration-style accepts wavy' => ['text-decoration-style: wavy', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'wavy', 'important' => false],
+        ]];
+        yield 'text-decoration-style accepts css-wide keyword' => ['text-decoration-style: revert', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'text-decoration-style lowercases mixed-case keyword' => ['text-decoration-style: WaVy', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'wavy', 'important' => false],
+        ]];
+        yield 'text-decoration-style rejects comment-separated leading whitespace like Lexbor' => ['text-decoration-style: /**/  wavy', [
+            ['type' => 'undef', 'name' => 'text-decoration-style', 'value' => 'wavy', 'important' => false],
+        ]];
+        yield 'text-decoration-style keeps important flag' => ['text-decoration-style: dotted !important', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'dotted', 'important' => true],
+        ]];
+        yield 'text-decoration-style rejects line keyword' => ['text-decoration-style: underline', [
+            ['type' => 'undef', 'name' => 'text-decoration-style', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration-style rejects multiple values' => ['text-decoration-style: solid dotted', [
+            ['type' => 'undef', 'name' => 'text-decoration-style', 'value' => 'solid dotted', 'important' => false],
+        ]];
+        yield 'text-decoration-style rejects unknown keyword' => ['text-decoration-style: groove', [
+            ['type' => 'undef', 'name' => 'text-decoration-style', 'value' => 'groove', 'important' => false],
+        ]];
+        yield 'text-decoration-style rejects non-ident token' => ['text-decoration-style: 1', [
+            ['type' => 'undef', 'name' => 'text-decoration-style', 'value' => '1', 'important' => false],
+        ]];
+        yield 'text-decoration-style rejects comment-split keyword' => ['text-decoration-style: wa/**/vy', [
+            ['type' => 'undef', 'name' => 'text-decoration-style', 'value' => 'wavy', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function fontStyleDeclarationProvider(): iterable
     {
         yield 'font-style accepts normal' => ['font-style: normal', [
@@ -2207,6 +2316,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('hangingPunctuationDeclarationProvider')]
     public function testHangingPunctuationDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('textDecorationDeclarationProvider')]
+    public function testTextDecorationDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

@@ -75,6 +75,8 @@ final class Parser
         'text-align-last' => true,
         'text-combine-upright' => true,
         'text-decoration' => true,
+        'text-decoration-line' => true,
+        'text-decoration-style' => true,
         'text-indent' => true,
         'text-justify' => true,
         'text-orientation' => true,
@@ -696,6 +698,21 @@ final class Parser
         'uppercase' => true,
     ];
 
+    private const array TEXT_DECORATION_LINE_KEYWORDS = [
+        'blink' => true,
+        'line-through' => true,
+        'overline' => true,
+        'underline' => true,
+    ];
+
+    private const array TEXT_DECORATION_STYLE_KEYWORDS = [
+        'dashed' => true,
+        'dotted' => true,
+        'double' => true,
+        'solid' => true,
+        'wavy' => true,
+    ];
+
     private const array FONT_STRETCH_KEYWORDS = [
         'condensed' => true,
         'expanded' => true,
@@ -1002,7 +1019,8 @@ final class Parser
         $valueTokens = $this->consumeValueTokens($tokens, $offset);
         [$valueTokens, $important] = self::extractImportant($valueTokens);
         $value = self::serializeComponentValue($valueTokens);
-        $classificationTokens = strtolower($name) === 'font-family'
+        $property = strtolower($name);
+        $classificationTokens = in_array($property, ['font-family', 'text-decoration-line', 'text-decoration-style'], true)
             ? [...$leadingValueTokens, ...$valueTokens]
             : $valueTokens;
         $type = $this->classifyDeclaration($name, $value, $classificationTokens);
@@ -1010,7 +1028,7 @@ final class Parser
         return [
             'type' => $type,
             'name' => $name,
-            'value' => $type === 'property' ? self::serializeKnownPropertyValue(strtolower($name), $valueTokens, $value) : $value,
+            'value' => $type === 'property' ? self::serializeKnownPropertyValue($property, $valueTokens, $value) : $value,
             'important' => $important,
         ];
     }
@@ -1116,6 +1134,8 @@ final class Parser
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
             'tab-size' => self::numberLengthValue($valueTokens) !== null ? 'property' : 'undef',
             'text-combine-upright' => self::textCombineUprightValue($valueTokens) !== null ? 'property' : 'undef',
+            'text-decoration-line' => self::textDecorationLineValue($valueTokens) !== null ? 'property' : 'undef',
+            'text-decoration-style' => self::textDecorationStyleValue($valueTokens) !== null ? 'property' : 'undef',
             'text-indent' => self::textIndentValue($valueTokens) !== null ? 'property' : 'undef',
             'text-transform' => self::textTransformValue($valueTokens) !== null ? 'property' : 'undef',
             'z-index' => self::isValidIntegerKeyword($valueTokens, ['auto' => true]) ? 'property' : 'undef',
@@ -1566,6 +1586,87 @@ final class Parser
         }
 
         return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function textDecorationLineValue(array $tokens): ?string
+    {
+        $offset = 0;
+        $count = count($tokens);
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if ($offset >= $count) {
+            return null;
+        }
+
+        $seen = [];
+
+        while ($offset < $count) {
+            $token = $tokens[$offset];
+            if ($token->type !== 'ident') {
+                return null;
+            }
+
+            $value = strtolower($token->value);
+
+            if (isset(self::CSS_WIDE_KEYWORDS[$value]) || $value === 'none') {
+                if ($seen !== []) {
+                    return null;
+                }
+
+                $offset++;
+                self::skipLexborOptionalWhitespace($tokens, $offset);
+
+                return $offset >= $count || self::remainingTokensAreIgnorable($tokens, $offset) ? $value : null;
+            }
+
+            if (! isset(self::TEXT_DECORATION_LINE_KEYWORDS[$value]) || isset($seen[$value])) {
+                return null;
+            }
+
+            $seen[$value] = true;
+            $offset++;
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            if ($offset >= $count || self::remainingTokensAreIgnorable($tokens, $offset)) {
+                break;
+            }
+        }
+
+        $parts = [];
+        foreach (['underline', 'overline', 'line-through', 'blink'] as $value) {
+            if (isset($seen[$value])) {
+                $parts[] = $value;
+            }
+        }
+
+        return $parts === [] ? null : implode(' ', $parts);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function textDecorationStyleValue(array $tokens): ?string
+    {
+        $offset = 0;
+        $count = count($tokens);
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if ($offset >= $count || $tokens[$offset]->type !== 'ident') {
+            return null;
+        }
+
+        $value = strtolower($tokens[$offset]->value);
+        if (! isset(self::CSS_WIDE_KEYWORDS[$value]) && ! isset(self::TEXT_DECORATION_STYLE_KEYWORDS[$value])) {
+            return null;
+        }
+
+        $offset++;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        return $offset >= $count || self::remainingTokensAreIgnorable($tokens, $offset) ? $value : null;
     }
 
     /**
@@ -2359,6 +2460,14 @@ final class Parser
             return self::hangingPunctuationValue($tokens) ?? $fallback;
         }
 
+        if ($property === 'text-decoration-line') {
+            return self::textDecorationLineValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'text-decoration-style') {
+            return self::textDecorationStyleValue($tokens) ?? $fallback;
+        }
+
         if ($property === 'font-weight') {
             return self::fontWeightValue($tokens) ?? $fallback;
         }
@@ -2677,6 +2786,45 @@ final class Parser
     private static function isIgnorableToken(Token $token): bool
     {
         return $token->type === 'whitespace' || $token->type === 'comment';
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function skipLexborOptionalWhitespace(array $tokens, int &$offset): void
+    {
+        self::skipLexborComments($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type === 'whitespace') {
+            $offset++;
+            self::skipLexborComments($tokens, $offset);
+        }
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function skipLexborComments(array $tokens, int &$offset): void
+    {
+        while (($tokens[$offset] ?? null)?->type === 'comment') {
+            $offset++;
+        }
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function remainingTokensAreIgnorable(array $tokens, int $offset): bool
+    {
+        while ($offset < count($tokens)) {
+            if (! self::isIgnorableToken($tokens[$offset])) {
+                return false;
+            }
+
+            $offset++;
+        }
+
+        return true;
     }
 
     /**
