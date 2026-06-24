@@ -1103,6 +1103,139 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function verticalAlignDeclarationProvider(): iterable
+    {
+        yield 'vertical-align accepts baseline' => ['vertical-align: baseline', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'vertical-align accepts text-bottom' => ['vertical-align: text-bottom', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'text-bottom', 'important' => false],
+        ]];
+        yield 'vertical-align accepts alphabetic' => ['vertical-align: alphabetic', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'alphabetic', 'important' => false],
+        ]];
+        yield 'vertical-align accepts ideographic' => ['vertical-align: ideographic', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'ideographic', 'important' => false],
+        ]];
+        yield 'vertical-align accepts middle' => ['vertical-align: middle', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'middle', 'important' => false],
+        ]];
+        yield 'vertical-align accepts central' => ['vertical-align: central', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'central', 'important' => false],
+        ]];
+        yield 'vertical-align accepts mathematical' => ['vertical-align: mathematical', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'mathematical', 'important' => false],
+        ]];
+        yield 'vertical-align accepts text-top' => ['vertical-align: text-top', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'text-top', 'important' => false],
+        ]];
+        yield 'vertical-align accepts first' => ['vertical-align: first', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'first', 'important' => false],
+        ]];
+        yield 'vertical-align accepts last' => ['vertical-align: last', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'last', 'important' => false],
+        ]];
+        yield 'vertical-align accepts css-wide keyword' => ['vertical-align: inherit', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'vertical-align accepts sub' => ['vertical-align: sub', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'sub', 'important' => false],
+        ]];
+        yield 'vertical-align accepts super' => ['vertical-align: super', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'super', 'important' => false],
+        ]];
+        yield 'vertical-align accepts top' => ['vertical-align: top', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'top', 'important' => false],
+        ]];
+        yield 'vertical-align accepts center' => ['vertical-align: center', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'center', 'important' => false],
+        ]];
+        yield 'vertical-align accepts bottom' => ['vertical-align: bottom', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'bottom', 'important' => false],
+        ]];
+        yield 'vertical-align accepts length' => ['vertical-align: 2px', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'vertical-align lowercases mixed-case length unit' => ['vertical-align: 2PX', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'vertical-align serializes q length with Lexbor uppercase spelling' => ['vertical-align: 2q', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => '2Q', 'important' => false],
+        ]];
+        yield 'vertical-align accepts percentage' => ['vertical-align: 12.5%', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => '12.5%', 'important' => false],
+        ]];
+        yield 'vertical-align accepts signed percentage' => ['vertical-align: -10%', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => '-10%', 'important' => false],
+        ]];
+        yield 'vertical-align accepts unitless zero' => ['vertical-align: 0', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => '0', 'important' => false],
+        ]];
+        yield 'vertical-align lowercases mixed-case keyword' => ['vertical-align: MaThEmAtIcAl', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'mathematical', 'important' => false],
+        ]];
+        yield 'vertical-align serializes shift after alignment' => ['vertical-align: sub baseline', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'baseline sub', 'important' => false],
+        ]];
+        yield 'vertical-align serializes type before alignment' => ['vertical-align: baseline last', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'last baseline', 'important' => false],
+        ]];
+        yield 'vertical-align serializes all components in Lexbor order' => ['vertical-align: sub first baseline', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'first baseline sub', 'important' => false],
+        ]];
+        yield 'vertical-align accepts css-wide keyword with alignment like Lexbor' => ['vertical-align: inherit baseline', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'inherit baseline', 'important' => false],
+        ]];
+        yield 'vertical-align lets type reset prior alignment like Lexbor' => ['vertical-align: baseline first middle', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'first middle', 'important' => false],
+        ]];
+        yield 'vertical-align lets css-wide type reset prior shift like Lexbor' => ['vertical-align: sub inherit super', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'inherit super', 'important' => false],
+        ]];
+        yield 'vertical-align treats adjacent comment as separator' => ['vertical-align: baseline/**/sub', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'baseline sub', 'important' => false],
+        ]];
+        yield 'vertical-align keeps important flag' => ['vertical-align: baseline sub !important', [
+            ['type' => 'property', 'name' => 'vertical-align', 'value' => 'baseline sub', 'important' => true],
+        ]];
+        yield 'vertical-align rejects whitespace-comment-whitespace separator like Lexbor' => ['vertical-align: baseline /**/ sub', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => 'baseline  sub', 'important' => false],
+        ]];
+        yield 'vertical-align rejects duplicate alignment group' => ['vertical-align: baseline middle', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => 'baseline middle', 'important' => false],
+        ]];
+        yield 'vertical-align rejects duplicate shift group' => ['vertical-align: sub super', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => 'sub super', 'important' => false],
+        ]];
+        yield 'vertical-align rejects duplicate type group' => ['vertical-align: first last', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => 'first last', 'important' => false],
+        ]];
+        yield 'vertical-align rejects duplicate shift after type reset' => ['vertical-align: sub inherit super bottom', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => 'sub inherit super bottom', 'important' => false],
+        ]];
+        yield 'vertical-align rejects unknown keyword' => ['vertical-align: normal', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'vertical-align rejects nonzero number' => ['vertical-align: 1', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => '1', 'important' => false],
+        ]];
+        yield 'vertical-align rejects non-length dimension' => ['vertical-align: 1deg', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => '1deg', 'important' => false],
+        ]];
+        yield 'vertical-align rejects comment-split keyword' => ['vertical-align: base/**/line', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'vertical-align rejects comment-split length' => ['vertical-align: 1/**/px', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'vertical-align rejects comment-separated leading whitespace like Lexbor' => ['vertical-align: /**/  baseline', [
+            ['type' => 'undef', 'name' => 'vertical-align', 'value' => 'baseline', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function fontStyleDeclarationProvider(): iterable
     {
         yield 'font-style accepts normal' => ['font-style: normal', [
@@ -2325,6 +2458,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textDecorationDeclarationProvider')]
     public function testTextDecorationDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('verticalAlignDeclarationProvider')]
+    public function testVerticalAlignDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

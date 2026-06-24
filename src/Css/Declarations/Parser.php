@@ -84,6 +84,7 @@ final class Parser
         'text-transform' => true,
         'top' => true,
         'unicode-bidi' => true,
+        'vertical-align' => true,
         'visibility' => true,
         'white-space' => true,
         'width' => true,
@@ -713,6 +714,30 @@ final class Parser
         'wavy' => true,
     ];
 
+    private const array VERTICAL_ALIGN_TYPE_KEYWORDS = [
+        'first' => true,
+        'last' => true,
+    ];
+
+    private const array ALIGNMENT_BASELINE_KEYWORDS = [
+        'alphabetic' => true,
+        'baseline' => true,
+        'central' => true,
+        'ideographic' => true,
+        'mathematical' => true,
+        'middle' => true,
+        'text-bottom' => true,
+        'text-top' => true,
+    ];
+
+    private const array BASELINE_SHIFT_KEYWORDS = [
+        'bottom' => true,
+        'center' => true,
+        'sub' => true,
+        'super' => true,
+        'top' => true,
+    ];
+
     private const array FONT_STRETCH_KEYWORDS = [
         'condensed' => true,
         'expanded' => true,
@@ -1020,7 +1045,7 @@ final class Parser
         [$valueTokens, $important] = self::extractImportant($valueTokens);
         $value = self::serializeComponentValue($valueTokens);
         $property = strtolower($name);
-        $classificationTokens = in_array($property, ['font-family', 'text-decoration-line', 'text-decoration-style'], true)
+        $classificationTokens = in_array($property, ['font-family', 'text-decoration-line', 'text-decoration-style', 'vertical-align'], true)
             ? [...$leadingValueTokens, ...$valueTokens]
             : $valueTokens;
         $type = $this->classifyDeclaration($name, $value, $classificationTokens);
@@ -1138,6 +1163,7 @@ final class Parser
             'text-decoration-style' => self::textDecorationStyleValue($valueTokens) !== null ? 'property' : 'undef',
             'text-indent' => self::textIndentValue($valueTokens) !== null ? 'property' : 'undef',
             'text-transform' => self::textTransformValue($valueTokens) !== null ? 'property' : 'undef',
+            'vertical-align' => self::verticalAlignValue($valueTokens) !== null ? 'property' : 'undef',
             'z-index' => self::isValidIntegerKeyword($valueTokens, ['auto' => true]) ? 'property' : 'undef',
             default => isset(self::KEYWORD_PROPERTIES[$property]) && self::isValidKeywordProperty($property, $valueTokens) ? 'property' : 'undef',
         };
@@ -1579,6 +1605,121 @@ final class Parser
     {
         if ($token->type === 'number') {
             return $token->value === '0' ? $token->value : null;
+        }
+
+        if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
+            return self::canonicalLengthDimensionValue($token->value);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function verticalAlignValue(array $tokens): ?string
+    {
+        $offset = 0;
+        $count = count($tokens);
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if ($offset >= $count) {
+            return null;
+        }
+
+        $type = null;
+        $alignment = null;
+        $shift = null;
+        $seenType = false;
+        $seenAlignment = false;
+        $seenShift = false;
+
+        while ($offset < $count) {
+            if (self::remainingTokensAreIgnorable($tokens, $offset)) {
+                break;
+            }
+
+            $token = $tokens[$offset];
+            $matched = false;
+
+            if ($token->type === 'ident') {
+                $value = strtolower($token->value);
+
+                if (isset(self::ALIGNMENT_BASELINE_KEYWORDS[$value])) {
+                    if ($seenAlignment) {
+                        return null;
+                    }
+
+                    $alignment = $value;
+                    $seenAlignment = true;
+                    $matched = true;
+                }
+                elseif (isset(self::BASELINE_SHIFT_KEYWORDS[$value])) {
+                    if ($seenShift) {
+                        return null;
+                    }
+
+                    $shift = $value;
+                    $seenShift = true;
+                    $matched = true;
+                }
+                elseif (isset(self::CSS_WIDE_KEYWORDS[$value]) || isset(self::VERTICAL_ALIGN_TYPE_KEYWORDS[$value])) {
+                    if ($seenType) {
+                        return null;
+                    }
+
+                    $type = $value;
+                    $seenType = true;
+                    $seenAlignment = false;
+                    $seenShift = false;
+                    $matched = true;
+                }
+            }
+            else {
+                $value = self::baselineShiftValue($token);
+                if ($value !== null) {
+                    if ($seenShift) {
+                        return null;
+                    }
+
+                    $shift = $value;
+                    $seenShift = true;
+                    $matched = true;
+                }
+            }
+
+            if (! $matched) {
+                return null;
+            }
+
+            $offset++;
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+        }
+
+        $parts = [];
+        if ($type !== null) {
+            $parts[] = $type;
+        }
+
+        if ($alignment !== null) {
+            $parts[] = $alignment;
+        }
+
+        if ($shift !== null) {
+            $parts[] = $shift;
+        }
+
+        return $parts === [] ? null : implode(' ', $parts);
+    }
+
+    private static function baselineShiftValue(Token $token): ?string
+    {
+        if ($token->type === 'number') {
+            return $token->value === '0' ? $token->value : null;
+        }
+
+        if ($token->type === 'percentage') {
+            return self::isSignedPercentage($token->value) ? $token->value : null;
         }
 
         if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
@@ -2466,6 +2607,10 @@ final class Parser
 
         if ($property === 'text-decoration-style') {
             return self::textDecorationStyleValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'vertical-align') {
+            return self::verticalAlignValue($tokens) ?? $fallback;
         }
 
         if ($property === 'font-weight') {
