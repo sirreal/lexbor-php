@@ -100,6 +100,61 @@ final class UnicodeTest extends TestCase
         }
     }
 
+    public function testIdnaToUnicodeUtf8AndCodePointEdges(): void
+    {
+        $std3 = Unicode::IDNA_FLAG_USE_STD3ASCII_RULES;
+        $transitional = $std3 | Unicode::IDNA_FLAG_TRANSITIONAL_PROCESSING;
+
+        self::assertSame("fa\u{00DF}.de", Unicode::idnaToUnicode('xn--fa-hia.de', $std3));
+        self::assertSame("fa\u{00DF}.de", Unicode::idnaToUnicode('XN--FA-HIA.de', $std3));
+        self::assertSame(
+            "fa\u{00DF}.de",
+            Unicode::idnaCodePointsToUnicode(self::decodeValidUtf8CodePoints('xn--fa-hia.de'), $std3),
+        );
+        self::assertSame("fa\u{00DF}.de", Unicode::idnaToUnicode("fa\u{00DF}.de", $std3));
+        self::assertSame('fass.de', Unicode::idnaToUnicode("fa\u{00DF}.de", $transitional));
+        self::assertSame("fa\u{00DF}.de", Unicode::idnaToUnicode('xn--fa-hia.de', $transitional));
+        self::assertSame("\u{00DF}.de", Unicode::idnaToUnicode('xn--zca.de', $std3));
+        self::assertSame('ss.de', Unicode::idnaToUnicode("\u{1E9E}.de", $transitional));
+        self::assertSame("\u{00E1}.de", Unicode::idnaToUnicode("a\u{0301}.de", $std3));
+        self::assertSame("\u{00E1}.de", Unicode::idnaToUnicode("\u{0061}\u{0301}.de", $std3));
+        self::assertSame('a.b', Unicode::idnaToUnicode("a\xC0\xAEb", $std3));
+        self::assertSame('example.com.', Unicode::idnaToUnicode('example.com.', $std3));
+        self::assertSame(str_repeat('a', 64), Unicode::idnaToUnicode(
+            str_repeat('a', 64),
+            $std3 | Unicode::IDNA_FLAG_VERIFY_DNS_LENGTH,
+        ));
+
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToUnicode('xn--abc-', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToUnicode('xn--u-ccb.com', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToUnicode('xn--0', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToUnicode("a\u{200C}b", $std3 | Unicode::IDNA_FLAG_CHECK_JOINERS),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToUnicode("\u{05D0}a", $std3 | Unicode::IDNA_FLAG_CHECK_BIDI),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaCodePointsToUnicode([0x0061, 0x1FFFFF], $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToUnicode('abc', 1 << 20),
+            Status::ErrorUnexpectedData,
+        );
+    }
+
     public function testIdnaToAsciiFlagAndCodePointEdges(): void
     {
         $std3 = Unicode::IDNA_FLAG_USE_STD3ASCII_RULES;

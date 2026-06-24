@@ -6,6 +6,7 @@ namespace Lexbor\Unicode;
 
 use Lexbor\Core\LexborException;
 use Lexbor\Core\Status;
+use Lexbor\Encoding\Utf8;
 use Lexbor\Punycode\Punycode;
 
 final class Unicode
@@ -125,6 +126,64 @@ final class Unicode
         self::validateIdnaFlags($flags);
         self::assertIdnaCodePoints($codePoints);
 
+        $labels = self::idnaProcessedLabels($codePoints, $flags);
+        $isBidiDomain = ($flags & self::IDNA_FLAG_CHECK_BIDI) !== 0
+            && self::isBidiDomain($labels);
+        $ascii = [];
+        foreach ($labels as $label) {
+            $ascii[] = self::idnaLabelToAscii($label, $flags, $isBidiDomain);
+        }
+
+        $result = implode('.', $ascii);
+
+        if (($flags & self::IDNA_FLAG_VERIFY_DNS_LENGTH) !== 0) {
+            self::verifyDnsLength($ascii, $result);
+        }
+
+        return $result;
+    }
+
+    public static function idnaToUnicode(
+        string $data,
+        int $flags = self::IDNA_FLAG_USE_STD3ASCII_RULES,
+    ): string {
+        return self::idnaCodePointsToUnicode(self::decodeForIdna($data), $flags);
+    }
+
+    /**
+     * @param list<int> $codePoints
+     */
+    public static function idnaCodePointsToUnicode(
+        array $codePoints,
+        int $flags = self::IDNA_FLAG_USE_STD3ASCII_RULES,
+    ): string {
+        self::validateIdnaFlags($flags);
+        self::assertIdnaCodePoints($codePoints);
+
+        $labels = self::idnaProcessedLabels($codePoints, $flags);
+        $isBidiDomain = ($flags & self::IDNA_FLAG_CHECK_BIDI) !== 0
+            && self::isBidiDomain($labels);
+        $unicode = [];
+
+        foreach ($labels as $index => $label) {
+            if ($index > 0) {
+                $unicode[] = 0x002E;
+            }
+
+            foreach (self::idnaLabelToUnicode($label, $flags, $isBidiDomain) as $codePoint) {
+                $unicode[] = $codePoint;
+            }
+        }
+
+        return Utf8::encodeCodePoints($unicode);
+    }
+
+    /**
+     * @param list<int> $codePoints
+     * @return list<list<int>>
+     */
+    private static function idnaProcessedLabels(array $codePoints, int $flags): array
+    {
         $labels = [];
         $processed = self::normalizeCodePoints(self::mapIdnaCodePoints($codePoints, $flags), self::FORM_NFC);
         $start = 0;
@@ -143,20 +202,7 @@ final class Unicode
             $labels[] = array_slice($processed, $start);
         }
 
-        $isBidiDomain = ($flags & self::IDNA_FLAG_CHECK_BIDI) !== 0
-            && self::isBidiDomain($labels);
-        $ascii = [];
-        foreach ($labels as $label) {
-            $ascii[] = self::idnaLabelToAscii($label, $flags, $isBidiDomain);
-        }
-
-        $result = implode('.', $ascii);
-
-        if (($flags & self::IDNA_FLAG_VERIFY_DNS_LENGTH) !== 0) {
-            self::verifyDnsLength($ascii, $result);
-        }
-
-        return $result;
+        return $labels;
     }
 
     public static function compose(int $first, int $second): ?int
@@ -294,6 +340,33 @@ final class Unicode
         }
 
         return self::encodeIdnaLabel($label);
+    }
+
+    /**
+     * @param list<int> $label
+     * @return list<int>
+     */
+    private static function idnaLabelToUnicode(array $label, int $flags, bool $isBidiDomain): array
+    {
+        if (self::startsWithAcePrefix($label)) {
+            try {
+                $decoded = Punycode::decodeToCodePoints(self::asciiFromCodePoints(array_slice($label, 4)));
+            } catch (LexborException) {
+                self::unexpectedResult('IDNA A-label could not be decoded.');
+            }
+
+            if (! self::isValidDecodedAceLabel($decoded, $flags, $isBidiDomain)) {
+                self::unexpectedResult('Decoded IDNA label does not satisfy validity criteria.');
+            }
+
+            return $decoded;
+        }
+
+        if (! self::idnaValidityCriteria($label, $flags, $isBidiDomain)) {
+            self::unexpectedResult('IDNA label does not satisfy validity criteria.');
+        }
+
+        return $label;
     }
 
     /**
