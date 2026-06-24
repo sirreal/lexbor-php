@@ -498,6 +498,57 @@ final class ParserTest extends TestCase
         yield 'z-index rejects integer below long range' => ['z-index: -1e19', [
             ['type' => 'undef', 'name' => 'z-index', 'value' => '-10000000000000000000', 'important' => false],
         ]];
+        yield 'font-weight accepts normal' => ['font-weight: normal', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'font-weight accepts bold' => ['font-weight: bold', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => 'bold', 'important' => false],
+        ]];
+        yield 'font-weight accepts bolder' => ['font-weight: bolder', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => 'bolder', 'important' => false],
+        ]];
+        yield 'font-weight accepts lighter' => ['font-weight: lighter', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => 'lighter', 'important' => false],
+        ]];
+        yield 'font-weight accepts css-wide keyword' => ['font-weight: inherit', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'font-weight lowercases mixed-case keyword' => ['font-weight: BoLd', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => 'bold', 'important' => false],
+        ]];
+        yield 'font-weight accepts lower range number' => ['font-weight: 1', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => '1', 'important' => false],
+        ]];
+        yield 'font-weight accepts upper range exponent number' => ['font-weight: 1e3', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => '1000', 'important' => false],
+        ]];
+        yield 'font-weight accepts decimal number like Lexbor' => ['font-weight: 100.5', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => '100.5', 'important' => false],
+        ]];
+        yield 'font-weight rejects number below range' => ['font-weight: .5', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => '0.5', 'important' => false],
+        ]];
+        yield 'font-weight rejects number above range' => ['font-weight: 1000.1', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => '1000.1', 'important' => false],
+        ]];
+        yield 'font-weight rejects percentage' => ['font-weight: 100%', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => '100%', 'important' => false],
+        ]];
+        yield 'font-weight rejects length' => ['font-weight: 100px', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => '100px', 'important' => false],
+        ]];
+        yield 'font-weight rejects multiple values' => ['font-weight: 400 bold', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => '400 bold', 'important' => false],
+        ]];
+        yield 'font-weight rejects comment-split number' => ['font-weight: 10/**/0', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => '100', 'important' => false],
+        ]];
+        yield 'font-weight rejects comment-split keyword' => ['font-weight: bo/**/ld', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => 'bold', 'important' => false],
+        ]];
+        yield 'font-weight keeps important flag' => ['font-weight: 700 !important', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => '700', 'important' => true],
+        ]];
         yield 'line-height accepts normal' => ['line-height: normal', [
             ['type' => 'property', 'name' => 'line-height', 'value' => 'normal', 'important' => false],
         ]];

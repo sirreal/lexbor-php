@@ -29,6 +29,7 @@ final class Parser
         'float-defer' => true,
         'float-offset' => true,
         'float-reference' => true,
+        'font-weight' => true,
         'hanging-punctuation' => true,
         'height' => true,
         'hyphens' => true,
@@ -680,6 +681,7 @@ final class Parser
             'float-defer' => self::floatDeferValue($valueTokens) !== null ? 'property' : 'undef',
             'float-offset' => self::floatOffsetValue($valueTokens) !== null ? 'property' : 'undef',
             'float-reference' => self::singleKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
+            'font-weight' => self::fontWeightValue($valueTokens) !== null ? 'property' : 'undef',
             'hanging-punctuation' => self::hangingPunctuationValue($valueTokens) !== null ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
             'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
@@ -1474,6 +1476,35 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     */
+    private static function fontWeightValue(array $tokens): ?string
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value])
+                || in_array($value, ['normal', 'bold', 'bolder', 'lighter'], true)
+                ? $value
+                : null;
+        }
+
+        if ($token->type !== 'number') {
+            return null;
+        }
+
+        $number = (float) $token->value;
+
+        return $number >= 1.0 && $number <= 1000.0 ? $token->value : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
     private static function isValidLengthKeyword(array $tokens, array $keywords): bool
@@ -1613,6 +1644,10 @@ final class Parser
 
         if ($property === 'hanging-punctuation') {
             return self::hangingPunctuationValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'font-weight') {
+            return self::fontWeightValue($tokens) ?? $fallback;
         }
 
         if (in_array($property, ['flex-grow', 'flex-shrink'], true)) {
