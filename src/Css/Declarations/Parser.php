@@ -18,6 +18,7 @@ final class Parser
         'clear' => true,
         'direction' => true,
         'display' => true,
+        'flex' => true,
         'flex-basis' => true,
         'flex-direction' => true,
         'flex-flow' => true,
@@ -598,6 +599,7 @@ final class Parser
 
         return match ($property) {
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
+            'flex' => self::parseFlex($valueTokens) !== null ? 'property' : 'undef',
             'flex-basis' => self::isValidFlexBasis($valueTokens) ? 'property' : 'undef',
             'flex-flow' => self::isValidFlexFlow($valueTokens) ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
@@ -846,6 +848,117 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     * @return array{type: ?string, grow: ?string, shrink: ?string, basis: ?string}|null
+     */
+    private static function parseFlex(array $tokens): ?array
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+        $count = count($components);
+
+        if ($count === 0 || $count > 3) {
+            return null;
+        }
+
+        $flex = [
+            'type' => null,
+            'grow' => null,
+            'shrink' => null,
+            'basis' => null,
+        ];
+
+        $firstNumber = self::flexNumberValue($components[0]);
+
+        if ($firstNumber !== null) {
+            $flex['grow'] = $firstNumber;
+            $offset = 1;
+
+            $nextNumber = isset($components[$offset]) ? self::flexNumberValue($components[$offset]) : null;
+            if ($nextNumber !== null) {
+                $flex['shrink'] = $nextNumber;
+                $offset++;
+            }
+
+            $basis = isset($components[$offset]) ? self::flexBasisComponentValue($components[$offset]) : null;
+            if ($basis !== null) {
+                $flex['basis'] = $basis;
+                $offset++;
+            }
+            elseif (isset($components[$offset])) {
+                $flex['basis'] = $flex['grow'];
+                $flex['grow'] = null;
+
+                if ($flex['shrink'] !== null) {
+                    $flex['grow'] = $flex['shrink'];
+                    $flex['shrink'] = null;
+
+                    $shrink = self::flexNumberValue($components[$offset]);
+                    if ($shrink === null) {
+                        return null;
+                    }
+
+                    $flex['shrink'] = $shrink;
+                    $offset++;
+                }
+                else {
+                    $grow = self::flexNumberValue($components[$offset]);
+                    if ($grow === null) {
+                        return null;
+                    }
+
+                    $flex['grow'] = $grow;
+                    $offset++;
+
+                    $shrink = isset($components[$offset]) ? self::flexNumberValue($components[$offset]) : null;
+                    if ($shrink !== null) {
+                        $flex['shrink'] = $shrink;
+                        $offset++;
+                    }
+                }
+            }
+
+            return $offset === $count ? $flex : null;
+        }
+
+        $basis = self::flexBasisComponentValue($components[0]);
+        if ($basis !== null) {
+            $flex['basis'] = $basis;
+            $offset = 1;
+
+            if (isset($components[$offset])) {
+                $grow = self::flexNumberValue($components[$offset]);
+                if ($grow === null) {
+                    return null;
+                }
+
+                $flex['grow'] = $grow;
+                $offset++;
+
+                $shrink = isset($components[$offset]) ? self::flexNumberValue($components[$offset]) : null;
+                if ($shrink !== null) {
+                    $flex['shrink'] = $shrink;
+                    $offset++;
+                }
+            }
+
+            return $offset === $count ? $flex : null;
+        }
+
+        if ($count !== 1 || count($components[0]) !== 1 || $components[0][0]->type !== 'ident') {
+            return null;
+        }
+
+        $value = strtolower($components[0][0]->value);
+        if (isset(self::CSS_WIDE_KEYWORDS[$value]) || $value === 'none') {
+            $flex['type'] = $value;
+
+            return $flex;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
      */
     private static function isValidNumberPercentage(array $tokens): bool
     {
@@ -1014,6 +1127,10 @@ final class Parser
             return self::singleValueToken($tokens)?->value ?? $fallback;
         }
 
+        if ($property === 'flex') {
+            return self::serializeFlex($tokens) ?? $fallback;
+        }
+
         if ($property === 'flex-flow') {
             return self::serializeFlexFlow($tokens) ?? $fallback;
         }
@@ -1031,6 +1148,38 @@ final class Parser
         }
 
         return $fallback;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function serializeFlex(array $tokens): ?string
+    {
+        $flex = self::parseFlex($tokens);
+
+        if ($flex === null) {
+            return null;
+        }
+
+        if ($flex['type'] !== null) {
+            return $flex['type'];
+        }
+
+        $parts = [];
+
+        if ($flex['grow'] !== null) {
+            $parts[] = $flex['grow'];
+
+            if ($flex['shrink'] !== null) {
+                $parts[] = $flex['shrink'];
+            }
+        }
+
+        if ($flex['basis'] !== null) {
+            $parts[] = $flex['basis'];
+        }
+
+        return $parts === [] ? null : implode(' ', $parts);
     }
 
     /**
@@ -1066,6 +1215,50 @@ final class Parser
     private static function isFlexWrapKeyword(string $value): bool
     {
         return isset(self::KEYWORD_PROPERTIES['flex-wrap'][$value]);
+    }
+
+    /**
+     * @param list<Token> $component
+     */
+    private static function flexNumberValue(array $component): ?string
+    {
+        if (count($component) !== 1 || $component[0]->type !== 'number') {
+            return null;
+        }
+
+        return $component[0]->value;
+    }
+
+    /**
+     * @param list<Token> $component
+     */
+    private static function flexBasisComponentValue(array $component): ?string
+    {
+        if (count($component) !== 1) {
+            return null;
+        }
+
+        $token = $component[0];
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::FLEX_BASIS_KEYWORDS[$value]) ? $value : null;
+        }
+
+        if ($token->type === 'number') {
+            return $token->value === '0' ? $token->value : null;
+        }
+
+        if ($token->type === 'percentage') {
+            return self::isSignedPercentage($token->value) ? $token->value : null;
+        }
+
+        if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
+            return strtolower($token->value);
+        }
+
+        return null;
     }
 
     /**

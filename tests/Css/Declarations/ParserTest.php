@@ -945,6 +945,106 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function flexShorthandDeclarationProvider(): iterable
+    {
+        yield 'flex accepts none keyword' => ['flex: none', [
+            ['type' => 'property', 'name' => 'flex', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'flex accepts css-wide keyword' => ['flex: revert', [
+            ['type' => 'property', 'name' => 'flex', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'flex lowercases mixed-case none keyword' => ['flex: NoNe', [
+            ['type' => 'property', 'name' => 'flex', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'flex accepts grow number' => ['flex: 1', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1', 'important' => false],
+        ]];
+        yield 'flex accepts negative grow number like Lexbor shorthand' => ['flex: -1', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '-1', 'important' => false],
+        ]];
+        yield 'flex accepts grow and shrink numbers' => ['flex: 1 0', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 0', 'important' => false],
+        ]];
+        yield 'flex accepts grow shrink and zero basis' => ['flex: 1 0 0', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 0 0', 'important' => false],
+        ]];
+        yield 'flex reinterprets three nonzero numbers like Lexbor' => ['flex: 1 2 3', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '2 3 1', 'important' => false],
+        ]];
+        yield 'flex accepts grow and length basis' => ['flex: 1 12px', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 12px', 'important' => false],
+        ]];
+        yield 'flex accepts grow and auto basis' => ['flex: 1 auto', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 auto', 'important' => false],
+        ]];
+        yield 'flex accepts grow and content basis' => ['flex: 1 content', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 content', 'important' => false],
+        ]];
+        yield 'flex accepts grow shrink and length basis' => ['flex: 1 2 12px', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 2 12px', 'important' => false],
+        ]];
+        yield 'flex accepts length basis' => ['flex: 12px', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '12px', 'important' => false],
+        ]];
+        yield 'flex accepts percentage basis' => ['flex: 25%', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '25%', 'important' => false],
+        ]];
+        yield 'flex serializes basis first input after grow' => ['flex: auto 2', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '2 auto', 'important' => false],
+        ]];
+        yield 'flex serializes basis first input after grow and shrink' => ['flex: content 1 2', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 2 content', 'important' => false],
+        ]];
+        yield 'flex lowercases mixed-case basis first input' => ['flex: MIN-CONTENT 2', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '2 min-content', 'important' => false],
+        ]];
+        yield 'flex accepts signed percentage basis before numbers' => ['flex: -10% 2 3', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '2 3 -10%', 'important' => false],
+        ]];
+        yield 'flex treats comments between numbers as whitespace' => ['flex: 1/**/2', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '1 2', 'important' => false],
+        ]];
+        yield 'flex trims whitespace before trailing comment' => ['flex: auto /**/;', [
+            ['type' => 'property', 'name' => 'flex', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'flex rejects direction keyword' => ['flex: row', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => 'row', 'important' => false],
+        ]];
+        yield 'flex rejects wrap keyword' => ['flex: wrap', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => 'wrap', 'important' => false],
+        ]];
+        yield 'flex rejects css-wide keyword with extra value' => ['flex: inherit 1', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => 'inherit 1', 'important' => false],
+        ]];
+        yield 'flex rejects none with extra value' => ['flex: none 1', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => 'none 1', 'important' => false],
+        ]];
+        yield 'flex rejects grow followed by unknown ident' => ['flex: 1 foo', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => '1 foo', 'important' => false],
+        ]];
+        yield 'flex rejects basis followed by non-number' => ['flex: auto foo', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => 'auto foo', 'important' => false],
+        ]];
+        yield 'flex rejects too many values' => ['flex: 1 0 0 0', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => '1 0 0 0', 'important' => false],
+        ]];
+        yield 'flex rejects non-length dimension' => ['flex: 1 2deg', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => '1 2deg', 'important' => false],
+        ]];
+        yield 'flex rejects comment-split length' => ['flex: 1/**/px', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'flex rejects basis followed by length' => ['flex: 1% 2px', [
+            ['type' => 'undef', 'name' => 'flex', 'value' => '1% 2px', 'important' => false],
+        ]];
+        yield 'flex keeps important flag' => ['flex: 2 3 auto !important', [
+            ['type' => 'property', 'name' => 'flex', 'value' => '2 3 auto', 'important' => true],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -1075,6 +1175,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('flexFlowDeclarationProvider')]
     public function testFlexFlowDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('flexShorthandDeclarationProvider')]
+    public function testFlexShorthandDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
