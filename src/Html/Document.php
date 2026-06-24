@@ -31,6 +31,7 @@ final class Document extends Node
 
     public function parse(string $html): Status
     {
+        $html = self::normalizeTokenizedNewlines($html);
         $this->quirksMode = !$this->startsWithHtmlDoctype($html);
 
         while ($this->body->firstChild !== null) {
@@ -89,6 +90,7 @@ final class Document extends Node
 
     public function createFragmentForElement(Element $context, string $html): DocumentFragment
     {
+        $html = self::normalizeTokenizedNewlines($html);
         $fragment = $this->createDocumentFragment();
 
         if ($html === '') {
@@ -394,6 +396,11 @@ final class Document extends Node
         }
 
         return $decoded;
+    }
+
+    private static function normalizeTokenizedNewlines(string $data): string
+    {
+        return str_replace(["\r\n", "\r"], "\n", $data);
     }
 
     /**

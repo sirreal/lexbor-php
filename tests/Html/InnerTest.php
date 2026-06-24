@@ -97,6 +97,19 @@ final class InnerTest extends TestCase
         self::assertSame('<script>x < y > z</script>', Serializer::serializeDeep($document->bodyElement()));
     }
 
+    public function testInnerHtmlNormalizesRawTextNewlines(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<script></script>'));
+
+        $script = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $script);
+
+        $script->setInnerHtml("\r\n");
+
+        self::assertSame("<script>\n</script>", Serializer::serialize($script));
+    }
+
     public function testParserFixtureKeepsPlaintextContentToEndOfFile(): void
     {
         $document = new Document();
