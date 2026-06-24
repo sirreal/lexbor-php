@@ -2461,6 +2461,9 @@ final class ParserTest extends TestCase
      */
     public static function fontFamilyDeclarationProvider(): iterable
     {
+        yield 'font-family accepts normal leading whitespace before ident' => ['font-family:   Arial', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'Arial', 'important' => false],
+        ]];
         yield 'font-family accepts serif' => ['font-family: serif', [
             ['type' => 'property', 'name' => 'font-family', 'value' => 'serif', 'important' => false],
         ]];
@@ -2500,6 +2503,9 @@ final class ParserTest extends TestCase
         yield 'font-family keeps quoted family with space' => ['font-family: "Open Sans"', [
             ['type' => 'property', 'name' => 'font-family', 'value' => '"Open Sans"', 'important' => false],
         ]];
+        yield 'font-family accepts normal leading whitespace before string' => ['font-family:   "Open Sans"', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => '"Open Sans"', 'important' => false],
+        ]];
         yield 'font-family keeps quoted non-ascii family as string like Lexbor' => ['font-family: "é"', [
             ['type' => 'property', 'name' => 'font-family', 'value' => '"é"', 'important' => false],
         ]];
@@ -2515,6 +2521,9 @@ final class ParserTest extends TestCase
         yield 'font-family accepts comma separated families' => ['font-family: Arial, serif', [
             ['type' => 'property', 'name' => 'font-family', 'value' => 'Arial, serif', 'important' => false],
         ]];
+        yield 'font-family accepts normal leading whitespace before list' => ['font-family:   Arial, serif', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'Arial, serif', 'important' => false],
+        ]];
         yield 'font-family treats comments around comma as whitespace' => ['font-family: Arial/**/,/**/serif', [
             ['type' => 'property', 'name' => 'font-family', 'value' => 'Arial, serif', 'important' => false],
         ]];
@@ -2523,6 +2532,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'font-family rejects comment-separated leading whitespace like Lexbor' => ['font-family: /**/  Arial', [
             ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial', 'important' => false],
+        ]];
+        yield 'font-family rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['font-family: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'font-family rejects string with comment-separated leading whitespace like Lexbor' => ['font-family: /**/  "Open Sans"', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => '"Open Sans"', 'important' => false],
         ]];
         yield 'font-family rejects comment-separated whitespace before comma like Lexbor' => ['font-family: Arial /**/ , serif', [
             ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial  , serif', 'important' => false],
