@@ -3087,6 +3087,15 @@ final class ParserTest extends TestCase
         yield 'float-defer lowercases mixed-case keyword' => ['float-defer: LaSt', [
             ['type' => 'property', 'name' => 'float-defer', 'value' => 'last', 'important' => false],
         ]];
+        yield 'float-defer accepts normal leading whitespace' => ['float-defer:   last', [
+            ['type' => 'property', 'name' => 'float-defer', 'value' => 'last', 'important' => false],
+        ]];
+        yield 'float-defer rejects keyword with comment-separated leading whitespace like Lexbor' => ['float-defer: /**/  last', [
+            ['type' => 'undef', 'name' => 'float-defer', 'value' => 'last', 'important' => false],
+        ]];
+        yield 'float-defer rejects integer with comment-separated leading whitespace like Lexbor' => ['float-defer: /**/  2', [
+            ['type' => 'undef', 'name' => 'float-defer', 'value' => '2', 'important' => false],
+        ]];
         yield 'float-defer rejects decimal number' => ['float-defer: 1.5', [
             ['type' => 'undef', 'name' => 'float-defer', 'value' => '1.5', 'important' => false],
         ]];
@@ -3119,6 +3128,18 @@ final class ParserTest extends TestCase
         ]];
         yield 'float-offset accepts css-wide keyword' => ['float-offset: unset', [
             ['type' => 'property', 'name' => 'float-offset', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'float-offset accepts normal leading whitespace' => ['float-offset:   5px', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '5px', 'important' => false],
+        ]];
+        yield 'float-offset accepts trailing whitespace-comment-whitespace like Lexbor' => ['float-offset: 5px /**/  ', [
+            ['type' => 'property', 'name' => 'float-offset', 'value' => '5px', 'important' => false],
+        ]];
+        yield 'float-offset rejects length with comment-separated leading whitespace like Lexbor' => ['float-offset: /**/  5px', [
+            ['type' => 'undef', 'name' => 'float-offset', 'value' => '5px', 'important' => false],
+        ]];
+        yield 'float-offset rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['float-offset: /**/  unset', [
+            ['type' => 'undef', 'name' => 'float-offset', 'value' => 'unset', 'important' => false],
         ]];
         yield 'float-offset rejects auto' => ['float-offset: auto', [
             ['type' => 'undef', 'name' => 'float-offset', 'value' => 'auto', 'important' => false],

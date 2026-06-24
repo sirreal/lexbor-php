@@ -1322,6 +1322,8 @@ final class Parser
             'color',
             'dominant-baseline',
             'float',
+            'float-defer',
+            'float-offset',
             'float-reference',
             'font-family',
             'text-decoration-color',
@@ -1804,7 +1806,7 @@ final class Parser
      */
     private static function floatDeferValue(array $tokens): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
             return null;
@@ -1824,13 +1826,13 @@ final class Parser
      */
     private static function floatOffsetValue(array $tokens): ?string
     {
-        $components = self::splitWhitespaceSeparatedComponents($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
-        if (count($components) !== 1) {
+        if ($token === null) {
             return null;
         }
 
-        return self::lengthPercentageComponentValue($components[0], true);
+        return self::lengthPercentageComponentValue([$token], true);
     }
 
     /**
