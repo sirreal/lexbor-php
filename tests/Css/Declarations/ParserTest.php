@@ -1067,6 +1067,103 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function fontSizeDeclarationProvider(): iterable
+    {
+        yield 'font-size accepts xx-small' => ['font-size: xx-small', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'xx-small', 'important' => false],
+        ]];
+        yield 'font-size accepts x-small' => ['font-size: x-small', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'x-small', 'important' => false],
+        ]];
+        yield 'font-size accepts small' => ['font-size: small', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'small', 'important' => false],
+        ]];
+        yield 'font-size accepts medium' => ['font-size: medium', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'medium', 'important' => false],
+        ]];
+        yield 'font-size accepts large' => ['font-size: large', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'large', 'important' => false],
+        ]];
+        yield 'font-size accepts x-large' => ['font-size: x-large', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'x-large', 'important' => false],
+        ]];
+        yield 'font-size accepts xx-large' => ['font-size: xx-large', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'xx-large', 'important' => false],
+        ]];
+        yield 'font-size accepts xxx-large' => ['font-size: xxx-large', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'xxx-large', 'important' => false],
+        ]];
+        yield 'font-size accepts math' => ['font-size: math', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'math', 'important' => false],
+        ]];
+        yield 'font-size accepts larger' => ['font-size: larger', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'larger', 'important' => false],
+        ]];
+        yield 'font-size accepts smaller' => ['font-size: smaller', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'smaller', 'important' => false],
+        ]];
+        yield 'font-size accepts css-wide keyword' => ['font-size: revert', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'font-size lowercases mixed-case keyword' => ['font-size: Xx-LaRgE', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'xx-large', 'important' => false],
+        ]];
+        yield 'font-size accepts length' => ['font-size: 12px', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => '12px', 'important' => false],
+        ]];
+        yield 'font-size lowercases length unit' => ['font-size: 12PX', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => '12px', 'important' => false],
+        ]];
+        yield 'font-size serializes q unit with Lexbor uppercase spelling' => ['font-size: 2q', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => '2Q', 'important' => false],
+        ]];
+        yield 'font-size accepts percentage' => ['font-size: 125%', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => '125%', 'important' => false],
+        ]];
+        yield 'font-size accepts normalized exponent percentage' => ['font-size: 1e2%', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => '100%', 'important' => false],
+        ]];
+        yield 'font-size accepts unitless zero' => ['font-size: 0', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => '0', 'important' => false],
+        ]];
+        yield 'font-size keeps important flag' => ['font-size: 14px !important', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => '14px', 'important' => true],
+        ]];
+        yield 'font-size rejects negative length' => ['font-size: -1px', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => '-1px', 'important' => false],
+        ]];
+        yield 'font-size rejects negative percentage' => ['font-size: -1%', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => '-1%', 'important' => false],
+        ]];
+        yield 'font-size rejects nonzero number' => ['font-size: 1', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => '1', 'important' => false],
+        ]];
+        yield 'font-size rejects auto' => ['font-size: auto', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'font-size rejects unknown keyword' => ['font-size: huge', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => 'huge', 'important' => false],
+        ]];
+        yield 'font-size rejects multiple values' => ['font-size: medium 12px', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => 'medium 12px', 'important' => false],
+        ]];
+        yield 'font-size rejects non-length dimension' => ['font-size: 1deg', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => '1deg', 'important' => false],
+        ]];
+        yield 'font-size rejects comment-split keyword' => ['font-size: me/**/dium', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => 'medium', 'important' => false],
+        ]];
+        yield 'font-size rejects comment-split percentage' => ['font-size: 10/**/%', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => '10%', 'important' => false],
+        ]];
+        yield 'font-size rejects function' => ['font-size: calc(12px)', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => 'calc(12px)', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function textIndentDeclarationProvider(): iterable
     {
         yield 'text-indent accepts length' => ['text-indent: 2px', [
@@ -2004,6 +2101,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('fontStyleDeclarationProvider')]
     public function testFontStyleDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('fontSizeDeclarationProvider')]
+    public function testFontSizeDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

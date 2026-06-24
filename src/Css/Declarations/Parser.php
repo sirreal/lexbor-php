@@ -31,6 +31,7 @@ final class Parser
         'float-reference' => true,
         'font-stretch' => true,
         'font-style' => true,
+        'font-size' => true,
         'font-weight' => true,
         'hanging-punctuation' => true,
         'height' => true,
@@ -329,6 +330,20 @@ final class Parser
         'semi-expanded' => true,
         'ultra-condensed' => true,
         'ultra-expanded' => true,
+    ];
+
+    private const array FONT_SIZE_KEYWORDS = [
+        'large' => true,
+        'larger' => true,
+        'math' => true,
+        'medium' => true,
+        'small' => true,
+        'smaller' => true,
+        'x-large' => true,
+        'x-small' => true,
+        'xx-large' => true,
+        'xx-small' => true,
+        'xxx-large' => true,
     ];
 
     private const array KEYWORD_PROPERTIES = [
@@ -702,6 +717,7 @@ final class Parser
             'float-defer' => self::floatDeferValue($valueTokens) !== null ? 'property' : 'undef',
             'float-offset' => self::floatOffsetValue($valueTokens) !== null ? 'property' : 'undef',
             'float-reference' => self::singleKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
+            'font-size' => self::fontSizeValue($valueTokens) !== null ? 'property' : 'undef',
             'font-stretch' => self::fontStretchValue($valueTokens) !== null ? 'property' : 'undef',
             'font-style' => self::fontStyleValue($valueTokens) !== null ? 'property' : 'undef',
             'font-weight' => self::fontWeightValue($valueTokens) !== null ? 'property' : 'undef',
@@ -1619,6 +1635,41 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     */
+    private static function fontSizeValue(array $tokens): ?string
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value])
+                || isset(self::FONT_SIZE_KEYWORDS[$value])
+                ? $value
+                : null;
+        }
+
+        if ($token->type === 'number') {
+            return $token->value === '0' ? $token->value : null;
+        }
+
+        if ($token->type === 'percentage') {
+            return self::isSignedPercentage($token->value) && (float) $token->value >= 0.0 ? $token->value : null;
+        }
+
+        if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
+            return (float) $token->value >= 0.0 ? self::canonicalLengthDimensionValue($token->value) : null;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
     private static function isValidLengthKeyword(array $tokens, array $keywords): bool
@@ -1762,6 +1813,10 @@ final class Parser
 
         if ($property === 'font-weight') {
             return self::fontWeightValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'font-size') {
+            return self::fontSizeValue($tokens) ?? $fallback;
         }
 
         if ($property === 'font-stretch') {
