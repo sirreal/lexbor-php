@@ -1366,6 +1366,7 @@ final class Parser
             'text-decoration',
             'text-decoration-line',
             'text-decoration-style',
+            'text-transform',
             'vertical-align',
             'wrap-flow',
             'wrap-through',
@@ -3083,6 +3084,14 @@ final class Parser
      */
     private static function textTransformValue(array $tokens): ?string
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type !== 'ident') {
+            return null;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $components = self::splitWhitespaceSeparatedComponents($tokens);
 
         if ($components === []) {

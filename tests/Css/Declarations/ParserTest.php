@@ -2662,6 +2662,9 @@ final class ParserTest extends TestCase
      */
     public static function textTransformDeclarationProvider(): iterable
     {
+        yield 'text-transform accepts normal leading whitespace' => ['text-transform:   uppercase', [
+            ['type' => 'property', 'name' => 'text-transform', 'value' => 'uppercase', 'important' => false],
+        ]];
         yield 'text-transform accepts none' => ['text-transform: none', [
             ['type' => 'property', 'name' => 'text-transform', 'value' => 'none', 'important' => false],
         ]];
@@ -2697,6 +2700,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'text-transform accepts width and kana without case' => ['text-transform: full-width full-size-kana', [
             ['type' => 'property', 'name' => 'text-transform', 'value' => 'full-width full-size-kana', 'important' => false],
+        ]];
+        yield 'text-transform rejects keyword with comment-separated leading whitespace like Lexbor' => ['text-transform: /**/  uppercase', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'uppercase', 'important' => false],
+        ]];
+        yield 'text-transform rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['text-transform: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'text-transform rejects multi-keyword value with comment-separated leading whitespace like Lexbor' => ['text-transform: /**/  uppercase full-width', [
+            ['type' => 'undef', 'name' => 'text-transform', 'value' => 'uppercase full-width', 'important' => false],
         ]];
         yield 'text-transform treats comments between keywords as whitespace' => ['text-transform: uppercase/**/full-size-kana', [
             ['type' => 'property', 'name' => 'text-transform', 'value' => 'uppercase full-size-kana', 'important' => false],
