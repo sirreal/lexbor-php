@@ -305,6 +305,8 @@ final class ParserTest extends TestCase
         self::assertSame(['value' => ':nth-child(0n-3)', 'errors' => []], (new Parser())->parse(':nth-child(-3)'));
         self::assertSame(['value' => ':nth-child(0n)', 'errors' => []], (new Parser())->parse(':nth-child(0)'));
         self::assertSame(['value' => ':nth-child(odd of .x, #p3)', 'errors' => []], (new Parser())->parse(':nth-child(odd of .x, #p3)'));
+        self::assertSame(['value' => ':nth-of-type(odd)', 'errors' => []], (new Parser())->parse(':nth-of-type(2n+1)'));
+        self::assertSame(['value' => ':nth-last-of-type(odd)', 'errors' => []], (new Parser())->parse(':nth-last-of-type(2n+1)'));
 
         self::assertSame(
             [
@@ -312,6 +314,14 @@ final class ParserTest extends TestCase
                 'errors' => ['Syntax error. Selectors. Unexpected token: 2.0n', "Syntax error. Selectors. Pseudo function can't be empty: nth-child()"],
             ],
             (new Parser())->parse(':nth-child(2.0n)'),
+        );
+
+        self::assertSame(
+            [
+                'value' => '',
+                'errors' => ['Syntax error. Selectors. Unexpected token: 2n+1 of .x', "Syntax error. Selectors. Pseudo function can't be empty: nth-of-type()"],
+            ],
+            (new Parser())->parse(':nth-of-type(2n+1 of .x)'),
         );
 
         self::assertSame(

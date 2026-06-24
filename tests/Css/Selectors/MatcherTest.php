@@ -118,13 +118,15 @@ final class MatcherTest extends TestCase
     /**
      * @return iterable<string, array{string, string, list<string>}>
      */
-    public static function upstreamNthChildPseudoSelectorProvider(): iterable
+    public static function upstreamNthPseudoSelectorProvider(): iterable
     {
         yield 'selectors match nth-child descendant pseudo function' => ['p[p="7"] span:nth-child(2n+1)', 'span', ['6', '7', '8', '11']];
         yield 'selectors match nth-child child pseudo function' => ['p[p="7"] > span:nth-child(2n+1)', 'span', ['6', '11']];
         yield 'selectors match nth-child of selector pseudo function' => ['p[p="7"] > span:nth-child(2n+1 of [test])', 'span', ['11']];
         yield 'selectors match nth-last-child descendant pseudo function' => ['p[p="7"] span:nth-last-child(2n+1)', 'span', ['7', '8', '9', '10', '12']];
         yield 'selectors match nth-last-child of selector pseudo function' => ['p[p="7"] > span:nth-last-child(2n+1 of [test])', 'span', ['12']];
+        yield 'selectors match nth-of-type pseudo function' => ['p[p="7"] > span:nth-of-type(2n+1)', 'span', ['6', '10', '12']];
+        yield 'selectors match nth-last-of-type pseudo function' => ['p[p="7"] > span:nth-last-of-type(2n+1)', 'span', ['6', '10', '12']];
         yield 'selectors match nth-child even of selector pseudo function' => ['main > h2:nth-child(even of .mark)', 'h2', ['3', '6']];
         yield 'selectors match nth-last-child even of selector pseudo function' => ['main > h2:nth-last-child(even of .mark)', 'h2', ['1', '4']];
         yield 'selectors match nth-child of complex selector pseudo function' => ['div p:nth-child(n+2 of div > p)', 'p', ['2', '3', '4', '5', '7']];
@@ -175,8 +177,8 @@ final class MatcherTest extends TestCase
     /**
      * @param list<string> $expected
      */
-    #[DataProvider('upstreamNthChildPseudoSelectorProvider')]
-    public function testFindMatchesUpstreamNthChildPseudoSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
+    #[DataProvider('upstreamNthPseudoSelectorProvider')]
+    public function testFindMatchesUpstreamNthPseudoSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
     {
         $document = $this->fixtureDocument();
 

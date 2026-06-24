@@ -671,7 +671,7 @@ final class Parser
         }
 
         $name = strtolower(substr($tokens[1]->value, 0, -1));
-        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'lexbor-contains'], true)) {
+        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type', 'lexbor-contains'], true)) {
             return self::error($tokens[1]->value);
         }
 
@@ -682,6 +682,10 @@ final class Parser
 
         if ($name === 'nth-child' || $name === 'nth-last-child') {
             return $this->parseNthChildPseudoFunction($name, $body, $closed, $trailing);
+        }
+
+        if ($name === 'nth-of-type' || $name === 'nth-last-of-type') {
+            return $this->parseAnPlusBPseudoFunction($name, $body, $closed, $trailing);
         }
 
         if ($name === 'has') {
@@ -1027,6 +1031,53 @@ final class Parser
             'value' => $ofSelector === null
                 ? sprintf(':%s(%s)', $name, $anPlusB['value'])
                 : sprintf(':%s(%s of %s)', $name, $anPlusB['value'], $ofSelector),
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * @param list<Token> $body
+     * @param list<Token> $trailing
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseAnPlusBPseudoFunction(string $name, array $body, bool $closed, array $trailing): array
+    {
+        $anPlusB = (new AnPlusBParser())->parse($this->serializeAnPlusBTokens($body));
+        $errors = [];
+
+        if ($anPlusB['errors'] !== []) {
+            $unexpectedToken = self::unexpectedAnPlusBToken($anPlusB['errors']);
+            if ($unexpectedToken !== null && self::shouldReportNthChildUnexpectedToken($body, $unexpectedToken)) {
+                $errors[] = self::unexpectedTokenError($unexpectedToken);
+            }
+
+            if (! $closed) {
+                $errors[] = self::eofPseudoFunctionError();
+            }
+
+            $errors[] = self::emptyPseudoFunctionError($name);
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
+        if (! $closed) {
+            $errors[] = self::eofPseudoFunctionError();
+        }
+
+        if ($trailing !== []) {
+            $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($trailing));
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
+        return [
+            'value' => sprintf(':%s(%s)', $name, $anPlusB['value']),
             'errors' => $errors,
         ];
     }

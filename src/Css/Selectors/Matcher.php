@@ -547,7 +547,7 @@ final class Matcher
         }
 
         $name = strtolower(substr($function->value, 0, -1));
-        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child'], true)) {
+        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type'], true)) {
             return null;
         }
 
@@ -583,7 +583,7 @@ final class Matcher
         }
 
         $body = $this->stripWhitespaceTokens($body);
-        if ($name === 'nth-child' || $name === 'nth-last-child') {
+        if (in_array($name, ['nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type'], true)) {
             $nth = $this->parseNthChildPseudoSelector($name, $body);
             if ($nth === null) {
                 return null;
@@ -903,6 +903,8 @@ final class Matcher
             'has' => $this->hasRelativeMatchingAnyComplex($element, $pseudo['selectors']),
             'nth-child' => $this->matchesNthChild($element, $pseudo, false),
             'nth-last-child' => $this->matchesNthChild($element, $pseudo, true),
+            'nth-of-type' => $this->matchesNthOfType($element, $pseudo, false),
+            'nth-last-of-type' => $this->matchesNthOfType($element, $pseudo, true),
             default => false,
         };
     }
@@ -956,6 +958,33 @@ final class Matcher
                 fn (Element $sibling): bool => $this->matchesAnyComplex($sibling, $pseudo['of']),
             ));
         }
+
+        if ($fromEnd) {
+            $siblings = array_reverse($siblings);
+        }
+
+        foreach ($siblings as $index => $sibling) {
+            if ($sibling === $element) {
+                return self::matchesAnPlusBIndex($index + 1, $pseudo['a'], $pseudo['b']);
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array{name: string, a: int, b: int, of: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null} $pseudo
+     */
+    private function matchesNthOfType(Element $element, array $pseudo, bool $fromEnd): bool
+    {
+        if (! $element->parent instanceof Node || $pseudo['of'] !== null) {
+            return false;
+        }
+
+        $siblings = array_values(array_filter(
+            self::elementChildren($element->parent),
+            fn (Element $sibling): bool => $sibling->tagName === $element->tagName,
+        ));
 
         if ($fromEnd) {
             $siblings = array_reverse($siblings);
