@@ -1219,6 +1219,9 @@ final class ParserTest extends TestCase
      */
     public static function textDecorationDeclarationProvider(): iterable
     {
+        yield 'text-decoration-line accepts normal leading whitespace' => ['text-decoration-line:   underline', [
+            ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'underline', 'important' => false],
+        ]];
         yield 'text-decoration-line accepts none' => ['text-decoration-line: none', [
             ['type' => 'property', 'name' => 'text-decoration-line', 'value' => 'none', 'important' => false],
         ]];
@@ -1279,6 +1282,15 @@ final class ParserTest extends TestCase
         yield 'text-decoration-line rejects comment-split keyword' => ['text-decoration-line: under/**/line', [
             ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'underline', 'important' => false],
         ]];
+        yield 'text-decoration-line rejects keyword with comment-separated leading whitespace like Lexbor' => ['text-decoration-line: /**/  underline', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration-line rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['text-decoration-line: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'text-decoration-line', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'text-decoration-style accepts normal leading whitespace' => ['text-decoration-style:   wavy', [
+            ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'wavy', 'important' => false],
+        ]];
         yield 'text-decoration-style accepts solid' => ['text-decoration-style: solid', [
             ['type' => 'property', 'name' => 'text-decoration-style', 'value' => 'solid', 'important' => false],
         ]];
@@ -1328,6 +1340,9 @@ final class ParserTest extends TestCase
      */
     public static function textDecorationShorthandProvider(): iterable
     {
+        yield 'text-decoration accepts normal leading whitespace' => ['text-decoration:   underline solid red', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline solid red', 'important' => false],
+        ]];
         yield 'text-decoration accepts css-wide keyword' => ['text-decoration: inherit', [
             ['type' => 'property', 'name' => 'text-decoration', 'value' => 'inherit', 'important' => false],
         ]];
