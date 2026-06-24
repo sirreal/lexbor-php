@@ -675,6 +675,7 @@ final class ParserTest extends TestCase
             'text-overflow' => ['clip', 'ellipsis'],
             'unicode-bidi' => ['normal', 'embed', 'isolate', 'bidi-override', 'isolate-override', 'plaintext'],
             'white-space' => ['normal', 'pre', 'nowrap', 'pre-wrap', 'break-spaces', 'pre-line'],
+            'word-break' => ['normal', 'keep-all', 'break-all', 'break-word'],
             'writing-mode' => ['horizontal-tb', 'vertical-rl', 'vertical-lr', 'sideways-rl', 'sideways-lr'],
         ];
 
@@ -758,6 +759,21 @@ final class ParserTest extends TestCase
         ]];
         yield 'white-space keeps important flag' => ['white-space: nowrap !important', [
             ['type' => 'property', 'name' => 'white-space', 'value' => 'nowrap', 'important' => true],
+        ]];
+        yield 'word-break lowercases mixed-case keyword' => ['word-break: BrEaK-AlL', [
+            ['type' => 'property', 'name' => 'word-break', 'value' => 'break-all', 'important' => false],
+        ]];
+        yield 'word-break rejects line-break keyword' => ['word-break: anywhere', [
+            ['type' => 'undef', 'name' => 'word-break', 'value' => 'anywhere', 'important' => false],
+        ]];
+        yield 'word-break rejects multiple keywords' => ['word-break: keep-all break-word', [
+            ['type' => 'undef', 'name' => 'word-break', 'value' => 'keep-all break-word', 'important' => false],
+        ]];
+        yield 'word-break rejects comment-split keyword' => ['word-break: break-/**/word', [
+            ['type' => 'undef', 'name' => 'word-break', 'value' => 'break-word', 'important' => false],
+        ]];
+        yield 'word-break keeps important flag' => ['word-break: keep-all !important', [
+            ['type' => 'property', 'name' => 'word-break', 'value' => 'keep-all', 'important' => true],
         ]];
         yield 'writing-mode rejects horizontal' => ['writing-mode: horizontal', [
             ['type' => 'undef', 'name' => 'writing-mode', 'value' => 'horizontal', 'important' => false],

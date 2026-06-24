@@ -78,6 +78,7 @@ final class Parser
         'visibility' => true,
         'white-space' => true,
         'width' => true,
+        'word-break' => true,
         'word-wrap' => true,
         'word-spacing' => true,
         'writing-mode' => true,
@@ -483,6 +484,12 @@ final class Parser
             'pre' => true,
             'pre-line' => true,
             'pre-wrap' => true,
+        ],
+        'word-break' => [
+            'break-all' => true,
+            'break-word' => true,
+            'keep-all' => true,
+            'normal' => true,
         ],
         'word-wrap' => [
             'anywhere' => true,
@@ -1485,6 +1492,10 @@ final class Parser
 
         if ($property === 'white-space') {
             return self::singleKeywordValue($tokens, self::KEYWORD_PROPERTIES['white-space']) ?? $fallback;
+        }
+
+        if ($property === 'word-break') {
+            return self::singleKeywordValue($tokens, self::KEYWORD_PROPERTIES['word-break']) ?? $fallback;
         }
 
         if (isset(self::KEYWORD_PROPERTIES[$property])) {
