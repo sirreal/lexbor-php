@@ -875,6 +875,76 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function flexFlowDeclarationProvider(): iterable
+    {
+        yield 'flex-flow accepts direction keyword' => ['flex-flow: row', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'row', 'important' => false],
+        ]];
+        yield 'flex-flow accepts wrap keyword' => ['flex-flow: wrap', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'wrap', 'important' => false],
+        ]];
+        yield 'flex-flow accepts direction then wrap' => ['flex-flow: row wrap', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'row wrap', 'important' => false],
+        ]];
+        yield 'flex-flow accepts wrap then direction and serializes direction first' => ['flex-flow: wrap-reverse column-reverse', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'column-reverse wrap-reverse', 'important' => false],
+        ]];
+        yield 'flex-flow accepts css-wide keyword' => ['flex-flow: inherit', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'flex-flow lowercases mixed-case direction keyword' => ['flex-flow: RoW', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'row', 'important' => false],
+        ]];
+        yield 'flex-flow accepts css-wide keyword then wrap like Lexbor state machine' => ['flex-flow: initial nowrap', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'initial nowrap', 'important' => false],
+        ]];
+        yield 'flex-flow lowercases mixed-case css-wide keyword then wrap' => ['flex-flow: InItIaL NOWRAP', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'initial nowrap', 'important' => false],
+        ]];
+        yield 'flex-flow accepts comment-separated complete keywords' => ['flex-flow: row/**/wrap', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'row wrap', 'important' => false],
+        ]];
+        yield 'flex-flow lowercases mixed-case wrap then direction' => ['flex-flow: WRAP ROW', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'row wrap', 'important' => false],
+        ]];
+        yield 'flex-flow trims whitespace before trailing comment' => ['flex-flow: column /**/;', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'column', 'important' => false],
+        ]];
+        yield 'flex-flow rejects duplicate directions' => ['flex-flow: row column', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'row column', 'important' => false],
+        ]];
+        yield 'flex-flow rejects duplicate wraps' => ['flex-flow: wrap nowrap', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'wrap nowrap', 'important' => false],
+        ]];
+        yield 'flex-flow rejects too many keywords' => ['flex-flow: row wrap nowrap', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'row wrap nowrap', 'important' => false],
+        ]];
+        yield 'flex-flow rejects unknown keyword' => ['flex-flow: baseline', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'flex-flow rejects non-ident value' => ['flex-flow: 1px', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'flex-flow rejects wrap before css-wide keyword' => ['flex-flow: wrap inherit', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'wrap inherit', 'important' => false],
+        ]];
+        yield 'flex-flow rejects css-wide keyword before direction' => ['flex-flow: unset row', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'unset row', 'important' => false],
+        ]];
+        yield 'flex-flow rejects comment-split direction keyword' => ['flex-flow: row-/**/reverse', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'row-reverse', 'important' => false],
+        ]];
+        yield 'flex-flow rejects comment-split wrap keyword' => ['flex-flow: wrap-/**/reverse', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'wrap-reverse', 'important' => false],
+        ]];
+        yield 'flex-flow keeps important flag' => ['flex-flow: wrap row !important', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'row wrap', 'important' => true],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -996,6 +1066,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('flexValueDeclarationProvider')]
     public function testFlexValueDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('flexFlowDeclarationProvider')]
+    public function testFlexFlowDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

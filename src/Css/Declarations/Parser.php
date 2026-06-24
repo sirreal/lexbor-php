@@ -20,6 +20,7 @@ final class Parser
         'display' => true,
         'flex-basis' => true,
         'flex-direction' => true,
+        'flex-flow' => true,
         'flex-grow' => true,
         'flex-shrink' => true,
         'flex-wrap' => true,
@@ -598,6 +599,7 @@ final class Parser
         return match ($property) {
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
             'flex-basis' => self::isValidFlexBasis($valueTokens) ? 'property' : 'undef',
+            'flex-flow' => self::isValidFlexFlow($valueTokens) ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
             'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
             'flex-grow', 'flex-shrink' => self::isValidNonNegativeNumber($valueTokens) ? 'property' : 'undef',
@@ -809,6 +811,42 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function isValidFlexFlow(array $tokens): bool
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+
+        if ($components === [] || count($components) > 2) {
+            return false;
+        }
+
+        $values = [];
+
+        foreach ($components as $component) {
+            if (count($component) !== 1 || $component[0]->type !== 'ident') {
+                return false;
+            }
+
+            $values[] = strtolower($component[0]->value);
+        }
+
+        if (count($values) === 1) {
+            return isset(self::CSS_WIDE_KEYWORDS[$values[0]])
+                || self::isFlexDirectionKeyword($values[0])
+                || self::isFlexWrapKeyword($values[0]);
+        }
+
+        [$first, $second] = $values;
+
+        if (isset(self::CSS_WIDE_KEYWORDS[$first]) || self::isFlexDirectionKeyword($first)) {
+            return self::isFlexWrapKeyword($second);
+        }
+
+        return self::isFlexWrapKeyword($first) && self::isFlexDirectionKeyword($second);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function isValidNumberPercentage(array $tokens): bool
     {
         $token = self::singleValueToken($tokens);
@@ -976,6 +1014,10 @@ final class Parser
             return self::singleValueToken($tokens)?->value ?? $fallback;
         }
 
+        if ($property === 'flex-flow') {
+            return self::serializeFlexFlow($tokens) ?? $fallback;
+        }
+
         if (
             in_array($property, ['margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top'], true)
             || in_array($property, ['padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top'], true)
@@ -989,6 +1031,41 @@ final class Parser
         }
 
         return $fallback;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function serializeFlexFlow(array $tokens): ?string
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+
+        if ($components === []) {
+            return null;
+        }
+
+        if (count($components) === 1) {
+            return strtolower(self::serializeComponentValue($components[0]));
+        }
+
+        $firstValue = strtolower(self::serializeComponentValue($components[0]));
+        $secondValue = strtolower(self::serializeComponentValue($components[1]));
+
+        if (self::isFlexWrapKeyword($firstValue) && self::isFlexDirectionKeyword($secondValue)) {
+            return $secondValue . ' ' . $firstValue;
+        }
+
+        return $firstValue . ' ' . $secondValue;
+    }
+
+    private static function isFlexDirectionKeyword(string $value): bool
+    {
+        return isset(self::KEYWORD_PROPERTIES['flex-direction'][$value]);
+    }
+
+    private static function isFlexWrapKeyword(string $value): bool
+    {
+        return isset(self::KEYWORD_PROPERTIES['flex-wrap'][$value]);
     }
 
     /**
