@@ -1319,6 +1319,7 @@ final class Parser
             'border-right-color',
             'border-top',
             'border-top-color',
+            'bottom',
             'color',
             'display',
             'dominant-baseline',
@@ -1336,14 +1337,30 @@ final class Parser
             'font-style',
             'font-weight',
             'height',
+            'inset-block-end',
+            'inset-block-start',
+            'inset-inline-end',
+            'inset-inline-start',
+            'left',
             'letter-spacing',
             'line-height',
+            'margin',
+            'margin-bottom',
+            'margin-left',
+            'margin-right',
+            'margin-top',
             'max-height',
             'max-width',
             'min-height',
             'min-width',
             'opacity',
             'order',
+            'padding',
+            'padding-bottom',
+            'padding-left',
+            'padding-right',
+            'padding-top',
+            'right',
             'tab-size',
             'text-decoration-color',
             'text-decoration',
@@ -1353,6 +1370,7 @@ final class Parser
             'wrap-flow',
             'wrap-through',
             'word-spacing',
+            'top',
             'width',
             'z-index',
         ], true);
@@ -1554,6 +1572,14 @@ final class Parser
      */
     private static function isValidBoxSpacing(string $property, array $tokens, bool $allowAuto): bool
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (! isset($tokens[$offset]) || self::isIgnorableToken($tokens[$offset])) {
+            return false;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $components = self::splitWhitespaceSeparatedComponents($tokens);
         $maxComponents = in_array($property, ['margin', 'padding'], true) ? 4 : 1;
 

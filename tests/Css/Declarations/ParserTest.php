@@ -312,6 +312,9 @@ final class ParserTest extends TestCase
      */
     public static function boxSpacingProvider(): iterable
     {
+        yield 'margin accepts normal leading whitespace' => ['margin:   1px', [
+            ['type' => 'property', 'name' => 'margin', 'value' => '1px', 'important' => false],
+        ]];
         yield 'margin accepts one length' => ['margin: 1px', [
             ['type' => 'property', 'name' => 'margin', 'value' => '1px', 'important' => false],
         ]];
@@ -326,6 +329,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'margin rejects more than four values' => ['margin: 1px 2px 3px 4px 5px', [
             ['type' => 'undef', 'name' => 'margin', 'value' => '1px 2px 3px 4px 5px', 'important' => false],
+        ]];
+        yield 'margin rejects length with comment-separated leading whitespace like Lexbor' => ['margin: /**/  1px', [
+            ['type' => 'undef', 'name' => 'margin', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'margin rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['margin: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'margin', 'value' => 'inherit', 'important' => false],
         ]];
         yield 'margin side accepts auto' => ['margin-left: auto', [
             ['type' => 'property', 'name' => 'margin-left', 'value' => 'auto', 'important' => false],
@@ -342,11 +351,17 @@ final class ParserTest extends TestCase
         yield 'padding accepts signed values like Lexbor state table' => ['padding: -1px -2%', [
             ['type' => 'property', 'name' => 'padding', 'value' => '-1px -2%', 'important' => false],
         ]];
+        yield 'padding rejects length with comment-separated leading whitespace like Lexbor' => ['padding: /**/  1px', [
+            ['type' => 'undef', 'name' => 'padding', 'value' => '1px', 'important' => false],
+        ]];
         yield 'padding rejects auto' => ['padding: auto', [
             ['type' => 'undef', 'name' => 'padding', 'value' => 'auto', 'important' => false],
         ]];
         yield 'padding side accepts percentage' => ['padding-bottom: 12.5%', [
             ['type' => 'property', 'name' => 'padding-bottom', 'value' => '12.5%', 'important' => false],
+        ]];
+        yield 'padding side rejects percentage with comment-separated leading whitespace like Lexbor' => ['padding-bottom: /**/  12.5%', [
+            ['type' => 'undef', 'name' => 'padding-bottom', 'value' => '12.5%', 'important' => false],
         ]];
         yield 'padding side rejects auto' => ['padding-left: auto', [
             ['type' => 'undef', 'name' => 'padding-left', 'value' => 'auto', 'important' => false],
@@ -851,6 +866,9 @@ final class ParserTest extends TestCase
      */
     public static function positionOffsetDeclarationProvider(): iterable
     {
+        yield 'top accepts normal leading whitespace' => ['top:   auto', [
+            ['type' => 'property', 'name' => 'top', 'value' => 'auto', 'important' => false],
+        ]];
         yield 'top accepts auto' => ['top: auto', [
             ['type' => 'property', 'name' => 'top', 'value' => 'auto', 'important' => false],
         ]];
@@ -868,6 +886,9 @@ final class ParserTest extends TestCase
         ]];
         yield 'top rejects none' => ['top: none', [
             ['type' => 'undef', 'name' => 'top', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'top rejects auto with comment-separated leading whitespace like Lexbor' => ['top: /**/  auto', [
+            ['type' => 'undef', 'name' => 'top', 'value' => 'auto', 'important' => false],
         ]];
         yield 'right accepts length' => ['right: 1.5em', [
             ['type' => 'property', 'name' => 'right', 'value' => '1.5em', 'important' => false],
@@ -890,6 +911,9 @@ final class ParserTest extends TestCase
         yield 'left rejects comment-split length' => ['left: 1/**/px', [
             ['type' => 'undef', 'name' => 'left', 'value' => '1px', 'important' => false],
         ]];
+        yield 'left rejects length with comment-separated leading whitespace like Lexbor' => ['left: /**/  1px', [
+            ['type' => 'undef', 'name' => 'left', 'value' => '1px', 'important' => false],
+        ]];
         yield 'inset-block-start accepts auto' => ['inset-block-start: auto', [
             ['type' => 'property', 'name' => 'inset-block-start', 'value' => 'auto', 'important' => false],
         ]];
@@ -901,6 +925,9 @@ final class ParserTest extends TestCase
         ]];
         yield 'inset-inline-end accepts css-wide keyword' => ['inset-inline-end: inherit', [
             ['type' => 'property', 'name' => 'inset-inline-end', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'inset-inline-end rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['inset-inline-end: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'inset-inline-end', 'value' => 'inherit', 'important' => false],
         ]];
         yield 'inset-inline-start rejects none' => ['inset-inline-start: none', [
             ['type' => 'undef', 'name' => 'inset-inline-start', 'value' => 'none', 'important' => false],
