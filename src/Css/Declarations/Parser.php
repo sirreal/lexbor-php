@@ -22,6 +22,10 @@ final class Parser
         'margin-left' => true,
         'margin-right' => true,
         'margin-top' => true,
+        'max-height' => true,
+        'max-width' => true,
+        'min-height' => true,
+        'min-width' => true,
         'opacity' => true,
         'order' => true,
         'overflow-block' => true,
@@ -193,6 +197,26 @@ final class Parser
 
     private const string LONG_MAX_DECIMAL = '9223372036854775807';
     private const string LONG_MIN_ABS_DECIMAL = '9223372036854775808';
+
+    private const array SIZE_KEYWORDS = [
+        'auto' => true,
+        'inherit' => true,
+        'initial' => true,
+        'max-content' => true,
+        'min-content' => true,
+        'revert' => true,
+        'unset' => true,
+    ];
+
+    private const array MAX_SIZE_KEYWORDS = [
+        'inherit' => true,
+        'initial' => true,
+        'max-content' => true,
+        'min-content' => true,
+        'none' => true,
+        'revert' => true,
+        'unset' => true,
+    ];
 
     private const array KEYWORD_PROPERTIES = [
         'box-sizing' => [
@@ -432,10 +456,11 @@ final class Parser
 
         return match ($property) {
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
-            'height', 'width' => self::isValidLengthSize($value, $valueTokens) ? 'property' : 'undef',
+            'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
             'letter-spacing', 'word-spacing' => self::isValidLengthKeyword($valueTokens, ['normal' => true]) ? 'property' : 'undef',
             'line-height' => self::isValidNumberLengthPercentage($valueTokens, ['normal' => true]) ? 'property' : 'undef',
             'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
+            'max-height', 'max-width' => self::isValidLengthSize($value, $valueTokens, self::MAX_SIZE_KEYWORDS) ? 'property' : 'undef',
             'opacity' => self::isValidNumberPercentage($valueTokens) ? 'property' : 'undef',
             'order' => self::isValidInteger($valueTokens) ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
@@ -446,13 +471,14 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     * @param array<string, true> $keywords
      */
-    private static function isValidLengthSize(string $value, array $tokens): bool
+    private static function isValidLengthSize(string $value, array $tokens, array $keywords): bool
     {
         $tokens = self::stripWhitespaceTokens($tokens);
         $lowerValue = strtolower($value);
 
-        if (in_array($lowerValue, ['auto', 'inherit', 'initial', 'max-content', 'min-content', 'revert', 'unset'], true)) {
+        if (isset($keywords[$lowerValue])) {
             return count($tokens) === 1 && $tokens[0]->type === 'ident';
         }
 

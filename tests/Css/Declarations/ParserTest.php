@@ -540,6 +540,61 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function minMaxSizeDeclarationProvider(): iterable
+    {
+        yield 'min-width accepts auto' => ['min-width: auto', [
+            ['type' => 'property', 'name' => 'min-width', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'min-width accepts min-content' => ['min-width: min-content', [
+            ['type' => 'property', 'name' => 'min-width', 'value' => 'min-content', 'important' => false],
+        ]];
+        yield 'min-width accepts percentage' => ['min-width: 25%', [
+            ['type' => 'property', 'name' => 'min-width', 'value' => '25%', 'important' => false],
+        ]];
+        yield 'min-width rejects none' => ['min-width: none', [
+            ['type' => 'undef', 'name' => 'min-width', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'min-height accepts max-content' => ['min-height: max-content', [
+            ['type' => 'property', 'name' => 'min-height', 'value' => 'max-content', 'important' => false],
+        ]];
+        yield 'min-height accepts length' => ['min-height: 12px', [
+            ['type' => 'property', 'name' => 'min-height', 'value' => '12px', 'important' => false],
+        ]];
+        yield 'min-height accepts css-wide keyword' => ['min-height: inherit', [
+            ['type' => 'property', 'name' => 'min-height', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'min-height rejects multiple values' => ['min-height: 1px 2px', [
+            ['type' => 'undef', 'name' => 'min-height', 'value' => '1px 2px', 'important' => false],
+        ]];
+        yield 'max-width accepts none' => ['max-width: none', [
+            ['type' => 'property', 'name' => 'max-width', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'max-width accepts min-content' => ['max-width: min-content', [
+            ['type' => 'property', 'name' => 'max-width', 'value' => 'min-content', 'important' => false],
+        ]];
+        yield 'max-width accepts percentage' => ['max-width: 75%', [
+            ['type' => 'property', 'name' => 'max-width', 'value' => '75%', 'important' => false],
+        ]];
+        yield 'max-width rejects auto' => ['max-width: auto', [
+            ['type' => 'undef', 'name' => 'max-width', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'max-height accepts max-content' => ['max-height: max-content', [
+            ['type' => 'property', 'name' => 'max-height', 'value' => 'max-content', 'important' => false],
+        ]];
+        yield 'max-height accepts length' => ['max-height: 20em', [
+            ['type' => 'property', 'name' => 'max-height', 'value' => '20em', 'important' => false],
+        ]];
+        yield 'max-height accepts css-wide keyword' => ['max-height: revert', [
+            ['type' => 'property', 'name' => 'max-height', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'max-height rejects comment-split keyword' => ['max-height: max-/**/content', [
+            ['type' => 'undef', 'name' => 'max-height', 'value' => 'max-content', 'important' => false],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -616,6 +671,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('numericDeclarationProvider')]
     public function testNumericDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('minMaxSizeDeclarationProvider')]
+    public function testMinMaxSizeDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
