@@ -87,10 +87,39 @@ final class MatcherTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, list<string>}>
+     */
+    public static function upstreamCombinatorSelectorProvider(): iterable
+    {
+        yield 'selectors match descendant combinator' => ['div span', 'span', ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12']];
+        yield 'selectors match child combinator empty result' => ['div > span', 'span', []];
+        yield 'selectors match child combinator' => ['p > span', 'span', ['1', '2', '3', '4', '5', '6', '9', '10', '11', '12']];
+        yield 'selectors match chained child combinators' => ['div > p > a', 'a', ['1', '2', '3', '4', '5', '6', '7', '8']];
+        yield 'selectors match subsequent-sibling combinator' => ['span ~ span', 'span', ['2', '3', '4', '5', '9', '10', '11', '12']];
+        yield 'selectors match adjacent-sibling combinator' => ["p[p='2'] + p", 'p', ['3']];
+        yield 'selectors match adjacent-sibling combinator empty result' => ["p[p='2'] + p[p='4']", 'p', []];
+        yield 'selectors match descendant combinator with compounds' => ["p[p='6'][lang |= 'en'] span[id='s4']#s4[span='4']", 'span', ['4']];
+    }
+
+    /**
      * @param list<string> $expected
      */
     #[DataProvider('upstreamSimpleSelectorProvider')]
     public function testFindMatchesUpstreamSimpleSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
+    {
+        $document = $this->fixtureDocument();
+
+        self::assertSame(
+            $expected,
+            self::attributeValues((new Matcher())->find($document->bodyElement(), $selector), $labelAttribute),
+        );
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('upstreamCombinatorSelectorProvider')]
+    public function testFindMatchesUpstreamCombinatorSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
     {
         $document = $this->fixtureDocument();
 
@@ -131,6 +160,17 @@ final class MatcherTest extends TestCase
         self::assertTrue($matcher->matches($span, '#s4#s4'));
         self::assertFalse($matcher->matches($span, '#s4#s5'));
         self::assertSame([], $matcher->find($document->bodyElement(), '#s4#s5'));
+    }
+
+    public function testMatchesSupportsCombinators(): void
+    {
+        $document = $this->fixtureDocument();
+        $span = $document->byId('s4');
+        $matcher = new Matcher();
+
+        self::assertInstanceOf(Element::class, $span);
+        self::assertTrue($matcher->matches($span, "p[p='6'] > span"));
+        self::assertFalse($matcher->matches($span, "p[p='7'] > span"));
     }
 
     private function fixtureDocument(): Document
