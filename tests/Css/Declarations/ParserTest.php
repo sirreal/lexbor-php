@@ -248,6 +248,9 @@ final class ParserTest extends TestCase
      */
     public static function widthRegressionProvider(): iterable
     {
+        yield 'width accepts normal leading whitespace' => ['width:   12px', [
+            ['type' => 'property', 'name' => 'width', 'value' => '12px', 'important' => false],
+        ]];
         yield 'unitless zero width is valid' => ['width: 0', [
             ['type' => 'property', 'name' => 'width', 'value' => '0', 'important' => false],
         ]];
@@ -283,6 +286,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'comment cannot join intrinsic width keyword' => ['width: min-/**/content', [
             ['type' => 'undef', 'name' => 'width', 'value' => 'min-content', 'important' => false],
+        ]];
+        yield 'width rejects length with comment-separated leading whitespace like Lexbor' => ['width: /**/  12px', [
+            ['type' => 'undef', 'name' => 'width', 'value' => '12px', 'important' => false],
+        ]];
+        yield 'width rejects keyword with comment-separated leading whitespace like Lexbor' => ['width: /**/  auto', [
+            ['type' => 'undef', 'name' => 'width', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'height rejects percentage with comment-separated leading whitespace like Lexbor' => ['height: /**/  25%', [
+            ['type' => 'undef', 'name' => 'height', 'value' => '25%', 'important' => false],
         ]];
         yield 'escaped ident cannot become width dimension' => ['width: \31 px', [
             ['type' => 'undef', 'name' => 'width', 'value' => '1px', 'important' => false],
@@ -825,6 +837,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'max-height rejects comment-split keyword' => ['max-height: max-/**/content', [
             ['type' => 'undef', 'name' => 'max-height', 'value' => 'max-content', 'important' => false],
+        ]];
+        yield 'min-width rejects keyword with comment-separated leading whitespace like Lexbor' => ['min-width: /**/  min-content', [
+            ['type' => 'undef', 'name' => 'min-width', 'value' => 'min-content', 'important' => false],
+        ]];
+        yield 'max-height rejects keyword with comment-separated leading whitespace like Lexbor' => ['max-height: /**/  none', [
+            ['type' => 'undef', 'name' => 'max-height', 'value' => 'none', 'important' => false],
         ]];
     }
 

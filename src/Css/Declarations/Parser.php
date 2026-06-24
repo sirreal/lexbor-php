@@ -1335,8 +1335,13 @@ final class Parser
             'font-stretch',
             'font-style',
             'font-weight',
+            'height',
             'letter-spacing',
             'line-height',
+            'max-height',
+            'max-width',
+            'min-height',
+            'min-width',
             'opacity',
             'order',
             'tab-size',
@@ -1348,6 +1353,7 @@ final class Parser
             'wrap-flow',
             'wrap-through',
             'word-spacing',
+            'width',
             'z-index',
         ], true);
         $classificationTokens = $usesLexborLeadingTokens ? [...$leadingValueTokens, ...$valueTokens] : $valueTokens;
@@ -1456,13 +1462,13 @@ final class Parser
             'font-style' => self::fontStyleValue($valueTokens) !== null ? 'property' : 'undef',
             'font-weight' => self::fontWeightValue($valueTokens) !== null ? 'property' : 'undef',
             'hanging-punctuation' => self::hangingPunctuationValue($valueTokens) !== null ? 'property' : 'undef',
-            'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
+            'height', 'min-height', 'min-width', 'width' => self::lengthSizeValue($valueTokens, self::SIZE_KEYWORDS) !== null ? 'property' : 'undef',
             'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
             'flex-grow', 'flex-shrink' => self::nonNegativeNumberValue($valueTokens) !== null ? 'property' : 'undef',
             'letter-spacing', 'word-spacing' => self::lengthKeywordValue($valueTokens, ['normal' => true]) !== null ? 'property' : 'undef',
             'line-height' => self::numberLengthPercentageValue($valueTokens, ['normal' => true]) !== null ? 'property' : 'undef',
             'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
-            'max-height', 'max-width' => self::isValidLengthSize($value, $valueTokens, self::MAX_SIZE_KEYWORDS) ? 'property' : 'undef',
+            'max-height', 'max-width' => self::lengthSizeValue($valueTokens, self::MAX_SIZE_KEYWORDS) !== null ? 'property' : 'undef',
             'opacity' => self::numberPercentageValue($valueTokens) !== null ? 'property' : 'undef',
             'order' => self::integerValue($valueTokens) !== null ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
@@ -1485,38 +1491,39 @@ final class Parser
      * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
-    private static function isValidLengthSize(string $value, array $tokens, array $keywords): bool
+    private static function lengthSizeValue(array $tokens, array $keywords): ?string
     {
-        $tokens = self::stripWhitespaceTokens($tokens);
-        $lowerValue = strtolower($value);
+        $token = self::singleLexborValueToken($tokens);
 
-        if (isset($keywords[$lowerValue])) {
-            return count($tokens) === 1 && $tokens[0]->type === 'ident';
+        if ($token === null) {
+            return null;
         }
 
-        if (count($tokens) !== 1) {
-            return false;
-        }
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
 
-        $token = $tokens[0];
+            return isset($keywords[$value]) ? $value : null;
+        }
 
         if ($token->type === 'number') {
-            return $value === '0';
+            return $token->value === '0' ? $token->value : null;
         }
 
         if ($token->type === 'percentage') {
-            return self::isNonNegativePercentage($value);
+            return self::isNonNegativePercentage($token->value) ? $token->value : null;
         }
 
         if ($token->type !== 'dimension') {
-            return false;
+            return null;
         }
 
-        if (! preg_match('/^\+?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?([a-zA-Z]+)$/i', $value, $matches)) {
-            return false;
+        if (! preg_match('/^\+?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?([a-zA-Z]+)$/i', $token->value, $matches)) {
+            return null;
         }
 
-        return isset(self::LENGTH_UNITS[strtolower($matches[1])]);
+        return isset(self::LENGTH_UNITS[strtolower($matches[1])])
+            ? self::canonicalLengthDimensionValue($token->value)
+            : null;
     }
 
     private static function isNonNegativePercentage(string $value): bool
@@ -3857,6 +3864,14 @@ final class Parser
 
         if ($property === 'tab-size') {
             return self::numberLengthValue($tokens) ?? $fallback;
+        }
+
+        if (in_array($property, ['height', 'min-height', 'min-width', 'width'], true)) {
+            return self::lengthSizeValue($tokens, self::SIZE_KEYWORDS) ?? $fallback;
+        }
+
+        if (in_array($property, ['max-height', 'max-width'], true)) {
+            return self::lengthSizeValue($tokens, self::MAX_SIZE_KEYWORDS) ?? $fallback;
         }
 
         if ($property === 'hanging-punctuation') {
