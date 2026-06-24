@@ -1320,6 +1320,7 @@ final class Parser
             'border-top',
             'border-top-color',
             'color',
+            'display',
             'dominant-baseline',
             'float',
             'float-defer',
@@ -1528,6 +1529,14 @@ final class Parser
      */
     private static function isValidDisplay(array $tokens): bool
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type !== 'ident') {
+            return false;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $value = self::serializeIdentSequence($tokens);
 
         return $value !== null && isset(self::DISPLAY_VALUES[strtolower($value)]);

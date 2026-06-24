@@ -437,8 +437,14 @@ final class ParserTest extends TestCase
      */
     public static function displayCommentProvider(): iterable
     {
+        yield 'display accepts normal leading whitespace' => ['display:   block', [
+            ['type' => 'property', 'name' => 'display', 'value' => 'block', 'important' => false],
+        ]];
         yield 'display accepts comment-separated complete keywords' => ['display: block/**/flow', [
             ['type' => 'property', 'name' => 'display', 'value' => 'block flow', 'important' => false],
+        ]];
+        yield 'display accepts trailing whitespace-comment-whitespace like Lexbor' => ['display: inline flex /**/  ', [
+            ['type' => 'property', 'name' => 'display', 'value' => 'inline flex', 'important' => false],
         ]];
         yield 'display rejects comment-split keyword' => ['display: in/**/line', [
             ['type' => 'undef', 'name' => 'display', 'value' => 'inline', 'important' => false],
@@ -448,6 +454,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'display rejects comment-split css-wide keyword' => ['display: in/**/herit', [
             ['type' => 'undef', 'name' => 'display', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'display rejects keyword with comment-separated leading whitespace like Lexbor' => ['display: /**/  block', [
+            ['type' => 'undef', 'name' => 'display', 'value' => 'block', 'important' => false],
+        ]];
+        yield 'display rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['display: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'display', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'display rejects multi-keyword value with comment-separated leading whitespace like Lexbor' => ['display: /**/  inline flex', [
+            ['type' => 'undef', 'name' => 'display', 'value' => 'inline flex', 'important' => false],
         ]];
     }
 
