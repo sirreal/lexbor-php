@@ -1336,6 +1336,7 @@ final class Parser
             'font-stretch',
             'font-style',
             'font-weight',
+            'hanging-punctuation',
             'height',
             'inset-block-end',
             'inset-block-start',
@@ -3284,6 +3285,14 @@ final class Parser
      */
     private static function hangingPunctuationValue(array $tokens): ?string
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type !== 'ident') {
+            return null;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $components = self::splitWhitespaceSeparatedComponents($tokens);
 
         if ($components === []) {

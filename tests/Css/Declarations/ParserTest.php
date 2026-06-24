@@ -1143,6 +1143,9 @@ final class ParserTest extends TestCase
      */
     public static function hangingPunctuationDeclarationProvider(): iterable
     {
+        yield 'hanging-punctuation accepts normal leading whitespace' => ['hanging-punctuation:   first', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'first', 'important' => false],
+        ]];
         yield 'hanging-punctuation accepts none' => ['hanging-punctuation: none', [
             ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'none', 'important' => false],
         ]];
@@ -1172,6 +1175,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'hanging-punctuation lowercases mixed-case keywords' => ['hanging-punctuation: FiRsT ALLOW-END', [
             ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'first allow-end', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects keyword with comment-separated leading whitespace like Lexbor' => ['hanging-punctuation: /**/  first', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'first', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['hanging-punctuation: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects multi-keyword value with comment-separated leading whitespace like Lexbor' => ['hanging-punctuation: /**/  first last', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'first last', 'important' => false],
         ]];
         yield 'hanging-punctuation rejects duplicate first group' => ['hanging-punctuation: first first', [
             ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'first first', 'important' => false],
