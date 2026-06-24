@@ -14,11 +14,17 @@ final class Parser
         'align-items' => true,
         'align-self' => true,
         'alignment-baseline' => true,
+        'background-color' => true,
         'baseline-shift' => true,
         'baseline-source' => true,
+        'border-bottom-color' => true,
+        'border-left-color' => true,
+        'border-right-color' => true,
+        'border-top-color' => true,
         'box-sizing' => true,
         'bottom' => true,
         'clear' => true,
+        'color' => true,
         'direction' => true,
         'display' => true,
         'dominant-baseline' => true,
@@ -79,6 +85,7 @@ final class Parser
         'text-align-last' => true,
         'text-combine-upright' => true,
         'text-decoration' => true,
+        'text-decoration-color' => true,
         'text-decoration-line' => true,
         'text-decoration-style' => true,
         'text-indent' => true,
@@ -104,6 +111,188 @@ final class Parser
         'initial' => true,
         'revert' => true,
         'unset' => true,
+    ];
+
+    private const array COLOR_PROPERTIES = [
+        'background-color' => true,
+        'border-bottom-color' => true,
+        'border-left-color' => true,
+        'border-right-color' => true,
+        'border-top-color' => true,
+        'color' => true,
+        'text-decoration-color' => true,
+    ];
+
+    private const array COLOR_KEYWORDS = [
+        'accentcolor' => true,
+        'accentcolortext' => true,
+        'activetext' => true,
+        'aliceblue' => true,
+        'antiquewhite' => true,
+        'aqua' => true,
+        'aquamarine' => true,
+        'azure' => true,
+        'beige' => true,
+        'bisque' => true,
+        'black' => true,
+        'blanchedalmond' => true,
+        'blue' => true,
+        'blueviolet' => true,
+        'brown' => true,
+        'burlywood' => true,
+        'buttonborder' => true,
+        'buttonface' => true,
+        'buttontext' => true,
+        'cadetblue' => true,
+        'canvas' => true,
+        'canvastext' => true,
+        'chartreuse' => true,
+        'chocolate' => true,
+        'coral' => true,
+        'cornflowerblue' => true,
+        'cornsilk' => true,
+        'crimson' => true,
+        'currentcolor' => true,
+        'cyan' => true,
+        'darkblue' => true,
+        'darkcyan' => true,
+        'darkgoldenrod' => true,
+        'darkgray' => true,
+        'darkgreen' => true,
+        'darkgrey' => true,
+        'darkkhaki' => true,
+        'darkmagenta' => true,
+        'darkolivegreen' => true,
+        'darkorange' => true,
+        'darkorchid' => true,
+        'darkred' => true,
+        'darksalmon' => true,
+        'darkseagreen' => true,
+        'darkslateblue' => true,
+        'darkslategray' => true,
+        'darkslategrey' => true,
+        'darkturquoise' => true,
+        'darkviolet' => true,
+        'deeppink' => true,
+        'deepskyblue' => true,
+        'dimgray' => true,
+        'dimgrey' => true,
+        'dodgerblue' => true,
+        'field' => true,
+        'fieldtext' => true,
+        'firebrick' => true,
+        'floralwhite' => true,
+        'forestgreen' => true,
+        'fuchsia' => true,
+        'gainsboro' => true,
+        'ghostwhite' => true,
+        'gold' => true,
+        'goldenrod' => true,
+        'gray' => true,
+        'graytext' => true,
+        'green' => true,
+        'greenyellow' => true,
+        'grey' => true,
+        'highlight' => true,
+        'highlighttext' => true,
+        'honeydew' => true,
+        'hotpink' => true,
+        'indianred' => true,
+        'indigo' => true,
+        'ivory' => true,
+        'khaki' => true,
+        'lavender' => true,
+        'lavenderblush' => true,
+        'lawngreen' => true,
+        'lemonchiffon' => true,
+        'lightblue' => true,
+        'lightcoral' => true,
+        'lightcyan' => true,
+        'lightgoldenrodyellow' => true,
+        'lightgray' => true,
+        'lightgreen' => true,
+        'lightgrey' => true,
+        'lightpink' => true,
+        'lightsalmon' => true,
+        'lightseagreen' => true,
+        'lightskyblue' => true,
+        'lightslategray' => true,
+        'lightslategrey' => true,
+        'lightsteelblue' => true,
+        'lightyellow' => true,
+        'lime' => true,
+        'limegreen' => true,
+        'linen' => true,
+        'linktext' => true,
+        'magenta' => true,
+        'mark' => true,
+        'marktext' => true,
+        'maroon' => true,
+        'mediumaquamarine' => true,
+        'mediumblue' => true,
+        'mediumorchid' => true,
+        'mediumpurple' => true,
+        'mediumseagreen' => true,
+        'mediumslateblue' => true,
+        'mediumspringgreen' => true,
+        'mediumturquoise' => true,
+        'mediumvioletred' => true,
+        'midnightblue' => true,
+        'mintcream' => true,
+        'mistyrose' => true,
+        'moccasin' => true,
+        'navajowhite' => true,
+        'navy' => true,
+        'oldlace' => true,
+        'olive' => true,
+        'olivedrab' => true,
+        'orange' => true,
+        'orangered' => true,
+        'orchid' => true,
+        'palegoldenrod' => true,
+        'palegreen' => true,
+        'paleturquoise' => true,
+        'palevioletred' => true,
+        'papayawhip' => true,
+        'peachpuff' => true,
+        'peru' => true,
+        'pink' => true,
+        'plum' => true,
+        'powderblue' => true,
+        'purple' => true,
+        'rebeccapurple' => true,
+        'red' => true,
+        'rosybrown' => true,
+        'royalblue' => true,
+        'saddlebrown' => true,
+        'salmon' => true,
+        'sandybrown' => true,
+        'seagreen' => true,
+        'seashell' => true,
+        'selecteditem' => true,
+        'selecteditemtext' => true,
+        'sienna' => true,
+        'silver' => true,
+        'skyblue' => true,
+        'slateblue' => true,
+        'slategray' => true,
+        'slategrey' => true,
+        'snow' => true,
+        'springgreen' => true,
+        'steelblue' => true,
+        'tan' => true,
+        'teal' => true,
+        'thistle' => true,
+        'tomato' => true,
+        'transparent' => true,
+        'turquoise' => true,
+        'violet' => true,
+        'visitedtext' => true,
+        'wheat' => true,
+        'white' => true,
+        'whitesmoke' => true,
+        'yellow' => true,
+        'yellowgreen' => true,
     ];
 
     private const array LEXBOR_VALUE_KEYWORDS = [
@@ -1069,10 +1258,17 @@ final class Parser
         $property = strtolower($name);
         $classificationTokens = in_array($property, [
             'alignment-baseline',
+            'background-color',
             'baseline-shift',
             'baseline-source',
+            'border-bottom-color',
+            'border-left-color',
+            'border-right-color',
+            'border-top-color',
+            'color',
             'dominant-baseline',
             'font-family',
+            'text-decoration-color',
             'text-decoration-line',
             'text-decoration-style',
             'vertical-align',
@@ -1167,6 +1363,7 @@ final class Parser
             'alignment-baseline' => self::singleLexborKeywordValue($valueTokens, self::ALIGNMENT_BASELINE_KEYWORDS) !== null ? 'property' : 'undef',
             'baseline-shift' => self::baselineShiftDeclarationValue($valueTokens) !== null ? 'property' : 'undef',
             'baseline-source' => self::singleLexborKeywordValue($valueTokens, self::BASELINE_SOURCE_KEYWORDS) !== null ? 'property' : 'undef',
+            'background-color', 'border-bottom-color', 'border-left-color', 'border-right-color', 'border-top-color', 'color', 'text-decoration-color' => self::colorDeclarationValue($valueTokens) !== null ? 'property' : 'undef',
             'dominant-baseline' => self::singleLexborKeywordValue($valueTokens, self::DOMINANT_BASELINE_KEYWORDS) !== null ? 'property' : 'undef',
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
             'flex' => self::parseFlex($valueTokens) !== null ? 'property' : 'undef',
@@ -1647,6 +1844,547 @@ final class Parser
         }
 
         return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function colorDeclarationValue(array $tokens): ?string
+    {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $value = self::colorValue($tokens, $offset, true);
+        if ($value === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        return $offset >= count($tokens) || self::remainingTokensAreIgnorable($tokens, $offset) ? $value : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function colorValue(array $tokens, int &$offset, bool $allowCssWide): ?string
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            if ($allowCssWide && isset(self::CSS_WIDE_KEYWORDS[$value])) {
+                $offset++;
+                return $value;
+            }
+
+            if (! isset(self::COLOR_KEYWORDS[$value])) {
+                return null;
+            }
+
+            $offset++;
+            return self::LEXBOR_VALUE_KEYWORDS[$value] ?? $value;
+        }
+
+        if ($token->type === 'hash') {
+            $hex = substr($token->value, 1);
+            $length = strlen($hex);
+
+            if (! in_array($length, [3, 4, 6, 8], true) || ! ctype_xdigit($hex)) {
+                return null;
+            }
+
+            $offset++;
+            return '#' . strtolower($hex);
+        }
+
+        if ($token->type === 'function') {
+            return self::colorFunctionValue($tokens, $offset);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function colorFunctionValue(array $tokens, int &$offset): ?string
+    {
+        $function = $tokens[$offset] ?? null;
+        if ($function === null || $function->type !== 'function' || ! str_ends_with($function->value, '(')) {
+            return null;
+        }
+
+        $name = strtolower(substr($function->value, 0, -1));
+        $offset++;
+
+        return match ($name) {
+            'rgb', 'rgba' => self::rgbColorFunctionValue($tokens, $offset, $name),
+            'hsl', 'hsla', 'hwb' => self::hslColorFunctionValue($tokens, $offset, $name),
+            'lab', 'oklab' => self::labColorFunctionValue($tokens, $offset, $name),
+            'lch', 'oklch' => self::lchColorFunctionValue($tokens, $offset, $name),
+            default => null,
+        };
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function rgbColorFunctionValue(array $tokens, int &$offset, string $name): ?string
+    {
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $red = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($red === null) {
+            return null;
+        }
+
+        $type = $red['type'];
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type === 'comma') {
+            if ($type === 'none') {
+                return null;
+            }
+
+            $offset++;
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            $green = self::numberPercentageComponent($tokens, $offset);
+            if ($green === null || $green['type'] !== $type) {
+                return null;
+            }
+
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+            if (($tokens[$offset] ?? null)?->type !== 'comma') {
+                return null;
+            }
+
+            $offset++;
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            $blue = self::numberPercentageComponent($tokens, $offset);
+            if ($blue === null || $blue['type'] !== $type) {
+                return null;
+            }
+
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+            if (self::consumeRightParenthesis($tokens, $offset)) {
+                return $name . '(' . $red['value'] . ', ' . $green['value'] . ', ' . $blue['value'] . ')';
+            }
+
+            if (($tokens[$offset] ?? null)?->type !== 'comma') {
+                return null;
+            }
+
+            $offset++;
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            $alpha = self::numberPercentageComponent($tokens, $offset);
+            if ($alpha === null) {
+                return null;
+            }
+
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            return self::consumeRightParenthesis($tokens, $offset)
+                ? $name . '(' . $red['value'] . ', ' . $green['value'] . ', ' . $blue['value'] . ', ' . $alpha['value'] . ')'
+                : null;
+        }
+
+        $green = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($green === null) {
+            return null;
+        }
+
+        if ($type !== $green['type']) {
+            if ($type === 'none') {
+                $type = $green['type'];
+            }
+            elseif ($green['type'] !== 'none') {
+                return null;
+            }
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $blue = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($blue === null) {
+            return null;
+        }
+
+        if ($type !== $blue['type'] && $type !== 'none' && $blue['type'] !== 'none') {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+        if (self::consumeRightParenthesis($tokens, $offset)) {
+            return $name . '(' . $red['value'] . ' ' . $green['value'] . ' ' . $blue['value'] . ')';
+        }
+
+        if (! self::consumeSlashDelimiter($tokens, $offset)) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $alpha = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($alpha === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        return self::consumeRightParenthesis($tokens, $offset)
+            ? $name . '(' . $red['value'] . ' ' . $green['value'] . ' ' . $blue['value'] . ' / ' . $alpha['value'] . ')'
+            : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function hslColorFunctionValue(array $tokens, int &$offset, string $name): ?string
+    {
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $hue = self::hueNoneComponent($tokens, $offset);
+        if ($hue === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type === 'comma') {
+            if ($hue['type'] === 'none') {
+                return null;
+            }
+
+            $offset++;
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            $saturation = self::percentageComponent($tokens, $offset);
+            if ($saturation === null) {
+                return null;
+            }
+
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+            if (($tokens[$offset] ?? null)?->type !== 'comma') {
+                return null;
+            }
+
+            $offset++;
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            $lightness = self::percentageComponent($tokens, $offset);
+            if ($lightness === null) {
+                return null;
+            }
+
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+            if (self::consumeRightParenthesis($tokens, $offset)) {
+                return $name . '(' . $hue['value'] . ', ' . $saturation['value'] . ', ' . $lightness['value'] . ')';
+            }
+
+            if (($tokens[$offset] ?? null)?->type !== 'comma') {
+                return null;
+            }
+
+            $offset++;
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            $alpha = self::numberPercentageComponent($tokens, $offset);
+            if ($alpha === null) {
+                return null;
+            }
+
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            return self::consumeRightParenthesis($tokens, $offset)
+                ? $name . '(' . $hue['value'] . ', ' . $saturation['value'] . ', ' . $lightness['value'] . ', ' . $alpha['value'] . ')'
+                : null;
+        }
+
+        $saturation = self::percentageNoneComponent($tokens, $offset);
+        if ($saturation === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $lightness = self::percentageNoneComponent($tokens, $offset);
+        if ($lightness === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+        if (self::consumeRightParenthesis($tokens, $offset)) {
+            return $name . '(' . $hue['value'] . ' ' . $saturation['value'] . ' ' . $lightness['value'] . ')';
+        }
+
+        if (self::consumeSlashDelimiter($tokens, $offset)) {
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+        }
+
+        $alpha = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($alpha === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        return self::consumeRightParenthesis($tokens, $offset)
+            ? $name . '(' . $hue['value'] . ' ' . $saturation['value'] . ' ' . $lightness['value'] . ' / ' . $alpha['value'] . ')'
+            : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function labColorFunctionValue(array $tokens, int &$offset, string $name): ?string
+    {
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $lightness = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($lightness === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $a = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($a === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $b = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($b === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+        if (self::consumeRightParenthesis($tokens, $offset)) {
+            return $name . '(' . $lightness['value'] . ' ' . $a['value'] . ' ' . $b['value'] . ')';
+        }
+
+        if (! self::consumeSlashDelimiter($tokens, $offset)) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $alpha = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($alpha === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        return self::consumeRightParenthesis($tokens, $offset)
+            ? $name . '(' . $lightness['value'] . ' ' . $a['value'] . ' ' . $b['value'] . ' / ' . $alpha['value'] . ')'
+            : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function lchColorFunctionValue(array $tokens, int &$offset, string $name): ?string
+    {
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $lightness = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($lightness === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $chroma = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($chroma === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $hue = self::hueNoneComponent($tokens, $offset);
+        if ($hue === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+        if (self::consumeRightParenthesis($tokens, $offset)) {
+            return $name . '(' . $lightness['value'] . ' ' . $chroma['value'] . ' ' . $hue['value'] . ')';
+        }
+
+        if (! self::consumeSlashDelimiter($tokens, $offset)) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        $alpha = self::numberPercentageNoneComponent($tokens, $offset);
+        if ($alpha === null) {
+            return null;
+        }
+
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        return self::consumeRightParenthesis($tokens, $offset)
+            ? $name . '(' . $lightness['value'] . ' ' . $chroma['value'] . ' ' . $hue['value'] . ' / ' . $alpha['value'] . ')'
+            : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{type: string, value: string}|null
+     */
+    private static function numberPercentageNoneComponent(array $tokens, int &$offset): ?array
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'number') {
+            $offset++;
+            return ['type' => 'number', 'value' => $token->value];
+        }
+
+        if ($token->type === 'percentage') {
+            $offset++;
+            return ['type' => 'percentage', 'value' => $token->value];
+        }
+
+        if ($token->type === 'ident' && strtolower($token->value) === 'none') {
+            $offset++;
+            return ['type' => 'none', 'value' => 'none'];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{type: string, value: string}|null
+     */
+    private static function numberPercentageComponent(array $tokens, int &$offset): ?array
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'number') {
+            $offset++;
+            return ['type' => 'number', 'value' => $token->value];
+        }
+
+        if ($token->type === 'percentage') {
+            $offset++;
+            return ['type' => 'percentage', 'value' => $token->value];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{type: string, value: string}|null
+     */
+    private static function percentageComponent(array $tokens, int &$offset): ?array
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null || $token->type !== 'percentage') {
+            return null;
+        }
+
+        $offset++;
+        return ['type' => 'percentage', 'value' => $token->value];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{type: string, value: string}|null
+     */
+    private static function percentageNoneComponent(array $tokens, int &$offset): ?array
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'percentage') {
+            $offset++;
+            return ['type' => 'percentage', 'value' => $token->value];
+        }
+
+        if ($token->type === 'ident' && strtolower($token->value) === 'none') {
+            $offset++;
+            return ['type' => 'none', 'value' => 'none'];
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{type: string, value: string}|null
+     */
+    private static function hueNoneComponent(array $tokens, int &$offset): ?array
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident' && strtolower($token->value) === 'none') {
+            $offset++;
+            return ['type' => 'none', 'value' => 'none'];
+        }
+
+        if ($token->type === 'number') {
+            $offset++;
+            return ['type' => 'number', 'value' => $token->value];
+        }
+
+        $angle = self::angleComponentValue([$token]);
+        if ($angle === null) {
+            return null;
+        }
+
+        $offset++;
+        return ['type' => 'angle', 'value' => $angle['value']];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function consumeRightParenthesis(array $tokens, int &$offset): bool
+    {
+        if (($tokens[$offset] ?? null)?->type !== 'right-parenthesis') {
+            return false;
+        }
+
+        $offset++;
+        return true;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function consumeSlashDelimiter(array $tokens, int &$offset): bool
+    {
+        if (($tokens[$offset] ?? null)?->type !== 'delim' || $tokens[$offset]->value !== '/') {
+            return false;
+        }
+
+        $offset++;
+        return true;
     }
 
     /**
@@ -2660,6 +3398,10 @@ final class Parser
 
         if ($property === 'hanging-punctuation') {
             return self::hangingPunctuationValue($tokens) ?? $fallback;
+        }
+
+        if (isset(self::COLOR_PROPERTIES[$property])) {
+            return self::colorDeclarationValue($tokens) ?? $fallback;
         }
 
         if ($property === 'alignment-baseline') {

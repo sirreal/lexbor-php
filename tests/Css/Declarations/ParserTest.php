@@ -1103,6 +1103,175 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function colorDeclarationProvider(): iterable
+    {
+        yield 'color accepts named color' => ['color: red', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'red', 'important' => false],
+        ]];
+        yield 'color accepts css-wide keyword' => ['color: inherit', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'color lowercases mixed-case named color' => ['color: RebeccaPurple', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'rebeccapurple', 'important' => false],
+        ]];
+        yield 'color canonicalizes currentcolor' => ['color: currentColor', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'currentcolor', 'important' => false],
+        ]];
+        yield 'color canonicalizes system color keyword' => ['color: BUTTONText', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'ButtonText', 'important' => false],
+        ]];
+        yield 'color accepts transparent' => ['color: transparent', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'transparent', 'important' => false],
+        ]];
+        yield 'color keeps important flag' => ['color: blue !important', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'blue', 'important' => true],
+        ]];
+        yield 'background-color accepts named color' => ['background-color: green', [
+            ['type' => 'property', 'name' => 'background-color', 'value' => 'green', 'important' => false],
+        ]];
+        yield 'background-color accepts system color' => ['background-color: CanvasText', [
+            ['type' => 'property', 'name' => 'background-color', 'value' => 'CanvasText', 'important' => false],
+        ]];
+        yield 'text-decoration-color accepts currentcolor' => ['text-decoration-color: currentcolor', [
+            ['type' => 'property', 'name' => 'text-decoration-color', 'value' => 'currentcolor', 'important' => false],
+        ]];
+        yield 'border-top-color accepts named color' => ['border-top-color: red', [
+            ['type' => 'property', 'name' => 'border-top-color', 'value' => 'red', 'important' => false],
+        ]];
+        yield 'border-right-color accepts css-wide keyword' => ['border-right-color: unset', [
+            ['type' => 'property', 'name' => 'border-right-color', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'border-bottom-color accepts function color' => ['border-bottom-color: rgb(1 2 3)', [
+            ['type' => 'property', 'name' => 'border-bottom-color', 'value' => 'rgb(1 2 3)', 'important' => false],
+        ]];
+        yield 'border-left-color accepts hex color' => ['border-left-color: #abc', [
+            ['type' => 'property', 'name' => 'border-left-color', 'value' => '#abc', 'important' => false],
+        ]];
+        yield 'color accepts short hex' => ['color: #ABC', [
+            ['type' => 'property', 'name' => 'color', 'value' => '#abc', 'important' => false],
+        ]];
+        yield 'color accepts short alpha hex' => ['color: #ABCD', [
+            ['type' => 'property', 'name' => 'color', 'value' => '#abcd', 'important' => false],
+        ]];
+        yield 'color accepts long hex' => ['color: #AABBCC', [
+            ['type' => 'property', 'name' => 'color', 'value' => '#aabbcc', 'important' => false],
+        ]];
+        yield 'color accepts long alpha hex' => ['color: #AABBCCDD', [
+            ['type' => 'property', 'name' => 'color', 'value' => '#aabbccdd', 'important' => false],
+        ]];
+        yield 'color accepts modern rgb numbers' => ['color: rgb(1 2 3)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'rgb(1 2 3)', 'important' => false],
+        ]];
+        yield 'color accepts modern rgb alpha' => ['color: rgb(1 2 3 / .5)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'rgb(1 2 3 / 0.5)', 'important' => false],
+        ]];
+        yield 'color accepts modern rgb percentages' => ['color: rgb(10% 20% 30%)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'rgb(10% 20% 30%)', 'important' => false],
+        ]];
+        yield 'color accepts modern rgb none components' => ['color: rgb(none 20% none / none)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'rgb(none 20% none / none)', 'important' => false],
+        ]];
+        yield 'color accepts deprecated rgb comma syntax' => ['color: rgb(1,2,3)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'rgb(1, 2, 3)', 'important' => false],
+        ]];
+        yield 'color accepts deprecated rgba comma syntax' => ['color: rgba(1, 2, 3, .5)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'rgba(1, 2, 3, 0.5)', 'important' => false],
+        ]];
+        yield 'color accepts modern hsl' => ['color: hsl(10 20% 30%)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'hsl(10 20% 30%)', 'important' => false],
+        ]];
+        yield 'color accepts modern hsl angle and alpha none' => ['color: hsl(10DEG 20% 30% / none)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'hsl(10deg 20% 30% / none)', 'important' => false],
+        ]];
+        yield 'color accepts modern hsl alpha without slash like Lexbor' => ['color: hsl(10 20% 30% .5)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'hsl(10 20% 30% / 0.5)', 'important' => false],
+        ]];
+        yield 'color accepts deprecated hsla comma syntax' => ['color: hsla(10,20%,30%,.5)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'hsla(10, 20%, 30%, 0.5)', 'important' => false],
+        ]];
+        yield 'color accepts hwb function' => ['color: hwb(10 20% 30%)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'hwb(10 20% 30%)', 'important' => false],
+        ]];
+        yield 'color accepts modern hwb alpha without slash like Lexbor' => ['color: hwb(10 20% 30% .5)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'hwb(10 20% 30% / 0.5)', 'important' => false],
+        ]];
+        yield 'color accepts lab function' => ['color: lab(50% 1 2 / .5)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'lab(50% 1 2 / 0.5)', 'important' => false],
+        ]];
+        yield 'color accepts oklab none components' => ['color: oklab(none none none)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'oklab(none none none)', 'important' => false],
+        ]];
+        yield 'color accepts lch function' => ['color: lch(50% 20 30deg)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'lch(50% 20 30deg)', 'important' => false],
+        ]];
+        yield 'color accepts oklch function with alpha' => ['color: oklch(50% 20 30turn / 25%)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'oklch(50% 20 30turn / 25%)', 'important' => false],
+        ]];
+        yield 'color treats comments between rgb components as separators' => ['color: rgb(1/**/2/**/3)', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'rgb(1 2 3)', 'important' => false],
+        ]];
+        yield 'color rejects unknown keyword' => ['color: notacolor', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'notacolor', 'important' => false],
+        ]];
+        yield 'color rejects non-color keyword' => ['color: solid', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'solid', 'important' => false],
+        ]];
+        yield 'color rejects number' => ['color: 1', [
+            ['type' => 'undef', 'name' => 'color', 'value' => '1', 'important' => false],
+        ]];
+        yield 'color rejects multiple values' => ['color: red blue', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'red blue', 'important' => false],
+        ]];
+        yield 'color rejects short invalid hex length' => ['color: #ab', [
+            ['type' => 'undef', 'name' => 'color', 'value' => '#ab', 'important' => false],
+        ]];
+        yield 'color rejects invalid hex digit' => ['color: #ggg', [
+            ['type' => 'undef', 'name' => 'color', 'value' => '#ggg', 'important' => false],
+        ]];
+        yield 'color rejects unsupported color function' => ['color: color(display-p3 1 0 0)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'color(display-p3 1 0 0)', 'important' => false],
+        ]];
+        yield 'color rejects mixed rgb number and percentage' => ['color: rgb(1 2% 3)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'rgb(1 2% 3)', 'important' => false],
+        ]];
+        yield 'color rejects deprecated rgb none component' => ['color: rgb(none, 2, 3)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'rgb(none, 2, 3)', 'important' => false],
+        ]];
+        yield 'color rejects deprecated rgb mixed number and percentage' => ['color: rgb(1, 2%, 3%)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'rgb(1, 2%, 3%)', 'important' => false],
+        ]];
+        yield 'color rejects hsl non-percentage channels' => ['color: hsl(1 2 3)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'hsl(1 2 3)', 'important' => false],
+        ]];
+        yield 'color rejects deprecated hsl none hue' => ['color: hsl(none, 20%, 30%)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'hsl(none, 20%, 30%)', 'important' => false],
+        ]];
+        yield 'color rejects lab comma syntax' => ['color: lab(50%, 1, 2)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'lab(50%, 1, 2)', 'important' => false],
+        ]];
+        yield 'color rejects lch invalid hue unit' => ['color: lch(50% 20 30px)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'lch(50% 20 30px)', 'important' => false],
+        ]];
+        yield 'color rejects missing function close' => ['color: rgb(1 2 3', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'rgb(1 2 3', 'important' => false],
+        ]];
+        yield 'color rejects comment-split keyword' => ['color: re/**/d', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'red', 'important' => false],
+        ]];
+        yield 'color rejects comment-split function name' => ['color: r/**/gb(1 2 3)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'rgb(1 2 3)', 'important' => false],
+        ]];
+        yield 'color rejects whitespace-comment-whitespace separator like Lexbor' => ['color: rgb(1 /**/ 2 3)', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'rgb(1  2 3)', 'important' => false],
+        ]];
+        yield 'color rejects comment-separated leading whitespace like Lexbor' => ['color: /**/  red', [
+            ['type' => 'undef', 'name' => 'color', 'value' => 'red', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function verticalAlignDeclarationProvider(): iterable
     {
         yield 'vertical-align accepts baseline' => ['vertical-align: baseline', [
@@ -2651,6 +2820,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textDecorationDeclarationProvider')]
     public function testTextDecorationDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('colorDeclarationProvider')]
+    public function testColorDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
