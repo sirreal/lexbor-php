@@ -71,6 +71,7 @@ final class Parser
         'text-indent' => true,
         'text-justify' => true,
         'text-orientation' => true,
+        'text-overflow' => true,
         'text-transform' => true,
         'top' => true,
         'unicode-bidi' => true,
@@ -456,6 +457,10 @@ final class Parser
             'mixed' => true,
             'sideways' => true,
             'upright' => true,
+        ],
+        'text-overflow' => [
+            'clip' => true,
+            'ellipsis' => true,
         ],
         'unicode-bidi' => [
             'bidi-override' => true,
@@ -1463,6 +1468,10 @@ final class Parser
     {
         if ($property === 'display') {
             return self::serializeIdentSequence($tokens) ?? $fallback;
+        }
+
+        if ($property === 'text-overflow') {
+            return self::singleKeywordValue($tokens, self::KEYWORD_PROPERTIES['text-overflow']) ?? $fallback;
         }
 
         if (isset(self::KEYWORD_PROPERTIES[$property])) {

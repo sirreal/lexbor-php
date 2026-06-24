@@ -672,6 +672,7 @@ final class ParserTest extends TestCase
             'text-align-last' => ['auto', 'start', 'end', 'left', 'right', 'center', 'justify', 'match-parent'],
             'text-justify' => ['auto', 'none', 'inter-word', 'inter-character'],
             'text-orientation' => ['mixed', 'upright', 'sideways'],
+            'text-overflow' => ['clip', 'ellipsis'],
             'unicode-bidi' => ['normal', 'embed', 'isolate', 'bidi-override', 'isolate-override', 'plaintext'],
             'writing-mode' => ['horizontal-tb', 'vertical-rl', 'vertical-lr', 'sideways-rl', 'sideways-lr'],
         ];
@@ -720,6 +721,21 @@ final class ParserTest extends TestCase
         ]];
         yield 'text-orientation rejects vertical' => ['text-orientation: vertical', [
             ['type' => 'undef', 'name' => 'text-orientation', 'value' => 'vertical', 'important' => false],
+        ]];
+        yield 'text-overflow lowercases mixed-case keyword' => ['text-overflow: ElLiPsIs', [
+            ['type' => 'property', 'name' => 'text-overflow', 'value' => 'ellipsis', 'important' => false],
+        ]];
+        yield 'text-overflow rejects overflow keyword' => ['text-overflow: hidden', [
+            ['type' => 'undef', 'name' => 'text-overflow', 'value' => 'hidden', 'important' => false],
+        ]];
+        yield 'text-overflow rejects multiple keywords' => ['text-overflow: clip ellipsis', [
+            ['type' => 'undef', 'name' => 'text-overflow', 'value' => 'clip ellipsis', 'important' => false],
+        ]];
+        yield 'text-overflow rejects comment-split keyword' => ['text-overflow: ellip/**/sis', [
+            ['type' => 'undef', 'name' => 'text-overflow', 'value' => 'ellipsis', 'important' => false],
+        ]];
+        yield 'text-overflow keeps important flag' => ['text-overflow: clip !important', [
+            ['type' => 'property', 'name' => 'text-overflow', 'value' => 'clip', 'important' => true],
         ]];
         yield 'unicode-bidi rejects ltr' => ['unicode-bidi: ltr', [
             ['type' => 'undef', 'name' => 'unicode-bidi', 'value' => 'ltr', 'important' => false],
