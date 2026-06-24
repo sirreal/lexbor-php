@@ -513,6 +513,39 @@ final class ParserTest extends TestCase
         yield 'line-height rejects multiple tokens' => ['line-height: 1px 2px', [
             ['type' => 'undef', 'name' => 'line-height', 'value' => '1px 2px', 'important' => false],
         ]];
+        yield 'tab-size accepts number' => ['tab-size: 4', [
+            ['type' => 'property', 'name' => 'tab-size', 'value' => '4', 'important' => false],
+        ]];
+        yield 'tab-size accepts normalized exponent number' => ['tab-size: 1e1', [
+            ['type' => 'property', 'name' => 'tab-size', 'value' => '10', 'important' => false],
+        ]];
+        yield 'tab-size accepts length' => ['tab-size: 2em', [
+            ['type' => 'property', 'name' => 'tab-size', 'value' => '2em', 'important' => false],
+        ]];
+        yield 'tab-size accepts negative number like Lexbor' => ['tab-size: -2', [
+            ['type' => 'property', 'name' => 'tab-size', 'value' => '-2', 'important' => false],
+        ]];
+        yield 'tab-size serializes q length with Lexbor uppercase spelling' => ['tab-size: 2q', [
+            ['type' => 'property', 'name' => 'tab-size', 'value' => '2Q', 'important' => false],
+        ]];
+        yield 'tab-size accepts css-wide keyword' => ['tab-size: inherit', [
+            ['type' => 'property', 'name' => 'tab-size', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'tab-size rejects normal' => ['tab-size: normal', [
+            ['type' => 'undef', 'name' => 'tab-size', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'tab-size rejects percentage' => ['tab-size: 4%', [
+            ['type' => 'undef', 'name' => 'tab-size', 'value' => '4%', 'important' => false],
+        ]];
+        yield 'tab-size rejects multiple values' => ['tab-size: 4 2px', [
+            ['type' => 'undef', 'name' => 'tab-size', 'value' => '4 2px', 'important' => false],
+        ]];
+        yield 'tab-size rejects comment-split length' => ['tab-size: 2/**/em', [
+            ['type' => 'undef', 'name' => 'tab-size', 'value' => '2em', 'important' => false],
+        ]];
+        yield 'tab-size keeps important flag' => ['tab-size: 8px !important', [
+            ['type' => 'property', 'name' => 'tab-size', 'value' => '8px', 'important' => true],
+        ]];
         yield 'letter-spacing accepts normal' => ['letter-spacing: normal', [
             ['type' => 'property', 'name' => 'letter-spacing', 'value' => 'normal', 'important' => false],
         ]];

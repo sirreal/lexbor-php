@@ -63,6 +63,7 @@ final class Parser
         'padding-top' => true,
         'position' => true,
         'right' => true,
+        'tab-size' => true,
         'text-align' => true,
         'text-align-all' => true,
         'text-align-last' => true,
@@ -688,6 +689,7 @@ final class Parser
             'opacity' => self::isValidNumberPercentage($valueTokens) ? 'property' : 'undef',
             'order' => self::isValidInteger($valueTokens) ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
+            'tab-size' => self::numberLengthValue($valueTokens) !== null ? 'property' : 'undef',
             'text-combine-upright' => self::textCombineUprightValue($valueTokens) !== null ? 'property' : 'undef',
             'text-indent' => self::textIndentValue($valueTokens) !== null ? 'property' : 'undef',
             'text-transform' => self::textTransformValue($valueTokens) !== null ? 'property' : 'undef',
@@ -1369,6 +1371,34 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     */
+    private static function numberLengthValue(array $tokens): ?string
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) ? $value : null;
+        }
+
+        if ($token->type === 'number') {
+            return $token->value;
+        }
+
+        if ($token->type === 'dimension' && self::isValidLengthDimension($token->value)) {
+            return self::canonicalLengthDimensionValue($token->value);
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
     private static function isValidLengthKeyword(array $tokens, array $keywords): bool
@@ -1500,6 +1530,10 @@ final class Parser
 
         if (isset(self::KEYWORD_PROPERTIES[$property])) {
             return self::serializeIdentSequence($tokens) ?? $fallback;
+        }
+
+        if ($property === 'tab-size') {
+            return self::numberLengthValue($tokens) ?? $fallback;
         }
 
         if (in_array($property, ['flex-grow', 'flex-shrink'], true)) {
