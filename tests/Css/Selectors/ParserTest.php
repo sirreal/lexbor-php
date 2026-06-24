@@ -65,6 +65,7 @@ final class ParserTest extends TestCase
         yield 'selectors.c #47 rejects presence selector trailing ident' => ['[refs i]', '', ['Syntax error. Selectors. Unexpected token: i']];
         yield 'selectors.c #48 rejects string attribute name' => ["['refs']", '', ['Syntax error. Selectors. Unexpected token: "refs"']];
         yield 'selectors.c #49 descendant selector with attribute' => ['div #hash [refs=abc]', 'div #hash [refs="abc"]', []];
+        yield 'selectors regression attribute-start compound selector' => ['[rel=nofollow][data-html=yes]', '[rel="nofollow"][data-html="yes"]', []];
         yield 'selectors.c #50 rejects empty not pseudo function' => [':not()', '', ["Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #51 not pseudo function with type selector' => [':not(div)', ':not(div)', []];
         yield 'selectors.c #52 not pseudo function name is case-insensitive' => [':NoT(div)', ':not(div)', []];

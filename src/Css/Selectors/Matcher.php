@@ -1407,7 +1407,9 @@ final class Matcher
 
     private static function isHtmlCaseInsensitiveAttribute(Element $element, string $name): bool
     {
-        return $element->ownerDocument instanceof Document && isset(self::HTML_CASE_INSENSITIVE_ATTRIBUTES[$name]);
+        return $element->ownerDocument instanceof Document
+            && $element->namespace === Element::NAMESPACE_HTML
+            && isset(self::HTML_CASE_INSENSITIVE_ATTRIBUTES[$name]);
     }
 
     private static function isQuirksMode(Element $element): bool

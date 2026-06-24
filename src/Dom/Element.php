@@ -6,6 +6,10 @@ namespace Lexbor\Dom;
 
 final class Element extends Node
 {
+    public const string NAMESPACE_HTML = 'html';
+    public const string NAMESPACE_MATH = 'math';
+    public const string NAMESPACE_SVG = 'svg';
+
     /**
      * @var array<string, Attr>
      */
@@ -19,6 +23,7 @@ final class Element extends Node
         public array $attributes = [],
         public ?int $tagId = null,
         ?object $ownerDocument = null,
+        public readonly string $namespace = self::NAMESPACE_HTML,
     ) {
         parent::__construct(NodeType::Element, $ownerDocument, $tagId);
     }

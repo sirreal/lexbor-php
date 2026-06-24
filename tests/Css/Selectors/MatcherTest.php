@@ -149,6 +149,75 @@ final class MatcherTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, int}>
+     */
+    public static function upstreamMatchingEdgeSelectorProvider(): iterable
+    {
+        $quirksCaseHtml = "<body><div class='Test'><span id='Foo'></span></div></body>";
+        $noQuirksCaseHtml = "<!DOCTYPE html><body><div class='Test'><span id='Foo'></span></div></body>";
+
+        yield 'selectors match id class case #1 no-quirks class is case-sensitive' => [$noQuirksCaseHtml, '.test', 0];
+        yield 'selectors match id class case #2 no-quirks id is case-sensitive' => [$noQuirksCaseHtml, '#foo', 0];
+        yield 'selectors match id class case #3 no-quirks class exact case' => [$noQuirksCaseHtml, '.Test', 1];
+        yield 'selectors match id class case #4 no-quirks id exact case' => [$noQuirksCaseHtml, '#Foo', 1];
+        yield 'selectors match id class case #5 quirks class is case-insensitive' => [$quirksCaseHtml, '.test', 1];
+        yield 'selectors match id class case #6 quirks id is case-insensitive' => [$quirksCaseHtml, '#foo', 1];
+
+        $nonAsciiClassHtml = '<!DOCTYPE html>'
+            . "<i class='\xC3\x9C" . "ber'></i>"
+            . "<i class='a\xC2\xB7" . "b'></i>"
+            . "<i class='\xCD\xBD" . "x'></i>";
+
+        yield 'selectors match non-ascii class #1 U+00DC' => [$nonAsciiClassHtml, ".\xC3\x9C" . 'ber', 1];
+        yield 'selectors match non-ascii class #2 middle dot' => [$nonAsciiClassHtml, ".a\xC2\xB7" . 'b', 1];
+        yield 'selectors match non-ascii class #3 Greek' => [$nonAsciiClassHtml, ".\xCD\xBD" . 'x', 1];
+
+        yield 'selectors match include empty #1 space attribute' => ["<!DOCTYPE html><i x=' '></i>", "[x~='']", 0];
+        yield 'selectors match include empty #2 tab entity attribute' => ["<!DOCTYPE html><i x='&#9;'></i>", "[x~='']", 0];
+        yield 'selectors match include empty #3 leading space token' => ["<!DOCTYPE html><i x=' a'></i>", "[x~='']", 0];
+        yield 'selectors match include empty #4 double-space tokens' => ["<!DOCTYPE html><i x='a  b'></i>", "[x~='']", 0];
+        yield 'selectors match include empty #5 trailing double-space token' => ["<!DOCTYPE html><i x='a  '></i>", "[x~='']", 0];
+        yield 'selectors match include empty #6 trailing space token' => ["<!DOCTYPE html><i x='a '></i>", "[x~='']", 0];
+        yield 'selectors match include empty #7 empty attribute' => ["<!DOCTYPE html><i x=''></i>", "[x~='']", 0];
+        yield 'selectors match include empty #8 two tokens with empty needle' => ["<!DOCTYPE html><i x='a b'></i>", "[x~='']", 0];
+        yield 'selectors match include empty #9 spaced needle does not match token list' => ["<!DOCTYPE html><i x='a b'></i>", "[x~='a b']", 0];
+        yield 'selectors match include empty #10 tabbed needle does not match token list' => ["<!DOCTYPE html><i x='a\tb'></i>", "[x~='a\tb']", 0];
+        yield 'selectors match include empty #11 first token' => ["<!DOCTYPE html><i x='a b'></i>", '[x~=a]', 1];
+        yield 'selectors match include empty #12 second token' => ["<!DOCTYPE html><i x='a b'></i>", '[x~=b]', 1];
+        yield 'selectors match include empty #13 tab separator' => ["<!DOCTYPE html><i x='a\tb'></i>", '[x~=b]', 1];
+        yield 'selectors match include empty #14 newline separator' => ["<!DOCTYPE html><i x='a\nb'></i>", '[x~=b]', 1];
+        yield 'selectors match include empty #15 form-feed separator' => ["<!DOCTYPE html><i x='a\fb'></i>", '[x~=b]', 1];
+        yield 'selectors match include empty #16 carriage-return separator' => ["<!DOCTYPE html><i x='a\rb'></i>", '[x~=b]', 1];
+
+        yield 'selectors match EOF attribute #1 presence' => ["<!DOCTYPE html><div att='val'></div>", '[att', 1];
+        yield 'selectors match EOF attribute #2 exact unquoted' => ["<!DOCTYPE html><div att='val'></div>", '[att=val', 1];
+        yield 'selectors match EOF attribute #3 exact quoted with space' => ["<!DOCTYPE html><div att='a b'></div>", '[att="a b', 1];
+        yield 'selectors match EOF attribute #4 exact i modifier' => ["<!DOCTYPE html><div att='VAL'></div>", '[att=val i', 1];
+        yield 'selectors match EOF attribute #5 compound presence' => ["<!DOCTYPE html><div att='val'></div><span att='val'></span>", 'div[att', 1];
+        yield 'selectors match EOF attribute #6 nested not' => ["<!DOCTYPE html><span class='cls'></span><span></span>", 'span:not([class', 1];
+
+        $htmlCaseAttributeHtml = '<!DOCTYPE html>'
+            . "<a rel='NOFOLLOW' data-html='yes' data-x='ABC'></a>"
+            . "<a rel='nofollow' data-html='yes'></a>"
+            . "<input type='text'>"
+            . "<form accept-charset='utf-8'></form>"
+            . "<svg><a rel='NOFOLLOW' data-svg='yes'></a></svg>";
+
+        yield 'selectors match HTML case-insensitive attribute #1 rel lowercase' => [$htmlCaseAttributeHtml, '[rel=nofollow][data-html=yes]', 2];
+        yield 'selectors match HTML case-insensitive attribute #2 rel uppercase' => [$htmlCaseAttributeHtml, '[rel=NOFOLLOW][data-html=yes]', 2];
+        yield 'selectors match HTML case-insensitive attribute #3 explicit i modifier includes SVG' => [$htmlCaseAttributeHtml, '[rel=nofollow i]', 3];
+        yield 'selectors match HTML case-insensitive attribute #4 explicit s modifier' => [$htmlCaseAttributeHtml, '[rel=nofollow s]', 1];
+        yield 'selectors match HTML case-insensitive attribute #5 data attribute remains sensitive' => [$htmlCaseAttributeHtml, '[data-x=abc]', 0];
+        yield 'selectors match HTML case-insensitive attribute #6 data attribute exact' => [$htmlCaseAttributeHtml, '[data-x=ABC]', 1];
+        yield 'selectors match HTML case-insensitive attribute #7 type default insensitive' => [$htmlCaseAttributeHtml, '[type=TEXT]', 1];
+        yield 'selectors match HTML case-insensitive attribute #8 type explicit sensitive' => [$htmlCaseAttributeHtml, '[type=TEXT s]', 0];
+        yield 'selectors match HTML case-insensitive attribute #9 accept-charset default insensitive' => [$htmlCaseAttributeHtml, '[accept-charset=UTF-8]', 1];
+        yield 'selectors match HTML case-insensitive attribute #10 accept-charset explicit sensitive' => [$htmlCaseAttributeHtml, '[accept-charset=UTF-8 s]', 0];
+        yield 'selectors match HTML case-insensitive attribute #11 SVG rel remains sensitive lowercase' => [$htmlCaseAttributeHtml, '[rel=nofollow][data-svg=yes]', 0];
+        yield 'selectors match HTML case-insensitive attribute #12 SVG rel remains sensitive uppercase' => [$htmlCaseAttributeHtml, '[rel=NOFOLLOW][data-svg=yes]', 1];
+    }
+
+    /**
      * @param list<string> $expected
      */
     #[DataProvider('upstreamSimpleSelectorProvider')]
@@ -216,6 +285,15 @@ final class MatcherTest extends TestCase
             $expected,
             self::attributeValues((new Matcher())->find($document, $selector), $labelAttribute),
         );
+    }
+
+    #[DataProvider('upstreamMatchingEdgeSelectorProvider')]
+    public function testFindMatchesUpstreamSelectorEdgeCases(string $html, string $selector, int $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertCount($expected, (new Matcher())->find($document->bodyElement(), $selector));
     }
 
     public function testRootPseudoClassUsesFirstDocumentElement(): void

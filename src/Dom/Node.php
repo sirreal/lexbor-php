@@ -453,7 +453,7 @@ class Node
     private function cloneSingle(?object $ownerDocument): Node
     {
         if ($this instanceof Element) {
-            $clone = new Element($this->tagName, tagId: $this->tagId, ownerDocument: $ownerDocument);
+            $clone = new Element($this->tagName, tagId: $this->tagId, ownerDocument: $ownerDocument, namespace: $this->namespace);
 
             foreach ($this->attributes as $name => $value) {
                 $clone->setAttribute($name, $value);

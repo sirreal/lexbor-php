@@ -69,6 +69,18 @@ final class InnerTest extends TestCase
         self::assertSame('<div><b></b>tail</div>', Serializer::serialize($element));
     }
 
+    public function testInnerHtmlPreservesSvgContextNamespace(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg></svg>'));
+
+        $svg = $document->elementsByTagName('svg')[0];
+        $svg->setInnerHtml('<a rel=NOFOLLOW></a>');
+
+        self::assertInstanceOf(Element::class, $svg->firstChild);
+        self::assertSame(Element::NAMESPACE_SVG, $svg->firstChild->namespace);
+    }
+
     public function testParserFixtureDoesNotPreserveLeadingDoctypeAsBodyText(): void
     {
         $document = new Document();

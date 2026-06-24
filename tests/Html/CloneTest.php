@@ -136,6 +136,20 @@ final class CloneTest extends TestCase
         self::assertSame('<div><!-- original --></div>', Serializer::serialize($document->elementsByTagName('div')[0]));
     }
 
+    public function testDeepClonePreservesElementNamespaces(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><a></a></svg>'));
+
+        $svg = $document->elementsByTagName('svg')[0];
+        $clone = $svg->cloneNode(true);
+
+        self::assertInstanceOf(Element::class, $clone);
+        self::assertInstanceOf(Element::class, $clone->firstChild);
+        self::assertSame(Element::NAMESPACE_SVG, $clone->namespace);
+        self::assertSame(Element::NAMESPACE_SVG, $clone->firstChild->namespace);
+    }
+
     private function documentWithFixture(): Document
     {
         $document = new Document();

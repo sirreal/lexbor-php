@@ -60,11 +60,11 @@ final class Document extends Node
         return $this->body;
     }
 
-    public function createElement(string $tagName): Element
+    public function createElement(string $tagName, string $namespace = Element::NAMESPACE_HTML): Element
     {
         $tagId = $this->tags->idForName($tagName);
 
-        return new Element(TagRegistry::nameById($tagId) ?? strtolower($tagName), tagId: $tagId, ownerDocument: $this);
+        return new Element(TagRegistry::nameById($tagId) ?? strtolower($tagName), tagId: $tagId, ownerDocument: $this, namespace: $namespace);
     }
 
     public function createDocumentFragment(): DocumentFragment
@@ -104,7 +104,7 @@ final class Document extends Node
             return $fragment;
         }
 
-        $this->parseFragmentInto($fragment, $html);
+        $this->parseFragmentInto($fragment, $html, $context);
 
         return $fragment;
     }
@@ -149,7 +149,7 @@ final class Document extends Node
         $this->scripting = $scripting;
     }
 
-    private function parseFragmentInto(Node $root, string $html): void
+    private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void
     {
         $stack = [$root];
         $pattern = '~<!--(?<comment>.*?)-->|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z][A-Za-z0-9:-]*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~s';
@@ -183,7 +183,9 @@ final class Document extends Node
                 $attributeSource = rtrim(substr($attributeSource, 0, -1));
             }
 
-            $element = $this->createElement($tagName);
+            $parent = $stack[count($stack) - 1];
+            $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            $element = $this->createElement($tagName, $this->namespaceForElement($namespaceParent, $tagName));
             foreach ($this->parseAttributes($attributeSource) as $name => $value) {
                 $element->setAttribute($name, $value);
             }
@@ -256,6 +258,31 @@ final class Document extends Node
                 return;
             }
         }
+    }
+
+    private function namespaceForElement(Node $parent, string $tagName): string
+    {
+        if ($tagName === 'svg') {
+            return Element::NAMESPACE_SVG;
+        }
+
+        if ($tagName === 'math') {
+            return Element::NAMESPACE_MATH;
+        }
+
+        if (! $parent instanceof Element) {
+            return Element::NAMESPACE_HTML;
+        }
+
+        if ($parent->namespace === Element::NAMESPACE_SVG && $parent->tagName !== 'foreignobject') {
+            return Element::NAMESPACE_SVG;
+        }
+
+        if ($parent->namespace === Element::NAMESPACE_MATH) {
+            return Element::NAMESPACE_MATH;
+        }
+
+        return Element::NAMESPACE_HTML;
     }
 
     /**

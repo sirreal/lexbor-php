@@ -78,6 +78,13 @@ final class Parser
 
         $attribute = $this->parseAttributeSelector($tokens);
         if ($attribute !== null) {
+            if (self::hasAttributeCompoundContinuation($tokens)) {
+                $complex = $this->parseComplexSelector($tokens);
+                if ($complex !== null) {
+                    return $complex;
+                }
+            }
+
             return $attribute;
         }
 
@@ -99,14 +106,14 @@ final class Parser
             };
         }
 
-        $typeSelector = self::parseTypeSelector($selector);
-        if ($typeSelector !== null) {
-            return ['value' => $typeSelector, 'errors' => []];
-        }
-
         $complex = $this->parseComplexSelector($tokens);
         if ($complex !== null) {
             return $complex;
+        }
+
+        $typeSelector = self::parseTypeSelector($selector);
+        if ($typeSelector !== null) {
+            return ['value' => $typeSelector, 'errors' => []];
         }
 
         return self::error(self::firstUnexpectedToken($tokens));
@@ -1216,6 +1223,33 @@ final class Parser
         }
 
         return false;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function hasAttributeCompoundContinuation(array $tokens): bool
+    {
+        if (($tokens[0] ?? null)?->type !== 'left-square-bracket') {
+            return false;
+        }
+
+        $offset = 1;
+        $count = count($tokens);
+        while ($offset < $count && $tokens[$offset]->type !== 'right-square-bracket') {
+            $offset++;
+        }
+
+        if ($offset >= $count || ! isset($tokens[$offset + 1])) {
+            return false;
+        }
+
+        $next = $tokens[$offset + 1];
+        if ($next->type === 'whitespace' || $next->type === 'comma') {
+            return false;
+        }
+
+        return ! self::isCombinatorAt($tokens, $offset + 1);
     }
 
     /**
