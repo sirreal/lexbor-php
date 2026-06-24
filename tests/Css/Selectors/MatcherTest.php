@@ -513,6 +513,30 @@ final class MatcherTest extends TestCase
         self::assertSame('h2', $matches[35]->tagName);
     }
 
+    public function testFindSupportsLexborMatchRootOption(): void
+    {
+        $document = $this->fixtureDocument();
+        $matcher = new Matcher();
+        $firstDiv = $matcher->find($document->bodyElement(), "div[div='First']")[0] ?? null;
+
+        self::assertInstanceOf(Element::class, $firstDiv);
+        self::assertSame([], $matcher->find($firstDiv, "div[div='First']"));
+        self::assertSame(
+            ['First'],
+            self::attributeValues($matcher->find($firstDiv, "div[div='First']", Matcher::OPT_MATCH_ROOT), 'div'),
+        );
+    }
+
+    public function testFindMatchRootOptionStillVisitsDescendants(): void
+    {
+        $document = $this->fixtureDocument();
+
+        self::assertSame(
+            ['First', 'Second'],
+            self::attributeValues((new Matcher())->find($document->bodyElement(), 'div', Matcher::OPT_MATCH_ROOT), 'div'),
+        );
+    }
+
     public function testMatchesSupportsSelectorLists(): void
     {
         $document = $this->fixtureDocument();

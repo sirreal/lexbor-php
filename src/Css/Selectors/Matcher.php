@@ -16,6 +16,9 @@ use Lexbor\Html\Tag;
 
 final class Matcher
 {
+    public const int OPT_DEFAULT = 0;
+    public const int OPT_MATCH_ROOT = 1;
+
     private const array HTML_CASE_INSENSITIVE_ATTRIBUTES = [
         'accept' => true,
         'accept-charset' => true,
@@ -99,7 +102,7 @@ final class Matcher
     /**
      * @return list<Element>
      */
-    public function find(Node $root, string $selector): array
+    public function find(Node $root, string $selector, int $options = self::OPT_DEFAULT): array
     {
         $selectors = $this->parseSelectorList($selector);
         if ($selectors === null) {
@@ -107,6 +110,15 @@ final class Matcher
         }
 
         $matches = [];
+        if (($options & self::OPT_MATCH_ROOT) !== 0 && $root instanceof Element) {
+            foreach ($selectors as $complex) {
+                if ($this->matchesComplex($root, $complex)) {
+                    $matches[] = $root;
+                    break;
+                }
+            }
+        }
+
         $this->walkDescendantElements(
             $root,
             function (Element $element) use ($selectors, &$matches): void {
