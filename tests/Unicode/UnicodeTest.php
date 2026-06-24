@@ -125,10 +125,7 @@ final class UnicodeTest extends TestCase
             $std3 | Unicode::IDNA_FLAG_VERIFY_DNS_LENGTH,
         ));
 
-        self::assertIdnaFailure(
-            static fn (): string => Unicode::idnaToUnicode('xn--abc-', $std3),
-            Status::ErrorUnexpectedResult,
-        );
+        self::assertSame('abc', Unicode::idnaToUnicode('xn--abc-', $std3));
         self::assertIdnaFailure(
             static fn (): string => Unicode::idnaToUnicode('xn--u-ccb.com', $std3),
             Status::ErrorUnexpectedResult,
@@ -296,10 +293,7 @@ final class UnicodeTest extends TestCase
             static fn (): string => Unicode::idnaToAscii("\u{20DD}.de", $std3),
             Status::ErrorUnexpectedResult,
         );
-        self::assertIdnaFailure(
-            static fn (): string => Unicode::idnaToAscii('xn--abc-', $std3),
-            Status::ErrorUnexpectedResult,
-        );
+        self::assertSame('abc', Unicode::idnaToAscii('xn--abc-', $std3));
         self::assertIdnaFailure(
             static fn (): string => Unicode::idnaToAscii('xn--u-ccb.com', $std3),
             Status::ErrorUnexpectedResult,

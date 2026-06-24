@@ -6,7 +6,7 @@ namespace Lexbor\Url;
 
 use Lexbor\Core\LexborException;
 use Lexbor\Encoding\Utf8;
-use Lexbor\Punycode\Punycode;
+use Lexbor\Unicode\Unicode;
 
 final class Parser
 {
@@ -231,22 +231,25 @@ final class Parser
             return $this->parseIpv6Host(substr($host, 1, -1));
         }
 
-        $host = strtolower($this->percentDecodeHost($host));
-
-        if ($this->hasForbiddenDomainCodePoint($host)) {
-            return null;
+        if (! $parseIpv4) {
+            return $this->parseOpaqueHost($host);
         }
 
-        if ($this->hasNonAsciiByte($host)) {
+        $needsIdna = $this->needsIdnaProcessing($host);
+        $host = $this->percentDecodeHost($host);
+
+        if ($needsIdna || $this->hasNonAsciiByte($host)) {
             try {
                 $host = $this->domainToAscii($host);
             } catch (LexborException) {
                 return null;
             }
+        } else {
+            $host = strtolower($host);
+        }
 
-            if ($host === '' || $this->hasForbiddenDomainCodePoint($host)) {
-                return null;
-            }
+        if ($host === '' || $this->hasForbiddenDomainCodePoint($host)) {
+            return null;
         }
 
         if ($parseIpv4 && $this->isIpv4Candidate($host)) {
@@ -254,6 +257,29 @@ final class Parser
         }
 
         return $host;
+    }
+
+    private function parseOpaqueHost(string $host): ?string
+    {
+        if ($this->hasForbiddenHostCodePoint($host)) {
+            return null;
+        }
+
+        $encoded = '';
+        $length = strlen($host);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $byte = ord($host[$offset]);
+
+            if ($byte >= 0x20 && $byte < 0x7F) {
+                $encoded .= $host[$offset];
+                continue;
+            }
+
+            $encoded .= sprintf('%%%02X', $byte);
+        }
+
+        return $encoded;
     }
 
     private function parseIpv6Host(string $host): ?string
@@ -599,6 +625,29 @@ final class Parser
         return false;
     }
 
+    private function hasForbiddenHostCodePoint(string $host): bool
+    {
+        $length = strlen($host);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $byte = ord($host[$offset]);
+
+            if ($byte > 0x7F) {
+                continue;
+            }
+
+            if (in_array(
+                $byte,
+                [0x00, 0x09, 0x0A, 0x0D, 0x20, 0x23, 0x2F, 0x3A, 0x3C, 0x3E, 0x3F, 0x40, 0x5B, 0x5C, 0x5D, 0x5E, 0x7C],
+                true,
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function hasNonAsciiByte(string $value): bool
     {
         $length = strlen($value);
@@ -612,19 +661,21 @@ final class Parser
         return false;
     }
 
-    private function domainToAscii(string $host): string
+    private function needsIdnaProcessing(string $host): bool
     {
-        $labels = explode('.', $host);
-
-        foreach ($labels as $index => $label) {
-            if ($label === '' || ! $this->hasNonAsciiByte($label)) {
-                continue;
-            }
-
-            $labels[$index] = 'xn--' . Punycode::encode($label);
+        if ($this->hasNonAsciiByte($host)) {
+            return true;
         }
 
-        return implode('.', $labels);
+        return stripos($host, 'xn--') !== false;
+    }
+
+    private function domainToAscii(string $host): string
+    {
+        return Unicode::idnaToAscii(
+            $host,
+            Unicode::IDNA_FLAG_CHECK_BIDI | Unicode::IDNA_FLAG_CHECK_JOINERS,
+        );
     }
 
     /**

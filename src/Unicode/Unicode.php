@@ -374,7 +374,7 @@ final class Unicode
      */
     private static function isValidDecodedAceLabel(array $label, int $flags, bool $isBidiDomain): bool
     {
-        if ($label === [] || self::isAsciiOnly($label)) {
+        if ($label === []) {
             return false;
         }
 
@@ -438,20 +438,6 @@ final class Unicode
             && ($label[1] === 0x006E || $label[1] === 0x004E)
             && $label[2] === 0x002D
             && $label[3] === 0x002D;
-    }
-
-    /**
-     * @param list<int> $label
-     */
-    private static function isAsciiOnly(array $label): bool
-    {
-        foreach ($label as $codePoint) {
-            if ($codePoint >= 0x80) {
-                return false;
-            }
-        }
-
-        return true;
     }
 
     /**

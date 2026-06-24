@@ -99,6 +99,8 @@ final class Url
 
     public function setHost(string $host): bool
     {
+        $host = str_replace(["\t", "\n", "\r"], '', $host);
+
         if (! $this->hasAuthority) {
             return true;
         }
@@ -132,6 +134,8 @@ final class Url
 
     public function setHostname(string $hostname): bool
     {
+        $hostname = str_replace(["\t", "\n", "\r"], '', $hostname);
+
         if (! $this->hasAuthority) {
             return true;
         }
@@ -459,6 +463,14 @@ final class Url
 
         for ($offset = 0; $offset < $length; $offset++) {
             $byte = ord($host[$offset]);
+
+            if (! $this->isSpecialScheme($this->scheme)) {
+                if (in_array($byte, [0x00, 0x09, 0x0A, 0x0D, 0x20], true)) {
+                    return true;
+                }
+
+                continue;
+            }
 
             if ($byte <= 0x20 || $byte === 0x7F) {
                 return true;

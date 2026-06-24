@@ -408,6 +408,10 @@ final class ParserTest extends TestCase
         self::assertSame('https://zero-port.example:80/path', $url->serialize());
         self::assertTrue($url->setHost('empty-port.example:'));
         self::assertSame('https://empty-port.example:80/path', $url->serialize());
+        self::assertTrue($url->setHost("a\tb:443"));
+        self::assertSame('https://ab/path', $url->serialize());
+        self::assertTrue($url->setHostname("c\nd\r"));
+        self::assertSame('https://cd/path', $url->serialize());
 
         self::assertFalse($bad->setHost('user@example.com'));
         self::assertFalse($bad->setHost('example.com/path'));
@@ -442,6 +446,90 @@ final class ParserTest extends TestCase
         self::assertSame('foo://a:8080/p', $nonSpecialWithPort->serialize());
         self::assertSame('foo://user:pass@a:99/p', $nonSpecialWithCredentials->serialize());
         self::assertSame('foo:///p', $nonSpecialWithoutState->serialize());
+    }
+
+    public function testHostParsingUsesUnicodeIdnaProcessing(): void
+    {
+        $capitalSharpS = (new Parser())->parse("https://\u{1E9E}.de");
+        $validAce = (new Parser())->parse('https://xn--fa-hia.de/path');
+        $asciiOnlyAce = (new Parser())->parse('https://xn--abc-.com');
+        $decodedAsciiAce = (new Parser())->parse('https://%78%6E--abc-.com');
+        $decodedDotAce = (new Parser())->parse('https://a%2Exn--abc-.com');
+        $nonSpecialAce = (new Parser())->parse('foo://xn--abc-.com/p');
+        $nonSpecialUnicode = (new Parser())->parse("foo://\u{1E9E}.de/p");
+        $nonSpecialRawHighByte = (new Parser())->parse("foo://a\x80b/p");
+        $nonSpecialOverlongDot = (new Parser())->parse("foo://a\xC0\xAEb/p");
+        $nonSpecialControl = (new Parser())->parse("foo://a\x01b/p");
+
+        self::assertNotNull($capitalSharpS);
+        self::assertSame('https://xn--zca.de/', $capitalSharpS->serialize());
+        self::assertSame('xn--zca.de', $capitalSharpS->host);
+
+        self::assertNotNull($validAce);
+        self::assertSame('https://xn--fa-hia.de/path', $validAce->serialize());
+
+        self::assertNotNull($asciiOnlyAce);
+        self::assertSame('https://abc.com/', $asciiOnlyAce->serialize());
+
+        self::assertNotNull($decodedAsciiAce);
+        self::assertSame('https://xn--abc-.com/', $decodedAsciiAce->serialize());
+
+        self::assertNotNull($decodedDotAce);
+        self::assertSame('https://a.abc.com/', $decodedDotAce->serialize());
+
+        self::assertNotNull($nonSpecialAce);
+        self::assertSame('foo://xn--abc-.com/p', $nonSpecialAce->serialize());
+
+        self::assertNotNull($nonSpecialUnicode);
+        self::assertSame('foo://%E1%BA%9E.de/p', $nonSpecialUnicode->serialize());
+
+        self::assertNotNull($nonSpecialRawHighByte);
+        self::assertSame('foo://a%80b/p', $nonSpecialRawHighByte->serialize());
+
+        self::assertNotNull($nonSpecialOverlongDot);
+        self::assertSame('foo://a%C0%AEb/p', $nonSpecialOverlongDot->serialize());
+
+        self::assertNotNull($nonSpecialControl);
+        self::assertSame('foo://a%01b/p', $nonSpecialControl->serialize());
+
+        self::assertNull((new Parser())->parse('https://xn--u-ccb.com'));
+        self::assertNull((new Parser())->parse('https://a%2Exn--u-ccb.com'));
+        self::assertNull((new Parser())->parse("https://a\u{200C}b.com"));
+        self::assertNull((new Parser())->parse("https://\u{05D0}a.com"));
+    }
+
+    public function testHostMutationUsesUnicodeIdnaProcessing(): void
+    {
+        $url = (new Parser())->parse('https://lexbor.com/path');
+        $nonSpecial = (new Parser())->parse('foo://a/p');
+
+        self::assertNotNull($url);
+        self::assertNotNull($nonSpecial);
+
+        self::assertTrue($url->setHostname("\u{1E9E}.de"));
+        self::assertSame('https://xn--zca.de/path', $url->serialize());
+
+        self::assertTrue($url->setHost('xn--abc-.com'));
+        self::assertSame('https://abc.com/path', $url->serialize());
+        self::assertTrue($url->setHostname('%78n--abc-.com'));
+        self::assertSame('https://xn--abc-.com/path', $url->serialize());
+        self::assertTrue($url->setHost('a%2Exn--abc-.com'));
+        self::assertSame('https://a.abc.com/path', $url->serialize());
+        self::assertFalse($url->setHost('xn--u-ccb.com'));
+        self::assertFalse($url->setHost('a%2Exn--u-ccb.com'));
+        self::assertFalse($url->setHostname("a\u{200C}b.com"));
+        self::assertSame('https://a.abc.com/path', $url->serialize());
+
+        self::assertTrue($nonSpecial->setHost("a\x01b"));
+        self::assertSame('foo://a%01b/p', $nonSpecial->serialize());
+        self::assertTrue($nonSpecial->setHostname("a\x80b"));
+        self::assertSame('foo://a%80b/p', $nonSpecial->serialize());
+        self::assertTrue($nonSpecial->setHost("a\xC0\xAEb"));
+        self::assertSame('foo://a%C0%AEb/p', $nonSpecial->serialize());
+        self::assertTrue($nonSpecial->setHost("x\ty\nz"));
+        self::assertSame('foo://xyz/p', $nonSpecial->serialize());
+        self::assertFalse($nonSpecial->setHost("a\x00b"));
+        self::assertSame('foo://xyz/p', $nonSpecial->serialize());
     }
 
     public function testPortMutationHandlesDefaultsRangeAndNoopUrls(): void
