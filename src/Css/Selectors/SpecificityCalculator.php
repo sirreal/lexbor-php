@@ -129,11 +129,11 @@ final class SpecificityCalculator
 
         $content = self::consumeFunctionContent($selector, $offset);
 
-        if ($ignoreNestedFunctionalPseudo && in_array($name, ['has', 'is', 'not', 'where'], true)) {
+        if ($ignoreNestedFunctionalPseudo && in_array($name, ['current', 'has', 'is', 'not', 'where'], true)) {
             return;
         }
 
-        if (in_array($name, ['has', 'is', 'not'], true)) {
+        if (in_array($name, ['current', 'has', 'is', 'not'], true)) {
             self::add($specificity, self::maxSelectorListSpecificity($content, false, true));
             return;
         }

@@ -50,6 +50,8 @@ final class Parser
      */
     private array $rawTokenValues = [];
 
+    private bool $preserveCurrentPseudoFunctionBody = false;
+
     /**
      * @return array{value: string, errors: list<string>}
      */
@@ -88,6 +90,13 @@ final class Parser
             return $attribute;
         }
 
+        if (self::leadingPseudoFunctionHasSelectorContinuation($tokens)) {
+            $complex = $this->parseComplexSelector($tokens);
+            if ($complex !== null) {
+                return $complex;
+            }
+        }
+
         $pseudoFunction = $this->parsePseudoFunctionSelector($tokens);
         if ($pseudoFunction !== null) {
             return $pseudoFunction;
@@ -117,6 +126,21 @@ final class Parser
         }
 
         return self::error(self::firstUnexpectedToken($tokens));
+    }
+
+    /**
+     * @return array{value: string, errors: list<string>}
+     */
+    public function parseForMatching(string $selector): array
+    {
+        $previous = $this->preserveCurrentPseudoFunctionBody;
+        $this->preserveCurrentPseudoFunctionBody = true;
+
+        try {
+            return $this->parse($selector);
+        } finally {
+            $this->preserveCurrentPseudoFunctionBody = $previous;
+        }
     }
 
     /**
@@ -678,7 +702,17 @@ final class Parser
         }
 
         $name = strtolower(substr($tokens[1]->value, 0, -1));
-        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type', 'lexbor-contains'], true)) {
+        if (in_array($name, ['dir', 'lang', 'nth-col', 'nth-last-col'], true)) {
+            return [
+                'value' => '',
+                'errors' => [
+                    self::notSupportedError($name),
+                    self::unexpectedTokenError($tokens[1]->value),
+                ],
+            ];
+        }
+
+        if (! in_array($name, ['current', 'not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type', 'lexbor-contains'], true)) {
             return self::error($tokens[1]->value);
         }
 
@@ -761,9 +795,46 @@ final class Parser
         }
 
         return [
-            'value' => sprintf(':%s(%s)', $name, implode(', ', $serialized)),
+            'value' => $name === 'current' && ! $this->preserveCurrentPseudoFunctionBody
+                ? ':current()'
+                : sprintf(':%s(%s)', $name, implode(', ', $serialized)),
             'errors' => $errors,
         ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function leadingPseudoFunctionHasSelectorContinuation(array $tokens): bool
+    {
+        if (
+            count($tokens) < 3
+            || $tokens[0]->type !== 'colon'
+            || $tokens[1]->type !== 'function'
+        ) {
+            return false;
+        }
+
+        [, $closed, $trailing] = self::pseudoFunctionBody($tokens);
+        if (! $closed || $trailing === []) {
+            return false;
+        }
+
+        $offset = 0;
+        $hadWhitespace = ($trailing[$offset] ?? null)?->type === 'whitespace';
+        self::skipWhitespace($trailing, $offset);
+
+        $token = $trailing[$offset] ?? null;
+        if ($token === null || in_array($token->type, ['comma', 'right-parenthesis'], true)) {
+            return false;
+        }
+
+        return $hadWhitespace
+            || self::isCombinatorAt($trailing, $offset)
+            || $token->type === 'hash'
+            || $token->type === 'left-square-bracket'
+            || $token->type === 'colon'
+            || ($token->type === 'delim' && $token->value === '.');
     }
 
     /**
@@ -2176,6 +2247,11 @@ final class Parser
     private static function unexpectedTokenError(string $token): string
     {
         return sprintf('Syntax error. Selectors. Unexpected token: %s', $token);
+    }
+
+    private static function notSupportedError(string $token): string
+    {
+        return sprintf('Syntax error. Selectors. Not supported: %s', $token);
     }
 
     private static function eofPseudoFunctionError(): string

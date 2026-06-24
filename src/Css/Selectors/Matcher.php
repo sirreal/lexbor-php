@@ -143,7 +143,7 @@ final class Matcher
      */
     private function parseSelectorList(string $selector): ?array
     {
-        $parsed = $this->parser->parse($selector);
+        $parsed = $this->parser->parseForMatching($selector);
         if ($parsed['value'] === '') {
             return null;
         }
@@ -605,7 +605,7 @@ final class Matcher
         }
 
         $name = strtolower(substr($function->value, 0, -1));
-        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type', 'lexbor-contains'], true)) {
+        if (! in_array($name, ['current', 'not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'nth-of-type', 'nth-last-of-type', 'lexbor-contains'], true)) {
             return null;
         }
 
@@ -655,7 +655,7 @@ final class Matcher
         }
 
         $selectors = match ($name) {
-            'not' => $this->parseSelectorTokenList($body),
+            'current', 'not' => $this->parseSelectorTokenList($body),
             'has' => $this->parseForgivingRelativeSelectorTokenList($body),
             default => $this->parseForgivingSelectorTokenList($body),
         };
@@ -1019,7 +1019,7 @@ final class Matcher
             'read-only' => ! self::elementIsReadWrite($element),
             'read-write' => self::elementIsReadWrite($element),
             'required' => self::isRequiredOptionalElement($element) && $element->hasAttribute('required'),
-            'is', 'where' => $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
+            'current', 'is', 'where' => $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
             'not' => ! $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
             'has' => $this->hasRelativeMatchingAnyComplex($element, $pseudo['selectors']),
             'nth-child' => $this->matchesNthChild($element, $pseudo, false),

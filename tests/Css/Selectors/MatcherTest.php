@@ -111,6 +111,10 @@ final class MatcherTest extends TestCase
         yield 'selectors match has relative next-sibling pseudo function' => ['span:has(+ a)', 'span', ['6', '9']];
         yield 'selectors match has relative sibling chain pseudo function' => ['div:has(+ div ~ main > h2[h2]) ~ div', 'div', ['Second']];
         yield 'selectors match is pseudo function' => ["p:is([p='2'], [p='5'])", 'p', ['2', '5']];
+        yield 'selectors match current pseudo function' => ["p:current([p='2'], [p='5'])", 'p', ['2', '5']];
+        yield 'selectors match leading current pseudo function with compound continuation' => [':current([p="2"])[p="2"]', 'p', ['2']];
+        yield 'selectors match current pseudo function with outer EOF recovery' => ['p:current([p="2"])[p="2"', 'p', ['2']];
+        yield 'selectors match current pseudo function with function EOF recovery' => ['p:current([p="2"]', 'p', ['2']];
         yield 'selectors match nested has and not pseudo functions' => ['div:has(p :not(span))', 'div', ['First', 'Second']];
         yield 'selectors match not pseudo function selector list' => [':not(span, div)', 'tagName', ['p', 'a', 'p', 'a', 'p', 'a', 'p', 'a', 'p', 'a', 'p', 'p', 'a', 'a', 'a', 'main', 'h2', 'h2', 'h2', 'h2', 'h2', 'h2']];
         yield 'selectors match where pseudo function' => ['p :where(span#s4)', 'span', ['4']];

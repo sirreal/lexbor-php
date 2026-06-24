@@ -73,11 +73,13 @@ final class ParserTest extends TestCase
         yield 'selectors.c #54 not pseudo function normalizes selector list whitespace' => [':not( div,#hash,.class )', ':not(div, #hash, .class)', []];
         yield 'selectors regression is pseudo function selector list' => ['p:is([p="2"], [p="5"])', 'p:is([p="2"], [p="5"])', []];
         yield 'selectors regression where pseudo function in descendant selector' => ['p :where(span#s4)', 'p :where(span#s4)', []];
+        yield 'selectors regression current pseudo function selector list' => [':current(div > .class, #hash)', ':current()', []];
         yield 'selectors regression is pseudo function skips invalid selector' => ['p:is([p="2"], 1%, [p="5"])', 'p:is([p="2"], [p="5"])', ['Syntax error. Selectors. Unexpected token: 1%']];
         yield 'selectors regression where pseudo function skips invalid selector' => ['p:where([p="2"], 1%, [p="5"])', 'p:where([p="2"], [p="5"])', ['Syntax error. Selectors. Unexpected token: 1%']];
         yield 'selectors regression is pseudo function recovers inside selector list' => ['p:is([p="2"], 1%, [p="5"]), a', 'p:is([p="2"], [p="5"]), a', ['Syntax error. Selectors. Unexpected token: 1%']];
         yield 'selectors regression is pseudo function preserves combinator prefix on recovery' => ['div > p:is([p="1"], 1%, [p="2"])', 'div > p:is([p="1"], [p="2"])', ['Syntax error. Selectors. Unexpected token: 1%']];
         yield 'selectors regression is pseudo function preserves compound suffix on recovery' => ['p:is([p="1"], 1%, [p="2"]).super', 'p:is([p="1"], [p="2"]).super', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors regression current pseudo function rejects invalid selector' => [':current(div, .class 1%)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: current()"]];
         yield 'selectors.c #55 rejects invalid not selector after valid selector' => [':not(div, .class 1%)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #56 rejects invalid not selector before valid selector' => [':not(.class 1%, div)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #57 rejects invalid not selector between valid selectors' => [':not(div, .class 1%, #hash)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
@@ -124,6 +126,10 @@ final class ParserTest extends TestCase
         yield 'selectors.c #92 rejects unknown pseudo class' => [':godofwar', '', ['Syntax error. Selectors. Unexpected token: godofwar']];
         yield 'selectors.c #93 has selector with pseudo class' => [':has(:disabled)', ':has(:disabled)', []];
         yield 'selectors.c #94 rejects has selector with unknown pseudo class' => [':has(:godofwar)', '', ['Syntax error. Selectors. Unexpected token: godofwar', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
+        yield 'selectors regression rejects unsupported dir pseudo function' => [':dir(ltr)', '', ['Syntax error. Selectors. Not supported: dir', 'Syntax error. Selectors. Unexpected token: dir(']];
+        yield 'selectors regression rejects unsupported lang pseudo function' => [':lang(en)', '', ['Syntax error. Selectors. Not supported: lang', 'Syntax error. Selectors. Unexpected token: lang(']];
+        yield 'selectors regression rejects unsupported nth-col pseudo function' => [':nth-col(odd)', '', ['Syntax error. Selectors. Not supported: nth-col', 'Syntax error. Selectors. Unexpected token: nth-col(']];
+        yield 'selectors regression rejects unsupported nth-last-col pseudo function' => [':nth-last-col(odd)', '', ['Syntax error. Selectors. Not supported: nth-last-col', 'Syntax error. Selectors. Unexpected token: nth-last-col(']];
         yield 'selectors.c #95 rejects unknown pseudo element' => ['::godofwar', '', ['Syntax error. Selectors. Unexpected token: godofwar']];
         yield 'selectors.c #96 rejects has selector with unknown pseudo element' => [':has(::godofwar)', '', ['Syntax error. Selectors. Unexpected token: godofwar', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
         yield 'selectors.c #97 has selector skips unknown pseudo element' => [':has(div, ::godofwar)', ':has(div)', ['Syntax error. Selectors. Unexpected token: godofwar']];

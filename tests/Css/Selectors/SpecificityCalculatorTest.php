@@ -43,6 +43,7 @@ final class SpecificityCalculatorTest extends TestCase
         yield 'specificity.c #26 hash id' => ['#x34y', ['a' => 1, 'b' => 0, 'c' => 0]];
         yield 'specificity.c #27 not type selector' => ['#s12:not(FOO)', ['a' => 1, 'b' => 0, 'c' => 1]];
         yield 'specificity.c #28 is id wins class with leading class' => ['.foo :is(.bar, #baz)', ['a' => 1, 'b' => 1, 'c' => 0]];
+        yield 'specificity source-backed current selector list' => ['#id:current(#item.class, .fallback)', ['a' => 2, 'b' => 1, 'c' => 0]];
     }
 
     /**
