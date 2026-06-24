@@ -62,6 +62,21 @@ final class Parser
         'warning' => true,
     ];
 
+    private const array UNSUPPORTED_PSEUDO_ELEMENTS = [
+        'after' => true,
+        'backdrop' => true,
+        'before' => true,
+        'first-letter' => true,
+        'first-line' => true,
+        'grammar-error' => true,
+        'inactive-selection' => true,
+        'marker' => true,
+        'placeholder' => true,
+        'selection' => true,
+        'spelling-error' => true,
+        'target-text' => true,
+    ];
+
     public function __construct(
         private readonly Tokenizer $tokenizer = new Tokenizer(),
     ) {
@@ -1927,6 +1942,19 @@ final class Parser
         if ($next?->type === 'colon') {
             $name = $tokens[$offset + 2] ?? null;
             $offset += $name === null ? 2 : 3;
+
+            if ($name?->type === 'ident') {
+                $pseudoElement = strtolower($name->value);
+                if (isset(self::UNSUPPORTED_PSEUDO_ELEMENTS[$pseudoElement])) {
+                    return [
+                        'value' => '',
+                        'errors' => [
+                            self::notSupportedError($pseudoElement),
+                            self::unexpectedTokenError($name->value),
+                        ],
+                    ];
+                }
+            }
 
             return self::error($name?->value ?? 'END-OF-FILE');
         }

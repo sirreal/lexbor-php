@@ -158,9 +158,31 @@ final class ParserTest extends TestCase
         yield 'selectors regression rejects unsupported nth-col pseudo function' => [':nth-col(odd)', '', ['Syntax error. Selectors. Not supported: nth-col', 'Syntax error. Selectors. Unexpected token: nth-col(']];
         yield 'selectors regression rejects unsupported nth-last-col pseudo function' => [':nth-last-col(odd)', '', ['Syntax error. Selectors. Not supported: nth-last-col', 'Syntax error. Selectors. Unexpected token: nth-last-col(']];
         yield 'selectors.c #95 rejects unknown pseudo element' => ['::godofwar', '', ['Syntax error. Selectors. Unexpected token: godofwar']];
+        foreach ([
+            'after',
+            'backdrop',
+            'before',
+            'first-letter',
+            'first-line',
+            'grammar-error',
+            'inactive-selection',
+            'marker',
+            'placeholder',
+            'selection',
+            'spelling-error',
+            'target-text',
+        ] as $pseudoElement) {
+            yield "selectors regression rejects unsupported {$pseudoElement} pseudo element" => ["::{$pseudoElement}", '', [
+                "Syntax error. Selectors. Not supported: {$pseudoElement}",
+                "Syntax error. Selectors. Unexpected token: {$pseudoElement}",
+            ]];
+        }
         yield 'selectors.c #96 rejects has selector with unknown pseudo element' => [':has(::godofwar)', '', ['Syntax error. Selectors. Unexpected token: godofwar', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
+        yield 'selectors regression rejects has selector with unsupported before pseudo element' => [':has(::before)', '', ['Syntax error. Selectors. Not supported: before', 'Syntax error. Selectors. Unexpected token: before', "Syntax error. Selectors. Pseudo function can't be empty: has()"]];
         yield 'selectors.c #97 has selector skips unknown pseudo element' => [':has(div, ::godofwar)', ':has(div)', ['Syntax error. Selectors. Unexpected token: godofwar']];
+        yield 'selectors regression has selector skips unsupported before pseudo element' => [':has(div, ::before)', ':has(div)', ['Syntax error. Selectors. Not supported: before', 'Syntax error. Selectors. Unexpected token: before']];
         yield 'selectors.c #98 has selector skips unknown pseudo element between valid selectors' => [':has(div, ::godofwar, .class)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: godofwar']];
+        yield 'selectors regression has selector skips unsupported before pseudo element between valid selectors' => [':has(div, ::before, .class)', ':has(div, .class)', ['Syntax error. Selectors. Not supported: before', 'Syntax error. Selectors. Unexpected token: before']];
         yield 'selectors.c #99 rejects empty selector' => ['', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE']];
         yield 'selectors.c #105 nth-child with An+B expression' => [':nth-child(2n+2)', ':nth-child(2n+2)', []];
         yield 'selectors.c #106 rejects incomplete nth-child An+B expression' => [':nth-child(2n+)', '', ["Syntax error. Selectors. Pseudo function can't be empty: nth-child()"]];
