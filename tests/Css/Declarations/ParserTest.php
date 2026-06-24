@@ -816,6 +816,70 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function hangingPunctuationDeclarationProvider(): iterable
+    {
+        yield 'hanging-punctuation accepts none' => ['hanging-punctuation: none', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'hanging-punctuation accepts first' => ['hanging-punctuation: first', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'first', 'important' => false],
+        ]];
+        yield 'hanging-punctuation accepts force-end' => ['hanging-punctuation: force-end', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'force-end', 'important' => false],
+        ]];
+        yield 'hanging-punctuation accepts allow-end' => ['hanging-punctuation: allow-end', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'allow-end', 'important' => false],
+        ]];
+        yield 'hanging-punctuation accepts last' => ['hanging-punctuation: last', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'last', 'important' => false],
+        ]];
+        yield 'hanging-punctuation accepts css-wide keyword' => ['hanging-punctuation: inherit', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'hanging-punctuation accepts all keyword groups' => ['hanging-punctuation: first force-end last', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'first force-end last', 'important' => false],
+        ]];
+        yield 'hanging-punctuation serializes in Lexbor group order' => ['hanging-punctuation: last allow-end first', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'first allow-end last', 'important' => false],
+        ]];
+        yield 'hanging-punctuation treats comments between keywords as separators' => ['hanging-punctuation: first/**/last', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'first last', 'important' => false],
+        ]];
+        yield 'hanging-punctuation lowercases mixed-case keywords' => ['hanging-punctuation: FiRsT ALLOW-END', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'first allow-end', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects duplicate first group' => ['hanging-punctuation: first first', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'first first', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects duplicate force allow group' => ['hanging-punctuation: force-end allow-end', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'force-end allow-end', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects duplicate last group' => ['hanging-punctuation: last last', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'last last', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects none with another keyword' => ['hanging-punctuation: none first', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'none first', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects css-wide keyword with local keyword' => ['hanging-punctuation: inherit last', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'inherit last', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects unknown keyword' => ['hanging-punctuation: auto', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects non-ident token' => ['hanging-punctuation: 1', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => '1', 'important' => false],
+        ]];
+        yield 'hanging-punctuation rejects comment-split keyword' => ['hanging-punctuation: force-/**/end', [
+            ['type' => 'undef', 'name' => 'hanging-punctuation', 'value' => 'force-end', 'important' => false],
+        ]];
+        yield 'hanging-punctuation keeps important flag' => ['hanging-punctuation: allow-end !important', [
+            ['type' => 'property', 'name' => 'hanging-punctuation', 'value' => 'allow-end', 'important' => true],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function textIndentDeclarationProvider(): iterable
     {
         yield 'text-indent accepts length' => ['text-indent: 2px', [
@@ -1735,6 +1799,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textKeywordDeclarationProvider')]
     public function testTextKeywordDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('hangingPunctuationDeclarationProvider')]
+    public function testHangingPunctuationDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

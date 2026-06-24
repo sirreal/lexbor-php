@@ -29,6 +29,7 @@ final class Parser
         'float-defer' => true,
         'float-offset' => true,
         'float-reference' => true,
+        'hanging-punctuation' => true,
         'height' => true,
         'hyphens' => true,
         'inset-block-end' => true,
@@ -679,6 +680,7 @@ final class Parser
             'float-defer' => self::floatDeferValue($valueTokens) !== null ? 'property' : 'undef',
             'float-offset' => self::floatOffsetValue($valueTokens) !== null ? 'property' : 'undef',
             'float-reference' => self::singleKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
+            'hanging-punctuation' => self::hangingPunctuationValue($valueTokens) !== null ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
             'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
             'flex-grow', 'flex-shrink' => self::isValidNonNegativeNumber($valueTokens) ? 'property' : 'undef',
@@ -1329,6 +1331,79 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function hangingPunctuationValue(array $tokens): ?string
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+
+        if ($components === []) {
+            return null;
+        }
+
+        $typeFirst = null;
+        $forceAllow = null;
+        $last = null;
+
+        foreach ($components as $component) {
+            if (count($component) !== 1 || $component[0]->type !== 'ident') {
+                return null;
+            }
+
+            $value = strtolower($component[0]->value);
+
+            if (isset(self::CSS_WIDE_KEYWORDS[$value]) || $value === 'none') {
+                return count($components) === 1 ? $value : null;
+            }
+
+            if ($value === 'first') {
+                if ($typeFirst !== null) {
+                    return null;
+                }
+
+                $typeFirst = $value;
+                continue;
+            }
+
+            if ($value === 'force-end' || $value === 'allow-end') {
+                if ($forceAllow !== null) {
+                    return null;
+                }
+
+                $forceAllow = $value;
+                continue;
+            }
+
+            if ($value === 'last') {
+                if ($last !== null) {
+                    return null;
+                }
+
+                $last = $value;
+                continue;
+            }
+
+            return null;
+        }
+
+        $parts = [];
+
+        if ($typeFirst !== null) {
+            $parts[] = $typeFirst;
+        }
+
+        if ($forceAllow !== null) {
+            $parts[] = $forceAllow;
+        }
+
+        if ($last !== null) {
+            $parts[] = $last;
+        }
+
+        return $parts === [] ? null : implode(' ', $parts);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function isValidNumberPercentage(array $tokens): bool
     {
         $token = self::singleValueToken($tokens);
@@ -1534,6 +1609,10 @@ final class Parser
 
         if ($property === 'tab-size') {
             return self::numberLengthValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'hanging-punctuation') {
+            return self::hangingPunctuationValue($tokens) ?? $fallback;
         }
 
         if (in_array($property, ['flex-grow', 'flex-shrink'], true)) {
