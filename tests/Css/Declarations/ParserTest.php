@@ -659,6 +659,80 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function textKeywordDeclarationProvider(): iterable
+    {
+        $validKeywords = [
+            'hyphens' => ['none', 'manual', 'auto'],
+            'justify-content' => ['flex-start', 'flex-end', 'center', 'space-between', 'space-around'],
+            'line-break' => ['auto', 'loose', 'normal', 'strict', 'anywhere'],
+            'text-align' => ['start', 'end', 'left', 'right', 'center', 'justify', 'match-parent', 'justify-all'],
+            'text-align-all' => ['start', 'end', 'left', 'right', 'center', 'justify', 'match-parent'],
+            'text-align-last' => ['auto', 'start', 'end', 'left', 'right', 'center', 'justify', 'match-parent'],
+            'text-justify' => ['auto', 'none', 'inter-word', 'inter-character'],
+            'text-orientation' => ['mixed', 'upright', 'sideways'],
+            'unicode-bidi' => ['normal', 'embed', 'isolate', 'bidi-override', 'isolate-override', 'plaintext'],
+            'writing-mode' => ['horizontal-tb', 'vertical-rl', 'vertical-lr', 'sideways-rl', 'sideways-lr'],
+        ];
+
+        foreach ($validKeywords as $property => $keywords) {
+            foreach ($keywords as $keyword) {
+                yield "{$property} accepts {$keyword}" => ["{$property}: {$keyword}", [
+                    ['type' => 'property', 'name' => $property, 'value' => $keyword, 'important' => false],
+                ]];
+            }
+
+            yield "{$property} accepts css-wide keyword" => ["{$property}: inherit", [
+                ['type' => 'property', 'name' => $property, 'value' => 'inherit', 'important' => false],
+            ]];
+        }
+
+        yield 'hyphens rejects normal' => ['hyphens: normal', [
+            ['type' => 'undef', 'name' => 'hyphens', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'justify-content rejects space-evenly' => ['justify-content: space-evenly', [
+            ['type' => 'undef', 'name' => 'justify-content', 'value' => 'space-evenly', 'important' => false],
+        ]];
+        yield 'line-break rejects break-word' => ['line-break: break-word', [
+            ['type' => 'undef', 'name' => 'line-break', 'value' => 'break-word', 'important' => false],
+        ]];
+        yield 'line-break trims whitespace before trailing comment' => ['line-break: strict /**/;', [
+            ['type' => 'property', 'name' => 'line-break', 'value' => 'strict', 'important' => false],
+        ]];
+        yield 'text-align rejects auto' => ['text-align: auto', [
+            ['type' => 'undef', 'name' => 'text-align', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'text-align rejects multiple keywords' => ['text-align: left right', [
+            ['type' => 'undef', 'name' => 'text-align', 'value' => 'left right', 'important' => false],
+        ]];
+        yield 'text-align-all rejects justify-all' => ['text-align-all: justify-all', [
+            ['type' => 'undef', 'name' => 'text-align-all', 'value' => 'justify-all', 'important' => false],
+        ]];
+        yield 'text-align-last rejects justify-all' => ['text-align-last: justify-all', [
+            ['type' => 'undef', 'name' => 'text-align-last', 'value' => 'justify-all', 'important' => false],
+        ]];
+        yield 'text-justify rejects multiple keywords' => ['text-justify: inter-word inter-character', [
+            ['type' => 'undef', 'name' => 'text-justify', 'value' => 'inter-word inter-character', 'important' => false],
+        ]];
+        yield 'text-justify rejects comment-split keyword' => ['text-justify: inter-/**/word', [
+            ['type' => 'undef', 'name' => 'text-justify', 'value' => 'inter-word', 'important' => false],
+        ]];
+        yield 'text-orientation rejects vertical' => ['text-orientation: vertical', [
+            ['type' => 'undef', 'name' => 'text-orientation', 'value' => 'vertical', 'important' => false],
+        ]];
+        yield 'unicode-bidi rejects ltr' => ['unicode-bidi: ltr', [
+            ['type' => 'undef', 'name' => 'unicode-bidi', 'value' => 'ltr', 'important' => false],
+        ]];
+        yield 'unicode-bidi rejects comment-split keyword' => ['unicode-bidi: isolate-/**/override', [
+            ['type' => 'undef', 'name' => 'unicode-bidi', 'value' => 'isolate-override', 'important' => false],
+        ]];
+        yield 'writing-mode rejects horizontal' => ['writing-mode: horizontal', [
+            ['type' => 'undef', 'name' => 'writing-mode', 'value' => 'horizontal', 'important' => false],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -753,6 +827,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('positionOffsetDeclarationProvider')]
     public function testPositionOffsetDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('textKeywordDeclarationProvider')]
+    public function testTextKeywordDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
