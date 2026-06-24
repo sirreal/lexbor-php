@@ -12,6 +12,16 @@ final class Parser
     private const array KNOWN_PROPERTIES = [
         'display' => true,
         'height' => true,
+        'margin' => true,
+        'margin-bottom' => true,
+        'margin-left' => true,
+        'margin-right' => true,
+        'margin-top' => true,
+        'padding' => true,
+        'padding-bottom' => true,
+        'padding-left' => true,
+        'padding-right' => true,
+        'padding-top' => true,
         'text-decoration' => true,
         'width' => true,
     ];
@@ -329,6 +339,8 @@ final class Parser
         return match ($property) {
             'display' => isset(self::DISPLAY_VALUES[strtolower($value)]) ? 'property' : 'undef',
             'height', 'width' => self::isValidLengthSize($value, $valueTokens) ? 'property' : 'undef',
+            'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
+            'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
             default => 'undef',
         };
     }
@@ -373,6 +385,99 @@ final class Parser
     private static function isNonNegativePercentage(string $value): bool
     {
         return preg_match('/^\+?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?%$/i', $value) === 1;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function isValidBoxSpacing(string $property, array $tokens, bool $allowAuto): bool
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+        $maxComponents = in_array($property, ['margin', 'padding'], true) ? 4 : 1;
+
+        if ($components === [] || count($components) > $maxComponents) {
+            return false;
+        }
+
+        foreach ($components as $component) {
+            if (! self::isValidBoxSpacingComponent($component, $allowAuto)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return list<list<Token>>
+     */
+    private static function splitWhitespaceSeparatedComponents(array $tokens): array
+    {
+        $tokens = self::stripWhitespaceTokens($tokens);
+        $components = [];
+        $component = [];
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'whitespace') {
+                if ($component !== []) {
+                    $components[] = $component;
+                    $component = [];
+                }
+
+                continue;
+            }
+
+            $component[] = $token;
+        }
+
+        if ($component !== []) {
+            $components[] = $component;
+        }
+
+        return $components;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function isValidBoxSpacingComponent(array $tokens, bool $allowAuto): bool
+    {
+        if (count($tokens) !== 1) {
+            return false;
+        }
+
+        $token = $tokens[0];
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return in_array($value, ['inherit', 'initial', 'revert', 'unset'], true)
+                || ($allowAuto && $value === 'auto');
+        }
+
+        if ($token->type === 'number') {
+            return $token->value === '0';
+        }
+
+        if ($token->type === 'percentage') {
+            return self::isSignedPercentage($token->value);
+        }
+
+        if ($token->type !== 'dimension') {
+            return false;
+        }
+
+        if (! preg_match('/^[+-]?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?([a-zA-Z]+)$/i', $token->value, $matches)) {
+            return false;
+        }
+
+        return isset(self::LENGTH_UNITS[strtolower($matches[1])]);
+    }
+
+    private static function isSignedPercentage(string $value): bool
+    {
+        return preg_match('/^[+-]?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?%$/i', $value) === 1;
     }
 
     /**

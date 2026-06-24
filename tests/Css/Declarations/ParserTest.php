@@ -296,6 +296,52 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function boxSpacingProvider(): iterable
+    {
+        yield 'margin accepts one length' => ['margin: 1px', [
+            ['type' => 'property', 'name' => 'margin', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'margin accepts four mixed length percentage auto values' => ['margin: 1px 2% auto -4em', [
+            ['type' => 'property', 'name' => 'margin', 'value' => '1px 2% auto -4em', 'important' => false],
+        ]];
+        yield 'margin accepts css-wide keyword' => ['margin: revert', [
+            ['type' => 'property', 'name' => 'margin', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'margin rejects more than four values' => ['margin: 1px 2px 3px 4px 5px', [
+            ['type' => 'undef', 'name' => 'margin', 'value' => '1px 2px 3px 4px 5px', 'important' => false],
+        ]];
+        yield 'margin side accepts auto' => ['margin-left: auto', [
+            ['type' => 'property', 'name' => 'margin-left', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'margin side accepts negative percentage' => ['margin-top: -10%', [
+            ['type' => 'property', 'name' => 'margin-top', 'value' => '-10%', 'important' => false],
+        ]];
+        yield 'margin side rejects multiple values' => ['margin-right: 1px 2px', [
+            ['type' => 'undef', 'name' => 'margin-right', 'value' => '1px 2px', 'important' => false],
+        ]];
+        yield 'padding accepts shorthand lengths' => ['padding: 1px 2px 3px 4px', [
+            ['type' => 'property', 'name' => 'padding', 'value' => '1px 2px 3px 4px', 'important' => false],
+        ]];
+        yield 'padding accepts signed values like Lexbor state table' => ['padding: -1px -2%', [
+            ['type' => 'property', 'name' => 'padding', 'value' => '-1px -2%', 'important' => false],
+        ]];
+        yield 'padding rejects auto' => ['padding: auto', [
+            ['type' => 'undef', 'name' => 'padding', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'padding side accepts percentage' => ['padding-bottom: 12.5%', [
+            ['type' => 'property', 'name' => 'padding-bottom', 'value' => '12.5%', 'important' => false],
+        ]];
+        yield 'padding side rejects auto' => ['padding-left: auto', [
+            ['type' => 'undef', 'name' => 'padding-left', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'padding side rejects multiple values' => ['padding-top: 1px 2px', [
+            ['type' => 'undef', 'name' => 'padding-top', 'value' => '1px 2px', 'important' => false],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -336,6 +382,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('widthRegressionProvider')]
     public function testWidthRegressions(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('boxSpacingProvider')]
+    public function testBoxSpacingDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
