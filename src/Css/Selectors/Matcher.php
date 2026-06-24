@@ -153,6 +153,15 @@ final class Matcher
      */
     private function parseSelectorList(string $selector): ?array
     {
+        $tokens = $this->stripWhitespaceTokens($this->tokenizer->tokenize($selector));
+        $collapsedNestedNot = self::collapseNestedNotSelector($tokens);
+        if ($collapsedNestedNot !== null) {
+            $collapsedSelectors = $this->parseSelectorTokenList($collapsedNestedNot);
+            if ($collapsedSelectors !== null) {
+                return $collapsedSelectors;
+            }
+        }
+
         $parsed = $this->parser->parseForMatching($selector);
         if ($parsed['value'] === '') {
             return null;
@@ -183,6 +192,124 @@ final class Matcher
         }
 
         return $selectors;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return list<Token>|null
+     */
+    private static function collapseNestedNotSelector(array $tokens): ?array
+    {
+        $count = count($tokens);
+        if ($count < 5) {
+            return null;
+        }
+
+        $offset = 0;
+        $wrappers = 0;
+        while (
+            ($tokens[$offset] ?? null)?->type === 'colon'
+            && ($tokens[$offset + 1] ?? null)?->type === 'function'
+            && strtolower($tokens[$offset + 1]->value) === 'not('
+        ) {
+            $wrappers++;
+            $offset += 2;
+        }
+
+        if ($wrappers < 2 || $offset >= $count) {
+            return null;
+        }
+
+        for ($index = 0; $index < $wrappers; $index++) {
+            if (($tokens[$count - 1 - $index] ?? null)?->type !== 'right-parenthesis') {
+                return null;
+            }
+        }
+
+        $inner = self::trimTokenList(array_slice($tokens, $offset, $count - $wrappers - $offset));
+        if ($inner === [] || self::hasTopLevelSelectorListComma($inner) || ! self::selectorTokensAreBalanced($inner)) {
+            return null;
+        }
+
+        if ($wrappers % 2 === 0) {
+            return $inner;
+        }
+
+        return [
+            $tokens[0],
+            $tokens[1],
+            ...$inner,
+            $tokens[$count - 1],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function hasTopLevelSelectorListComma(array $tokens): bool
+    {
+        $bracketDepth = 0;
+        $functionDepth = 0;
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'comma' && $bracketDepth === 0 && $functionDepth === 0) {
+                return true;
+            }
+
+            if ($token->type === 'left-square-bracket') {
+                $bracketDepth++;
+            } elseif ($token->type === 'right-square-bracket' && $bracketDepth > 0) {
+                $bracketDepth--;
+            }
+
+            if ($token->type === 'function') {
+                $functionDepth++;
+            } elseif ($token->type === 'right-parenthesis' && $functionDepth > 0) {
+                $functionDepth--;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function selectorTokensAreBalanced(array $tokens): bool
+    {
+        $bracketDepth = 0;
+        $functionDepth = 0;
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'left-square-bracket') {
+                $bracketDepth++;
+                continue;
+            }
+
+            if ($token->type === 'right-square-bracket') {
+                if ($bracketDepth === 0) {
+                    return false;
+                }
+
+                $bracketDepth--;
+                continue;
+            }
+
+            if ($token->type === 'function') {
+                $functionDepth++;
+                continue;
+            }
+
+            if ($token->type === 'right-parenthesis') {
+                if ($functionDepth === 0) {
+                    return false;
+                }
+
+                $functionDepth--;
+            }
+        }
+
+        return $bracketDepth === 0 && $functionDepth === 0;
     }
 
     /**

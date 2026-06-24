@@ -559,6 +559,29 @@ final class MatcherTest extends TestCase
         );
     }
 
+    public function testFindSupportsLexborDeepNestedNotSelector(): void
+    {
+        $document = $this->fixtureDocument();
+        $depth = 4096;
+        $selector = str_repeat(':not(', $depth) . 'div' . str_repeat(')', $depth);
+
+        self::assertSame(
+            ['First', 'Second'],
+            self::attributeValues((new Matcher())->find($document, $selector), 'div'),
+        );
+    }
+
+    public function testFindPreservesNonPureNestedNotSelectorChain(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><body><div id=div></div><span id=span></span><a id=a></a></body>'));
+
+        self::assertSame(
+            ['div', 'span'],
+            self::attributeValues((new Matcher())->find($document->bodyElement(), ':not(:not(div):not(span))'), 'id'),
+        );
+    }
+
     public function testMatchesSupportsSelectorLists(): void
     {
         $document = $this->fixtureDocument();
