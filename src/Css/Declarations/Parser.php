@@ -29,9 +29,10 @@ final class Parser
         'float-defer' => true,
         'float-offset' => true,
         'float-reference' => true,
+        'font-family' => true,
+        'font-size' => true,
         'font-stretch' => true,
         'font-style' => true,
-        'font-size' => true,
         'font-weight' => true,
         'hanging-punctuation' => true,
         'height' => true,
@@ -96,6 +97,381 @@ final class Parser
         'initial' => true,
         'revert' => true,
         'unset' => true,
+    ];
+
+    private const array LEXBOR_VALUE_KEYWORDS = [
+        'initial' => 'initial',
+        'inherit' => 'inherit',
+        'unset' => 'unset',
+        'revert' => 'revert',
+        'flex-start' => 'flex-start',
+        'flex-end' => 'flex-end',
+        'center' => 'center',
+        'space-between' => 'space-between',
+        'space-around' => 'space-around',
+        'stretch' => 'stretch',
+        'baseline' => 'baseline',
+        'auto' => 'auto',
+        'text-bottom' => 'text-bottom',
+        'alphabetic' => 'alphabetic',
+        'ideographic' => 'ideographic',
+        'middle' => 'middle',
+        'central' => 'central',
+        'mathematical' => 'mathematical',
+        'text-top' => 'text-top',
+        '_length' => '_length',
+        '_percentage' => '_percentage',
+        'sub' => 'sub',
+        'super' => 'super',
+        'top' => 'top',
+        'bottom' => 'bottom',
+        'first' => 'first',
+        'last' => 'last',
+        'thin' => 'thin',
+        'medium' => 'medium',
+        'thick' => 'thick',
+        'none' => 'none',
+        'hidden' => 'hidden',
+        'dotted' => 'dotted',
+        'dashed' => 'dashed',
+        'solid' => 'solid',
+        'double' => 'double',
+        'groove' => 'groove',
+        'ridge' => 'ridge',
+        'inset' => 'inset',
+        'outset' => 'outset',
+        'content-box' => 'content-box',
+        'border-box' => 'border-box',
+        'inline-start' => 'inline-start',
+        'inline-end' => 'inline-end',
+        'block-start' => 'block-start',
+        'block-end' => 'block-end',
+        'left' => 'left',
+        'right' => 'right',
+        'currentcolor' => 'currentcolor',
+        'transparent' => 'transparent',
+        'hex' => 'hex',
+        'aliceblue' => 'aliceblue',
+        'antiquewhite' => 'antiquewhite',
+        'aqua' => 'aqua',
+        'aquamarine' => 'aquamarine',
+        'azure' => 'azure',
+        'beige' => 'beige',
+        'bisque' => 'bisque',
+        'black' => 'black',
+        'blanchedalmond' => 'blanchedalmond',
+        'blue' => 'blue',
+        'blueviolet' => 'blueviolet',
+        'brown' => 'brown',
+        'burlywood' => 'burlywood',
+        'cadetblue' => 'cadetblue',
+        'chartreuse' => 'chartreuse',
+        'chocolate' => 'chocolate',
+        'coral' => 'coral',
+        'cornflowerblue' => 'cornflowerblue',
+        'cornsilk' => 'cornsilk',
+        'crimson' => 'crimson',
+        'cyan' => 'cyan',
+        'darkblue' => 'darkblue',
+        'darkcyan' => 'darkcyan',
+        'darkgoldenrod' => 'darkgoldenrod',
+        'darkgray' => 'darkgray',
+        'darkgreen' => 'darkgreen',
+        'darkgrey' => 'darkgrey',
+        'darkkhaki' => 'darkkhaki',
+        'darkmagenta' => 'darkmagenta',
+        'darkolivegreen' => 'darkolivegreen',
+        'darkorange' => 'darkorange',
+        'darkorchid' => 'darkorchid',
+        'darkred' => 'darkred',
+        'darksalmon' => 'darksalmon',
+        'darkseagreen' => 'darkseagreen',
+        'darkslateblue' => 'darkslateblue',
+        'darkslategray' => 'darkslategray',
+        'darkslategrey' => 'darkslategrey',
+        'darkturquoise' => 'darkturquoise',
+        'darkviolet' => 'darkviolet',
+        'deeppink' => 'deeppink',
+        'deepskyblue' => 'deepskyblue',
+        'dimgray' => 'dimgray',
+        'dimgrey' => 'dimgrey',
+        'dodgerblue' => 'dodgerblue',
+        'firebrick' => 'firebrick',
+        'floralwhite' => 'floralwhite',
+        'forestgreen' => 'forestgreen',
+        'fuchsia' => 'fuchsia',
+        'gainsboro' => 'gainsboro',
+        'ghostwhite' => 'ghostwhite',
+        'gold' => 'gold',
+        'goldenrod' => 'goldenrod',
+        'gray' => 'gray',
+        'green' => 'green',
+        'greenyellow' => 'greenyellow',
+        'grey' => 'grey',
+        'honeydew' => 'honeydew',
+        'hotpink' => 'hotpink',
+        'indianred' => 'indianred',
+        'indigo' => 'indigo',
+        'ivory' => 'ivory',
+        'khaki' => 'khaki',
+        'lavender' => 'lavender',
+        'lavenderblush' => 'lavenderblush',
+        'lawngreen' => 'lawngreen',
+        'lemonchiffon' => 'lemonchiffon',
+        'lightblue' => 'lightblue',
+        'lightcoral' => 'lightcoral',
+        'lightcyan' => 'lightcyan',
+        'lightgoldenrodyellow' => 'lightgoldenrodyellow',
+        'lightgray' => 'lightgray',
+        'lightgreen' => 'lightgreen',
+        'lightgrey' => 'lightgrey',
+        'lightpink' => 'lightpink',
+        'lightsalmon' => 'lightsalmon',
+        'lightseagreen' => 'lightseagreen',
+        'lightskyblue' => 'lightskyblue',
+        'lightslategray' => 'lightslategray',
+        'lightslategrey' => 'lightslategrey',
+        'lightsteelblue' => 'lightsteelblue',
+        'lightyellow' => 'lightyellow',
+        'lime' => 'lime',
+        'limegreen' => 'limegreen',
+        'linen' => 'linen',
+        'magenta' => 'magenta',
+        'maroon' => 'maroon',
+        'mediumaquamarine' => 'mediumaquamarine',
+        'mediumblue' => 'mediumblue',
+        'mediumorchid' => 'mediumorchid',
+        'mediumpurple' => 'mediumpurple',
+        'mediumseagreen' => 'mediumseagreen',
+        'mediumslateblue' => 'mediumslateblue',
+        'mediumspringgreen' => 'mediumspringgreen',
+        'mediumturquoise' => 'mediumturquoise',
+        'mediumvioletred' => 'mediumvioletred',
+        'midnightblue' => 'midnightblue',
+        'mintcream' => 'mintcream',
+        'mistyrose' => 'mistyrose',
+        'moccasin' => 'moccasin',
+        'navajowhite' => 'navajowhite',
+        'navy' => 'navy',
+        'oldlace' => 'oldlace',
+        'olive' => 'olive',
+        'olivedrab' => 'olivedrab',
+        'orange' => 'orange',
+        'orangered' => 'orangered',
+        'orchid' => 'orchid',
+        'palegoldenrod' => 'palegoldenrod',
+        'palegreen' => 'palegreen',
+        'paleturquoise' => 'paleturquoise',
+        'palevioletred' => 'palevioletred',
+        'papayawhip' => 'papayawhip',
+        'peachpuff' => 'peachpuff',
+        'peru' => 'peru',
+        'pink' => 'pink',
+        'plum' => 'plum',
+        'powderblue' => 'powderblue',
+        'purple' => 'purple',
+        'rebeccapurple' => 'rebeccapurple',
+        'red' => 'red',
+        'rosybrown' => 'rosybrown',
+        'royalblue' => 'royalblue',
+        'saddlebrown' => 'saddlebrown',
+        'salmon' => 'salmon',
+        'sandybrown' => 'sandybrown',
+        'seagreen' => 'seagreen',
+        'seashell' => 'seashell',
+        'sienna' => 'sienna',
+        'silver' => 'silver',
+        'skyblue' => 'skyblue',
+        'slateblue' => 'slateblue',
+        'slategray' => 'slategray',
+        'slategrey' => 'slategrey',
+        'snow' => 'snow',
+        'springgreen' => 'springgreen',
+        'steelblue' => 'steelblue',
+        'tan' => 'tan',
+        'teal' => 'teal',
+        'thistle' => 'thistle',
+        'tomato' => 'tomato',
+        'turquoise' => 'turquoise',
+        'violet' => 'violet',
+        'wheat' => 'wheat',
+        'white' => 'white',
+        'whitesmoke' => 'whitesmoke',
+        'yellow' => 'yellow',
+        'yellowgreen' => 'yellowgreen',
+        'canvas' => 'Canvas',
+        'canvastext' => 'CanvasText',
+        'linktext' => 'LinkText',
+        'visitedtext' => 'VisitedText',
+        'activetext' => 'ActiveText',
+        'buttonface' => 'ButtonFace',
+        'buttontext' => 'ButtonText',
+        'buttonborder' => 'ButtonBorder',
+        'field' => 'Field',
+        'fieldtext' => 'FieldText',
+        'highlight' => 'Highlight',
+        'highlighttext' => 'HighlightText',
+        'selecteditem' => 'SelectedItem',
+        'selecteditemtext' => 'SelectedItemText',
+        'mark' => 'Mark',
+        'marktext' => 'MarkText',
+        'graytext' => 'GrayText',
+        'accentcolor' => 'AccentColor',
+        'accentcolortext' => 'AccentColorText',
+        'rgb' => 'rgb',
+        'rgba' => 'rgba',
+        'hsl' => 'hsl',
+        'hsla' => 'hsla',
+        'hwb' => 'hwb',
+        'lab' => 'lab',
+        'lch' => 'lch',
+        'oklab' => 'oklab',
+        'oklch' => 'oklch',
+        'color' => 'color',
+        'ltr' => 'ltr',
+        'rtl' => 'rtl',
+        'block' => 'block',
+        'inline' => 'inline',
+        'run-in' => 'run-in',
+        'flow' => 'flow',
+        'flow-root' => 'flow-root',
+        'table' => 'table',
+        'flex' => 'flex',
+        'grid' => 'grid',
+        'ruby' => 'ruby',
+        'list-item' => 'list-item',
+        'table-row-group' => 'table-row-group',
+        'table-header-group' => 'table-header-group',
+        'table-footer-group' => 'table-footer-group',
+        'table-row' => 'table-row',
+        'table-cell' => 'table-cell',
+        'table-column-group' => 'table-column-group',
+        'table-column' => 'table-column',
+        'table-caption' => 'table-caption',
+        'ruby-base' => 'ruby-base',
+        'ruby-text' => 'ruby-text',
+        'ruby-base-container' => 'ruby-base-container',
+        'ruby-text-container' => 'ruby-text-container',
+        'contents' => 'contents',
+        'inline-block' => 'inline-block',
+        'inline-table' => 'inline-table',
+        'inline-flex' => 'inline-flex',
+        'inline-grid' => 'inline-grid',
+        'hanging' => 'hanging',
+        'content' => 'content',
+        'row' => 'row',
+        'row-reverse' => 'row-reverse',
+        'column' => 'column',
+        'column-reverse' => 'column-reverse',
+        '_number' => '_number',
+        'nowrap' => 'nowrap',
+        'wrap' => 'wrap',
+        'wrap-reverse' => 'wrap-reverse',
+        'snap-block' => 'snap-block',
+        'start' => 'start',
+        'end' => 'end',
+        'near' => 'near',
+        'snap-inline' => 'snap-inline',
+        '_integer' => '_integer',
+        'region' => 'region',
+        'page' => 'page',
+        'serif' => 'serif',
+        'sans-serif' => 'sans-serif',
+        'cursive' => 'cursive',
+        'fantasy' => 'fantasy',
+        'monospace' => 'monospace',
+        'system-ui' => 'system-ui',
+        'emoji' => 'emoji',
+        'math' => 'math',
+        'fangsong' => 'fangsong',
+        'ui-serif' => 'ui-serif',
+        'ui-sans-serif' => 'ui-sans-serif',
+        'ui-monospace' => 'ui-monospace',
+        'ui-rounded' => 'ui-rounded',
+        'xx-small' => 'xx-small',
+        'x-small' => 'x-small',
+        'small' => 'small',
+        'large' => 'large',
+        'x-large' => 'x-large',
+        'xx-large' => 'xx-large',
+        'xxx-large' => 'xxx-large',
+        'larger' => 'larger',
+        'smaller' => 'smaller',
+        'normal' => 'normal',
+        'ultra-condensed' => 'ultra-condensed',
+        'extra-condensed' => 'extra-condensed',
+        'condensed' => 'condensed',
+        'semi-condensed' => 'semi-condensed',
+        'semi-expanded' => 'semi-expanded',
+        'expanded' => 'expanded',
+        'extra-expanded' => 'extra-expanded',
+        'ultra-expanded' => 'ultra-expanded',
+        'italic' => 'italic',
+        'oblique' => 'oblique',
+        'bold' => 'bold',
+        'bolder' => 'bolder',
+        'lighter' => 'lighter',
+        'force-end' => 'force-end',
+        'allow-end' => 'allow-end',
+        'min-content' => 'min-content',
+        'max-content' => 'max-content',
+        '_angle' => '_angle',
+        'manual' => 'manual',
+        'loose' => 'loose',
+        'strict' => 'strict',
+        'anywhere' => 'anywhere',
+        'visible' => 'visible',
+        'clip' => 'clip',
+        'scroll' => 'scroll',
+        'break-word' => 'break-word',
+        'static' => 'static',
+        'relative' => 'relative',
+        'absolute' => 'absolute',
+        'sticky' => 'sticky',
+        'fixed' => 'fixed',
+        'justify' => 'justify',
+        'match-parent' => 'match-parent',
+        'justify-all' => 'justify-all',
+        'all' => 'all',
+        'digits' => 'digits',
+        'underline' => 'underline',
+        'overline' => 'overline',
+        'line-through' => 'line-through',
+        'blink' => 'blink',
+        'wavy' => 'wavy',
+        'each-line' => 'each-line',
+        'inter-word' => 'inter-word',
+        'inter-character' => 'inter-character',
+        'mixed' => 'mixed',
+        'upright' => 'upright',
+        'sideways' => 'sideways',
+        'ellipsis' => 'ellipsis',
+        'capitalize' => 'capitalize',
+        'uppercase' => 'uppercase',
+        'lowercase' => 'lowercase',
+        'full-width' => 'full-width',
+        'full-size-kana' => 'full-size-kana',
+        'embed' => 'embed',
+        'isolate' => 'isolate',
+        'bidi-override' => 'bidi-override',
+        'isolate-override' => 'isolate-override',
+        'plaintext' => 'plaintext',
+        'collapse' => 'collapse',
+        'pre' => 'pre',
+        'pre-wrap' => 'pre-wrap',
+        'break-spaces' => 'break-spaces',
+        'pre-line' => 'pre-line',
+        'keep-all' => 'keep-all',
+        'break-all' => 'break-all',
+        'both' => 'both',
+        'minimum' => 'minimum',
+        'maximum' => 'maximum',
+        'clear' => 'clear',
+        'horizontal-tb' => 'horizontal-tb',
+        'vertical-rl' => 'vertical-rl',
+        'vertical-lr' => 'vertical-lr',
+        'sideways-rl' => 'sideways-rl',
+        'sideways-lr' => 'sideways-lr',
     ];
 
     private const array DISPLAY_VALUES = [
@@ -617,14 +993,19 @@ final class Parser
             $offset++;
         }
 
+        $leadingValueTokens = [];
         while ($offset < count($tokens) && self::isIgnorableToken($tokens[$offset])) {
+            $leadingValueTokens[] = $tokens[$offset];
             $offset++;
         }
 
         $valueTokens = $this->consumeValueTokens($tokens, $offset);
         [$valueTokens, $important] = self::extractImportant($valueTokens);
         $value = self::serializeComponentValue($valueTokens);
-        $type = $this->classifyDeclaration($name, $value, $valueTokens);
+        $classificationTokens = strtolower($name) === 'font-family'
+            ? [...$leadingValueTokens, ...$valueTokens]
+            : $valueTokens;
+        $type = $this->classifyDeclaration($name, $value, $classificationTokens);
 
         return [
             'type' => $type,
@@ -717,6 +1098,7 @@ final class Parser
             'float-defer' => self::floatDeferValue($valueTokens) !== null ? 'property' : 'undef',
             'float-offset' => self::floatOffsetValue($valueTokens) !== null ? 'property' : 'undef',
             'float-reference' => self::singleKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
+            'font-family' => self::fontFamilyValue($valueTokens) !== null ? 'property' : 'undef',
             'font-size' => self::fontSizeValue($valueTokens) !== null ? 'property' : 'undef',
             'font-stretch' => self::fontStretchValue($valueTokens) !== null ? 'property' : 'undef',
             'font-style' => self::fontStyleValue($valueTokens) !== null ? 'property' : 'undef',
@@ -1670,6 +2052,172 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     */
+    private static function fontFamilyValue(array $tokens): ?string
+    {
+        if ($tokens === []) {
+            return null;
+        }
+
+        $offset = 0;
+        $families = [];
+        $count = count($tokens);
+
+        while ($offset < $count) {
+            self::skipFontFamilyOptionalWhitespace($tokens, $offset);
+
+            if ($offset >= $count) {
+                return null;
+            }
+
+            $family = self::fontFamilyNameValue($tokens[$offset]);
+
+            if ($family === null) {
+                return null;
+            }
+
+            $families[] = $family;
+            $offset++;
+
+            self::skipFontFamilyOptionalWhitespace($tokens, $offset);
+
+            if ($offset >= $count) {
+                return implode(', ', $families);
+            }
+
+            if ($tokens[$offset]->type !== 'comma') {
+                return null;
+            }
+
+            $offset++;
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function skipFontFamilyOptionalWhitespace(array $tokens, int &$offset): void
+    {
+        $skippedWhitespace = false;
+
+        while ($offset < count($tokens)) {
+            if ($tokens[$offset]->type === 'comment') {
+                $offset++;
+                continue;
+            }
+
+            if ($tokens[$offset]->type === 'whitespace' && ! $skippedWhitespace) {
+                $offset++;
+                $skippedWhitespace = true;
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    private static function fontFamilyNameValue(Token $token): ?string
+    {
+        if ($token->type === 'ident') {
+            return self::LEXBOR_VALUE_KEYWORDS[strtolower($token->value)]
+                ?? self::serializeIdentOrString($token->value);
+        }
+
+        if ($token->type === 'string') {
+            return self::serializeIdentOrString(self::unescapeSerializedStringToken($token->value));
+        }
+
+        return null;
+    }
+
+    private static function serializeIdentOrString(string $value): string
+    {
+        return self::isLexborNameByteString($value)
+            ? $value
+            : self::serializeCssString($value);
+    }
+
+    private static function isLexborNameByteString(string $value): bool
+    {
+        $length = strlen($value);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $byte = ord($value[$offset]);
+
+            if (
+                $byte === 0x2d
+                || ($byte >= 0x30 && $byte <= 0x39)
+                || ($byte >= 0x41 && $byte <= 0x5a)
+                || $byte === 0x5f
+                || ($byte >= 0x61 && $byte <= 0x7a)
+                || $byte === 0xb7
+                || ($byte >= 0xc0 && $byte <= 0xd6)
+                || ($byte >= 0xd8 && $byte <= 0xf6)
+                || ($byte >= 0xf8 && $byte <= 0xfe)
+            ) {
+                continue;
+            }
+
+            return false;
+        }
+
+        return true;
+    }
+
+    private static function serializeCssString(string $value): string
+    {
+        $result = '"';
+        $length = strlen($value);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            $char = $value[$offset];
+
+            $result .= match ($char) {
+                '\\' => '\\\\',
+                '"' => '\\"',
+                "\n" => self::serializeHexEscape('0a', $value, $offset),
+                "\t" => self::serializeHexEscape('09', $value, $offset),
+                "\r" => self::serializeHexEscape('0d', $value, $offset),
+                default => $char,
+            };
+        }
+
+        return $result . '"';
+    }
+
+    private static function serializeHexEscape(string $hex, string $value, int $offset): string
+    {
+        return '\\' . $hex . (
+            isset($value[$offset + 1]) && ctype_xdigit($value[$offset + 1])
+                ? ' '
+                : ''
+        );
+    }
+
+    private static function unescapeSerializedStringToken(string $value): string
+    {
+        $inner = strlen($value) >= 2 && $value[0] === '"' && $value[strlen($value) - 1] === '"'
+            ? substr($value, 1, -1)
+            : $value;
+
+        $result = '';
+        $length = strlen($inner);
+
+        for ($offset = 0; $offset < $length; $offset++) {
+            if ($inner[$offset] === '\\' && $offset + 1 < $length) {
+                $offset++;
+            }
+
+            $result .= $inner[$offset];
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
     private static function isValidLengthKeyword(array $tokens, array $keywords): bool
@@ -1813,6 +2361,10 @@ final class Parser
 
         if ($property === 'font-weight') {
             return self::fontWeightValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'font-family') {
+            return self::fontFamilyValue($tokens) ?? $fallback;
         }
 
         if ($property === 'font-size') {
@@ -2139,6 +2691,16 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     */
+    private static function trimTrailingWhitespaceTokens(array &$tokens): void
+    {
+        while ($tokens !== [] && $tokens[array_key_last($tokens)]->type === 'whitespace') {
+            array_pop($tokens);
+        }
+    }
+
+    /**
+     * @param list<Token> $tokens
      * @return list<Token>
      */
     private static function stripWhitespaceTokens(array $tokens): array
@@ -2187,10 +2749,9 @@ final class Parser
     private static function extractImportant(array $tokens): array
     {
         $remaining = $tokens;
-        self::trimTrailingIgnorableTokens($remaining);
+        self::trimTrailingWhitespaceTokens($remaining);
 
         $importantToken = array_pop($remaining);
-        self::trimTrailingIgnorableTokens($remaining);
         $bangToken = array_pop($remaining);
 
         if (

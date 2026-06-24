@@ -427,8 +427,8 @@ final class ParserTest extends TestCase
         yield 'word-wrap rejects overflow keywords' => ['word-wrap: scroll', [
             ['type' => 'undef', 'name' => 'word-wrap', 'value' => 'scroll', 'important' => false],
         ]];
-        yield 'keyword declaration accepts comment before important' => ['box-sizing: border-box/**/ ! /**/ important', [
-            ['type' => 'property', 'name' => 'box-sizing', 'value' => 'border-box', 'important' => true],
+        yield 'keyword declaration rejects comment-separated important marker' => ['box-sizing: border-box/**/ ! /**/ important', [
+            ['type' => 'undef', 'name' => 'box-sizing', 'value' => 'border-box !  important', 'important' => false],
         ]];
     }
 
@@ -1158,6 +1158,121 @@ final class ParserTest extends TestCase
         ]];
         yield 'font-size rejects function' => ['font-size: calc(12px)', [
             ['type' => 'undef', 'name' => 'font-size', 'value' => 'calc(12px)', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function fontFamilyDeclarationProvider(): iterable
+    {
+        yield 'font-family accepts serif' => ['font-family: serif', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'serif', 'important' => false],
+        ]];
+        yield 'font-family accepts sans-serif' => ['font-family: sans-serif', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'sans-serif', 'important' => false],
+        ]];
+        yield 'font-family accepts system-ui' => ['font-family: system-ui', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'system-ui', 'important' => false],
+        ]];
+        yield 'font-family accepts ui-sans-serif' => ['font-family: ui-sans-serif', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'ui-sans-serif', 'important' => false],
+        ]];
+        yield 'font-family accepts css-wide keyword as Lexbor value' => ['font-family: inherit', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'font-family accepts css-wide keyword in list like Lexbor' => ['font-family: inherit, serif', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'inherit, serif', 'important' => false],
+        ]];
+        yield 'font-family canonicalizes mixed-case known keyword' => ['font-family: SeRiF', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'serif', 'important' => false],
+        ]];
+        yield 'font-family canonicalizes system color keyword' => ['font-family: canvas', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'Canvas', 'important' => false],
+        ]];
+        yield 'font-family accepts known non-font value like Lexbor' => ['font-family: Red', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'red', 'important' => false],
+        ]];
+        yield 'font-family preserves unknown ident case' => ['font-family: MyFont', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'MyFont', 'important' => false],
+        ]];
+        yield 'font-family serializes quoted one-word family as ident' => ['font-family: "Arial"', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'Arial', 'important' => false],
+        ]];
+        yield 'font-family serializes quoted hyphen family as ident' => ['font-family: "My-Font"', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'My-Font', 'important' => false],
+        ]];
+        yield 'font-family keeps quoted family with space' => ['font-family: "Open Sans"', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => '"Open Sans"', 'important' => false],
+        ]];
+        yield 'font-family keeps quoted non-ascii family as string like Lexbor' => ['font-family: "é"', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => '"é"', 'important' => false],
+        ]];
+        yield 'font-family reserializes non-ascii ident as string like Lexbor' => ['font-family: é', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => '"é"', 'important' => false],
+        ]];
+        yield 'font-family normalizes single quoted family to double quotes' => ['font-family: \'Open Sans\'', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => '"Open Sans"', 'important' => false],
+        ]];
+        yield 'font-family serializes quoted numeric family as bare name like Lexbor' => ['font-family: "123"', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => '123', 'important' => false],
+        ]];
+        yield 'font-family accepts comma separated families' => ['font-family: Arial, serif', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'Arial, serif', 'important' => false],
+        ]];
+        yield 'font-family treats comments around comma as whitespace' => ['font-family: Arial/**/,/**/serif', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'Arial, serif', 'important' => false],
+        ]];
+        yield 'font-family keeps important flag' => ['font-family: Arial, serif !important', [
+            ['type' => 'property', 'name' => 'font-family', 'value' => 'Arial, serif', 'important' => true],
+        ]];
+        yield 'font-family rejects comment-separated leading whitespace like Lexbor' => ['font-family: /**/  Arial', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial', 'important' => false],
+        ]];
+        yield 'font-family rejects comment-separated whitespace before comma like Lexbor' => ['font-family: Arial /**/ , serif', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial  , serif', 'important' => false],
+        ]];
+        yield 'font-family rejects comment-separated important marker like Lexbor' => ['font-family: Arial ! /**/ important', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial !  important', 'important' => false],
+        ]];
+        yield 'font-family rejects trailing comment after spaced important like Lexbor' => ['font-family: Arial !important/**/', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial !important', 'important' => false],
+        ]];
+        yield 'font-family rejects trailing comment after compact important like Lexbor' => ['font-family: Arial!important/**/', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial!important', 'important' => false],
+        ]];
+        yield 'font-family rejects empty value' => ['font-family:', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => '', 'important' => false],
+        ]];
+        yield 'font-family rejects number' => ['font-family: 1', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => '1', 'important' => false],
+        ]];
+        yield 'font-family rejects function' => ['font-family: calc(Arial)', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'calc(Arial)', 'important' => false],
+        ]];
+        yield 'font-family rejects leading comma' => ['font-family: , serif', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => ', serif', 'important' => false],
+        ]];
+        yield 'font-family rejects trailing comma' => ['font-family: Arial,', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial,', 'important' => false],
+        ]];
+        yield 'font-family rejects empty comma item' => ['font-family: Arial,, serif', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial,, serif', 'important' => false],
+        ]];
+        yield 'font-family rejects missing comma' => ['font-family: Arial serif', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Arial serif', 'important' => false],
+        ]];
+        yield 'font-family rejects unquoted multi-word family' => ['font-family: Times New Roman', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'Times New Roman', 'important' => false],
+        ]];
+        yield 'font-family rejects comment-split known keyword' => ['font-family: se/**/rif', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'serif', 'important' => false],
+        ]];
+        yield 'font-family rejects comment-split unknown ident' => ['font-family: My/**/Font', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => 'MyFont', 'important' => false],
+        ]];
+        yield 'font-family rejects block token' => ['font-family: [Arial]', [
+            ['type' => 'undef', 'name' => 'font-family', 'value' => '[Arial]', 'important' => false],
         ]];
     }
 
@@ -2110,6 +2225,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('fontSizeDeclarationProvider')]
     public function testFontSizeDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('fontFamilyDeclarationProvider')]
+    public function testFontFamilyDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
