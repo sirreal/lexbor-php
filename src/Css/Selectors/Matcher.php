@@ -7,6 +7,7 @@ namespace Lexbor\Css\Selectors;
 use Lexbor\Css\Syntax\AnPlusBParser;
 use Lexbor\Css\Syntax\Token;
 use Lexbor\Css\Syntax\Tokenizer;
+use Lexbor\Dom\Comment;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
 use Lexbor\Html\Document;
@@ -60,6 +61,17 @@ final class Matcher
         'valign' => true,
         'valuetype' => true,
         'vlink' => true,
+    ];
+
+    private const array STRUCTURAL_PSEUDO_CLASSES = [
+        'empty' => true,
+        'first-child' => true,
+        'first-of-type' => true,
+        'last-child' => true,
+        'last-of-type' => true,
+        'only-child' => true,
+        'only-of-type' => true,
+        'root' => true,
     ];
 
     public function __construct(
@@ -439,12 +451,19 @@ final class Matcher
             }
 
             if ($token->type === 'colon') {
-                $pseudo = $this->parseFunctionalPseudoSelector($tokens, $offset);
+                $pseudoOffset = $offset;
+                $pseudo = $this->parseFunctionalPseudoSelector($tokens, $pseudoOffset);
+                if ($pseudo === null) {
+                    $pseudoOffset = $offset;
+                    $pseudo = $this->parseSimplePseudoSelector($tokens, $pseudoOffset);
+                }
+
                 if ($pseudo === null) {
                     return null;
                 }
 
                 $compound['pseudos'][] = $pseudo;
+                $offset = $pseudoOffset;
                 continue;
             }
 
@@ -452,6 +471,29 @@ final class Matcher
         }
 
         return $compound;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{name: string}|null
+     */
+    private function parseSimplePseudoSelector(array $tokens, int &$offset): ?array
+    {
+        $name = $tokens[$offset + 1] ?? null;
+        if ($name?->type !== 'ident') {
+            return null;
+        }
+
+        $nameValue = strtolower($name->value);
+        if (! isset(self::STRUCTURAL_PSEUDO_CLASSES[$nameValue])) {
+            return null;
+        }
+
+        $offset += 2;
+
+        return [
+            'name' => $nameValue,
+        ];
     }
 
     /**
@@ -898,6 +940,14 @@ final class Matcher
     private function matchesFunctionalPseudo(Element $element, array $pseudo, ?Element $scopeRoot): bool
     {
         return match ($pseudo['name']) {
+            'root' => self::documentRootElement($element) === $element,
+            'empty' => self::elementIsEmpty($element),
+            'first-child' => self::previousElementSibling($element) === null,
+            'last-child' => self::nextElementSibling($element) === null,
+            'only-child' => self::previousElementSibling($element) === null && self::nextElementSibling($element) === null,
+            'first-of-type' => self::previousElementSiblingOfType($element) === null,
+            'last-of-type' => self::nextElementSiblingOfType($element) === null,
+            'only-of-type' => self::previousElementSiblingOfType($element) === null && self::nextElementSiblingOfType($element) === null,
             'is', 'where' => $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
             'not' => ! $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
             'has' => $this->hasRelativeMatchingAnyComplex($element, $pseudo['selectors']),
@@ -1271,6 +1321,66 @@ final class Matcher
         }
 
         return null;
+    }
+
+    private static function nextElementSibling(Element $element): ?Element
+    {
+        for ($node = $element->next; $node !== null; $node = $node->next) {
+            if ($node instanceof Element) {
+                return $node;
+            }
+        }
+
+        return null;
+    }
+
+    private static function previousElementSiblingOfType(Element $element): ?Element
+    {
+        for ($node = $element->prev; $node !== null; $node = $node->prev) {
+            if ($node instanceof Element && $node->tagName === $element->tagName) {
+                return $node;
+            }
+        }
+
+        return null;
+    }
+
+    private static function nextElementSiblingOfType(Element $element): ?Element
+    {
+        for ($node = $element->next; $node !== null; $node = $node->next) {
+            if ($node instanceof Element && $node->tagName === $element->tagName) {
+                return $node;
+            }
+        }
+
+        return null;
+    }
+
+    private static function documentRootElement(Element $element): ?Element
+    {
+        $ownerDocument = $element->ownerDocument;
+        if (! $ownerDocument instanceof Node) {
+            return null;
+        }
+
+        for ($node = $ownerDocument->firstChild; $node !== null; $node = $node->next) {
+            if ($node instanceof Element) {
+                return $node;
+            }
+        }
+
+        return null;
+    }
+
+    private static function elementIsEmpty(Element $element): bool
+    {
+        for ($node = $element->firstChild; $node !== null; $node = $node->next) {
+            if (! $node instanceof Comment) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static function hasPreviousElementSibling(Element $element, Element $previous): bool

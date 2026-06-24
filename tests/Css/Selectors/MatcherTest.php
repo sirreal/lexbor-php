@@ -7,6 +7,7 @@ namespace Lexbor\Tests\Css\Selectors;
 use Lexbor\Core\Status;
 use Lexbor\Css\Selectors\Matcher;
 use Lexbor\Dom\Element;
+use Lexbor\Dom\ExceptionCode;
 use Lexbor\Html\Document;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -133,6 +134,21 @@ final class MatcherTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, list<string>}>
+     */
+    public static function structuralPseudoSelectorProvider(): iterable
+    {
+        yield 'selectors match first-child pseudo class from match_first branch' => ["p[lang|='ru'] > span:first-child", 'span', ['6']];
+        yield 'selectors match last-child pseudo class' => ["p[p='7'] > span:last-child", 'span', ['12']];
+        yield 'selectors match only-child pseudo class' => ['div > p > a:only-child', 'a', ['1', '2', '3', '4', '5']];
+        yield 'selectors match first-of-type pseudo class' => ["p[p='7'] > span:first-of-type", 'span', ['6']];
+        yield 'selectors match last-of-type pseudo class' => ["p[p='7'] > a:last-of-type", 'a', ['8']];
+        yield 'selectors match only-of-type pseudo class' => ["p[p='7'] > a > span:only-of-type", 'span', ['7', '8']];
+        yield 'selectors match empty pseudo class' => ['a:empty', 'a', ['8']];
+        yield 'selectors match root pseudo class' => [':root', 'tagName', ['body']];
+    }
+
+    /**
      * @param list<string> $expected
      */
     #[DataProvider('upstreamSimpleSelectorProvider')]
@@ -185,6 +201,33 @@ final class MatcherTest extends TestCase
         self::assertSame(
             $expected,
             self::attributeValues((new Matcher())->find($document->bodyElement(), $selector), $labelAttribute),
+        );
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('structuralPseudoSelectorProvider')]
+    public function testFindMatchesStructuralPseudoSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
+    {
+        $document = $this->fixtureDocument();
+
+        self::assertSame(
+            $expected,
+            self::attributeValues((new Matcher())->find($document, $selector), $labelAttribute),
+        );
+    }
+
+    public function testRootPseudoClassUsesFirstDocumentElement(): void
+    {
+        $document = $this->fixtureDocument();
+        $doctype = $document->createDocumentType('html');
+
+        self::assertNotNull($doctype);
+        self::assertSame(ExceptionCode::Ok, $document->insertBeforeSpec($doctype, $document->bodyElement()));
+        self::assertSame(
+            ['body'],
+            self::attributeValues((new Matcher())->find($document, ':root'), 'tagName'),
         );
     }
 
@@ -271,6 +314,26 @@ final class MatcherTest extends TestCase
             ['root'],
             self::attributeValues($matcher->find($scopeDocument->bodyElement(), 'div:has(:nth-child(odd of div > p))'), 'id'),
         );
+    }
+
+    public function testInvalidFunctionalPseudoDoesNotFallThroughToLaterSimplePseudo(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><body><div div=first></div><div div=second></div></body>'));
+
+        self::assertSame(
+            [],
+            (new Matcher())->find($document->bodyElement(), 'div:nth-child(2n+2 of div || #id):empty'),
+        );
+    }
+
+    public function testUnsupportedSimplePseudoDoesNotMatchThroughNegation(): void
+    {
+        $document = $this->fixtureDocument();
+        $matcher = new Matcher();
+
+        self::assertSame([], $matcher->find($document->bodyElement(), 'div:hover'));
+        self::assertSame([], $matcher->find($document->bodyElement(), 'div:not(:hover)'));
     }
 
     public function testFindUsesRecoveredSelectorForInvalidForgivingHasBranch(): void
