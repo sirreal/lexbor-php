@@ -994,6 +994,79 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function fontStyleDeclarationProvider(): iterable
+    {
+        yield 'font-style accepts normal' => ['font-style: normal', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'font-style accepts italic' => ['font-style: italic', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'italic', 'important' => false],
+        ]];
+        yield 'font-style accepts oblique without angle' => ['font-style: oblique', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique', 'important' => false],
+        ]];
+        yield 'font-style accepts css-wide keyword' => ['font-style: inherit', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'font-style lowercases mixed-case keyword' => ['font-style: ItAlIc', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'italic', 'important' => false],
+        ]];
+        yield 'font-style accepts oblique positive angle' => ['font-style: oblique 10deg', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique 10deg', 'important' => false],
+        ]];
+        yield 'font-style accepts oblique negative angle boundary' => ['font-style: oblique -90deg', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique -90deg', 'important' => false],
+        ]];
+        yield 'font-style accepts oblique upper angle boundary' => ['font-style: oblique 90deg', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique 90deg', 'important' => false],
+        ]];
+        yield 'font-style lowercases angle unit' => ['font-style: oblique 1RAD', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique 1rad', 'important' => false],
+        ]];
+        yield 'font-style accepts raw turn value like Lexbor' => ['font-style: oblique .5turn', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique 0.5turn', 'important' => false],
+        ]];
+        yield 'font-style treats comment between oblique and angle as separator' => ['font-style: oblique/**/10deg', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique 10deg', 'important' => false],
+        ]];
+        yield 'font-style rejects angle below range' => ['font-style: oblique -91deg', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique -91deg', 'important' => false],
+        ]];
+        yield 'font-style rejects angle above range' => ['font-style: oblique 91deg', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique 91deg', 'important' => false],
+        ]];
+        yield 'font-style rejects bare angle' => ['font-style: 10deg', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => '10deg', 'important' => false],
+        ]];
+        yield 'font-style rejects oblique number' => ['font-style: oblique 10', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique 10', 'important' => false],
+        ]];
+        yield 'font-style rejects oblique length' => ['font-style: oblique 10px', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique 10px', 'important' => false],
+        ]];
+        yield 'font-style rejects normal with angle' => ['font-style: normal 10deg', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'normal 10deg', 'important' => false],
+        ]];
+        yield 'font-style rejects multiple angles' => ['font-style: oblique 10deg 20deg', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique 10deg 20deg', 'important' => false],
+        ]];
+        yield 'font-style rejects unknown keyword' => ['font-style: slanted', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'slanted', 'important' => false],
+        ]];
+        yield 'font-style rejects comment-split keyword' => ['font-style: ob/**/lique', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique', 'important' => false],
+        ]];
+        yield 'font-style rejects comment-split angle' => ['font-style: oblique 10/**/deg', [
+            ['type' => 'undef', 'name' => 'font-style', 'value' => 'oblique 10deg', 'important' => false],
+        ]];
+        yield 'font-style keeps important flag' => ['font-style: oblique -15deg !important', [
+            ['type' => 'property', 'name' => 'font-style', 'value' => 'oblique -15deg', 'important' => true],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function textIndentDeclarationProvider(): iterable
     {
         yield 'text-indent accepts length' => ['text-indent: 2px', [
@@ -1922,6 +1995,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('hangingPunctuationDeclarationProvider')]
     public function testHangingPunctuationDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('fontStyleDeclarationProvider')]
+    public function testFontStyleDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

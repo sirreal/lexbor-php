@@ -30,6 +30,7 @@ final class Parser
         'float-offset' => true,
         'float-reference' => true,
         'font-stretch' => true,
+        'font-style' => true,
         'font-weight' => true,
         'hanging-punctuation' => true,
         'height' => true,
@@ -235,6 +236,13 @@ final class Parser
         'vmax' => true,
         'vmin' => true,
         'vw' => true,
+    ];
+
+    private const array ANGLE_UNITS = [
+        'deg' => true,
+        'grad' => true,
+        'rad' => true,
+        'turn' => true,
     ];
 
     private const string LONG_MAX_DECIMAL = '9223372036854775807';
@@ -695,6 +703,7 @@ final class Parser
             'float-offset' => self::floatOffsetValue($valueTokens) !== null ? 'property' : 'undef',
             'float-reference' => self::singleKeywordValue($valueTokens, self::FLOAT_REFERENCE_KEYWORDS) !== null ? 'property' : 'undef',
             'font-stretch' => self::fontStretchValue($valueTokens) !== null ? 'property' : 'undef',
+            'font-style' => self::fontStyleValue($valueTokens) !== null ? 'property' : 'undef',
             'font-weight' => self::fontWeightValue($valueTokens) !== null ? 'property' : 'undef',
             'hanging-punctuation' => self::hangingPunctuationValue($valueTokens) !== null ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
@@ -1546,6 +1555,70 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     */
+    private static function fontStyleValue(array $tokens): ?string
+    {
+        $components = self::splitWhitespaceSeparatedComponents($tokens);
+
+        if ($components === [] || count($components[0]) !== 1 || $components[0][0]->type !== 'ident') {
+            return null;
+        }
+
+        $value = strtolower($components[0][0]->value);
+
+        if (isset(self::CSS_WIDE_KEYWORDS[$value]) || $value === 'normal' || $value === 'italic') {
+            return count($components) === 1 ? $value : null;
+        }
+
+        if ($value !== 'oblique') {
+            return null;
+        }
+
+        if (count($components) === 1) {
+            return 'oblique';
+        }
+
+        if (count($components) !== 2) {
+            return null;
+        }
+
+        $angle = self::angleComponentValue($components[1]);
+
+        if ($angle === null || $angle['number'] < -90.0 || $angle['number'] > 90.0) {
+            return null;
+        }
+
+        return 'oblique ' . $angle['value'];
+    }
+
+    /**
+     * @param list<Token> $component
+     * @return array{value: string, number: float}|null
+     */
+    private static function angleComponentValue(array $component): ?array
+    {
+        if (count($component) !== 1 || $component[0]->type !== 'dimension') {
+            return null;
+        }
+
+        if (! preg_match('/^([+-]?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?)([a-zA-Z]+)$/i', $component[0]->value, $matches)) {
+            return null;
+        }
+
+        $unit = strtolower($matches[2]);
+
+        if (! isset(self::ANGLE_UNITS[$unit])) {
+            return null;
+        }
+
+        return [
+            'value' => $matches[1] . $unit,
+            'number' => (float) $matches[1],
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
     private static function isValidLengthKeyword(array $tokens, array $keywords): bool
@@ -1693,6 +1766,10 @@ final class Parser
 
         if ($property === 'font-stretch') {
             return self::fontStretchValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'font-style') {
+            return self::fontStyleValue($tokens) ?? $fallback;
         }
 
         if (in_array($property, ['flex-grow', 'flex-shrink'], true)) {
