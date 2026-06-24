@@ -116,6 +116,21 @@ final class MatcherTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, list<string>}>
+     */
+    public static function upstreamNthChildPseudoSelectorProvider(): iterable
+    {
+        yield 'selectors match nth-child descendant pseudo function' => ['p[p="7"] span:nth-child(2n+1)', 'span', ['6', '7', '8', '11']];
+        yield 'selectors match nth-child child pseudo function' => ['p[p="7"] > span:nth-child(2n+1)', 'span', ['6', '11']];
+        yield 'selectors match nth-child of selector pseudo function' => ['p[p="7"] > span:nth-child(2n+1 of [test])', 'span', ['11']];
+        yield 'selectors match nth-last-child descendant pseudo function' => ['p[p="7"] span:nth-last-child(2n+1)', 'span', ['7', '8', '9', '10', '12']];
+        yield 'selectors match nth-last-child of selector pseudo function' => ['p[p="7"] > span:nth-last-child(2n+1 of [test])', 'span', ['12']];
+        yield 'selectors match nth-child even of selector pseudo function' => ['main > h2:nth-child(even of .mark)', 'h2', ['3', '6']];
+        yield 'selectors match nth-last-child even of selector pseudo function' => ['main > h2:nth-last-child(even of .mark)', 'h2', ['1', '4']];
+        yield 'selectors match nth-child of complex selector pseudo function' => ['div p:nth-child(n+2 of div > p)', 'p', ['2', '3', '4', '5', '7']];
+    }
+
+    /**
      * @param list<string> $expected
      */
     #[DataProvider('upstreamSimpleSelectorProvider')]
@@ -148,6 +163,20 @@ final class MatcherTest extends TestCase
      */
     #[DataProvider('upstreamFunctionalPseudoSelectorProvider')]
     public function testFindMatchesUpstreamFunctionalPseudoSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
+    {
+        $document = $this->fixtureDocument();
+
+        self::assertSame(
+            $expected,
+            self::attributeValues((new Matcher())->find($document->bodyElement(), $selector), $labelAttribute),
+        );
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('upstreamNthChildPseudoSelectorProvider')]
+    public function testFindMatchesUpstreamNthChildPseudoSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
     {
         $document = $this->fixtureDocument();
 
@@ -220,6 +249,26 @@ final class MatcherTest extends TestCase
         self::assertSame(['2', '5'], self::attributeValues($matcher->find($document->bodyElement(), 'p:is([p="2"], 1%, [p="5"])'), 'p'));
         self::assertSame(['2', '5'], self::attributeValues($matcher->find($document->bodyElement(), 'p:where([p="2"], 1%, [p="5"])'), 'p'));
         self::assertSame(['p', 'p', 'a'], self::attributeValues($matcher->find($document->bodyElement(), 'p:is([p="2"], 1%, [p="5"]), a[a="6"]'), 'tagName'));
+        self::assertSame(['3'], self::attributeValues($matcher->find($document->bodyElement(), 'main > h2:nth-child(0n+3)'), 'h2'));
+        self::assertSame(['5'], self::attributeValues($matcher->find($document->bodyElement(), 'main > h2:nth-last-child(0n+2)'), 'h2'));
+        self::assertSame(['3'], self::attributeValues($matcher->find($document->bodyElement(), 'main > h2:nth-child(3)'), 'h2'));
+        self::assertSame(['5'], self::attributeValues($matcher->find($document->bodyElement(), 'main > h2:nth-last-child(2)'), 'h2'));
+
+        $scopeDocument = new Document();
+        self::assertSame(Status::Ok, $scopeDocument->parse('<!doctype html><body><div id=root><p id=a class=x></p><p id=b></p><p id=p3></p></div></body>'));
+
+        self::assertSame(
+            ['a', 'p3'],
+            self::attributeValues($matcher->find($scopeDocument->bodyElement(), 'p:nth-child(odd of div > p)'), 'id'),
+        );
+        self::assertSame(
+            ['a', 'p3'],
+            self::attributeValues($matcher->find($scopeDocument->bodyElement(), 'p:nth-child(n of .x, #p3)'), 'id'),
+        );
+        self::assertSame(
+            ['root'],
+            self::attributeValues($matcher->find($scopeDocument->bodyElement(), 'div:has(:nth-child(odd of div > p))'), 'id'),
+        );
     }
 
     public function testFindUsesRecoveredSelectorForInvalidForgivingHasBranch(): void

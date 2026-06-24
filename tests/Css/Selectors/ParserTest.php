@@ -298,6 +298,13 @@ final class ParserTest extends TestCase
         self::assertSame(['value' => ':nth-child(odd)', 'errors' => []], (new Parser())->parse(':nth-child(+2n+1)'));
         self::assertSame(['value' => ':nth-child(even)', 'errors' => []], (new Parser())->parse(':nth-child(02n)'));
         self::assertSame(['value' => ':nth-child(+n+1)', 'errors' => []], (new Parser())->parse(':nth-child(1n+01)'));
+        self::assertSame(['value' => ':nth-child(0n+3)', 'errors' => []], (new Parser())->parse(':nth-child(0n+3)'));
+        self::assertSame(['value' => ':nth-child(0n-3)', 'errors' => []], (new Parser())->parse(':nth-child(-0n-3)'));
+        self::assertSame(['value' => ':nth-child(0n+3)', 'errors' => []], (new Parser())->parse(':nth-child(3)'));
+        self::assertSame(['value' => ':nth-child(0n+3)', 'errors' => []], (new Parser())->parse(':nth-child(+3)'));
+        self::assertSame(['value' => ':nth-child(0n-3)', 'errors' => []], (new Parser())->parse(':nth-child(-3)'));
+        self::assertSame(['value' => ':nth-child(0n)', 'errors' => []], (new Parser())->parse(':nth-child(0)'));
+        self::assertSame(['value' => ':nth-child(odd of .x, #p3)', 'errors' => []], (new Parser())->parse(':nth-child(odd of .x, #p3)'));
 
         self::assertSame(
             [

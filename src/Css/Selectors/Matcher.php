@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Lexbor\Css\Selectors;
 
+use Lexbor\Css\Syntax\AnPlusBParser;
 use Lexbor\Css\Syntax\Token;
 use Lexbor\Css\Syntax\Tokenizer;
 use Lexbor\Dom\Element;
@@ -536,7 +537,7 @@ final class Matcher
 
     /**
      * @param list<Token> $tokens
-     * @return array{name: string, selectors: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>}|null
+     * @return array{name: string, selectors: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>}|array{name: string, a: int, b: int, of: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null}|null
      */
     private function parseFunctionalPseudoSelector(array $tokens, int &$offset): ?array
     {
@@ -546,7 +547,7 @@ final class Matcher
         }
 
         $name = strtolower(substr($function->value, 0, -1));
-        if (! in_array($name, ['not', 'is', 'where', 'has'], true)) {
+        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child'], true)) {
             return null;
         }
 
@@ -582,6 +583,15 @@ final class Matcher
         }
 
         $body = $this->stripWhitespaceTokens($body);
+        if ($name === 'nth-child' || $name === 'nth-last-child') {
+            $nth = $this->parseNthChildPseudoSelector($name, $body);
+            if ($nth === null) {
+                return null;
+            }
+
+            return $nth;
+        }
+
         $selectors = match ($name) {
             'not' => $this->parseSelectorTokenList($body),
             'has' => $this->parseForgivingRelativeSelectorTokenList($body),
@@ -595,6 +605,153 @@ final class Matcher
             'name' => $name,
             'selectors' => $selectors,
         ];
+    }
+
+    /**
+     * @param list<Token> $body
+     * @return array{name: string, a: int, b: int, of: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null}|null
+     */
+    private function parseNthChildPseudoSelector(string $name, array $body): ?array
+    {
+        [$anPlusBTokens, $ofSelectorTokens] = self::splitNthChildOfSelector($body);
+        $anPlusBSource = self::serializeAnPlusBTokens($anPlusBTokens);
+        $anPlusB = (new AnPlusBParser())->parse($anPlusBSource);
+        if ($anPlusB['value'] === '') {
+            return null;
+        }
+
+        $formula = self::parseAnPlusBFormula($anPlusBSource);
+        if ($formula === null) {
+            return null;
+        }
+
+        $ofSelectors = null;
+        if ($ofSelectorTokens !== null) {
+            $ofSelectors = $this->parseSelectorTokenList($this->stripWhitespaceTokens($ofSelectorTokens));
+            if ($ofSelectors === null) {
+                return null;
+            }
+        }
+
+        return [
+            'name' => $name,
+            'a' => $formula['a'],
+            'b' => $formula['b'],
+            'of' => $ofSelectors,
+        ];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{list<Token>, list<Token>|null}
+     */
+    private static function splitNthChildOfSelector(array $tokens): array
+    {
+        $anPlusBTokens = [];
+        $stack = [];
+        $count = count($tokens);
+
+        for ($offset = 0; $offset < $count; $offset++) {
+            $token = $tokens[$offset];
+            if ($token->type === 'ident' && strtolower($token->value) === 'of' && $stack === []) {
+                return [
+                    self::trimTokenList($anPlusBTokens),
+                    self::trimTokenList(array_slice($tokens, $offset + 1)),
+                ];
+            }
+
+            if ($token->type === 'function') {
+                $stack[] = 'right-parenthesis';
+                $anPlusBTokens[] = $token;
+                continue;
+            }
+
+            if ($token->type === 'left-square-bracket') {
+                $stack[] = 'right-square-bracket';
+                $anPlusBTokens[] = $token;
+                continue;
+            }
+
+            if ($stack !== [] && $token->type === $stack[array_key_last($stack)]) {
+                array_pop($stack);
+            }
+
+            $anPlusBTokens[] = $token;
+        }
+
+        return [self::trimTokenList($anPlusBTokens), null];
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function serializeAnPlusBTokens(array $tokens): string
+    {
+        $value = '';
+        $previous = null;
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'whitespace') {
+                continue;
+            }
+
+            if (
+                $token->type === 'number'
+                && $token->value !== ''
+                && ! str_starts_with($token->value, '+')
+                && ! str_starts_with($token->value, '-')
+                && $previous !== null
+                && str_ends_with(strtolower(rtrim($previous->value, '(')), 'n')
+            ) {
+                $value .= '+';
+            }
+
+            $value .= $token->value;
+            $previous = $token;
+        }
+
+        return $value;
+    }
+
+    /**
+     * @return array{a: int, b: int}|null
+     */
+    private static function parseAnPlusBFormula(string $value): ?array
+    {
+        $value = strtolower($value);
+
+        if ($value === 'odd') {
+            return ['a' => 2, 'b' => 1];
+        }
+
+        if ($value === 'even') {
+            return ['a' => 2, 'b' => 0];
+        }
+
+        if (preg_match('/^[+-]?\d+$/', $value) === 1) {
+            return ['a' => 0, 'b' => (int) $value];
+        }
+
+        if (preg_match('/^([+-]?)(?:(\d+))?n(?:([+-])(\d+))?$/', $value, $matches) === 1) {
+            $coefficient = $matches[2] ?? '';
+            if ($coefficient === '') {
+                $a = ($matches[1] ?? '') === '-' ? -1 : 1;
+            } else {
+                $a = (int) $coefficient;
+                if (($matches[1] ?? '') === '-') {
+                    $a *= -1;
+                }
+            }
+
+            $b = isset($matches[4]) && $matches[4] !== '' ? (int) $matches[4] : 0;
+            if (($matches[3] ?? '') === '-') {
+                $b *= -1;
+            }
+
+            return ['a' => $a, 'b' => $b];
+        }
+
+        return null;
     }
 
     /**
@@ -736,7 +893,7 @@ final class Matcher
     }
 
     /**
-     * @param array{name: string, selectors: list<array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string}>} $pseudo
+     * @param array{name: string, selectors?: list<array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string}>, a?: int, b?: int, of?: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null} $pseudo
      */
     private function matchesFunctionalPseudo(Element $element, array $pseudo, ?Element $scopeRoot): bool
     {
@@ -744,6 +901,8 @@ final class Matcher
             'is', 'where' => $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
             'not' => ! $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
             'has' => $this->hasRelativeMatchingAnyComplex($element, $pseudo['selectors']),
+            'nth-child' => $this->matchesNthChild($element, $pseudo, false),
+            'nth-last-child' => $this->matchesNthChild($element, $pseudo, true),
             default => false,
         };
     }
@@ -779,6 +938,54 @@ final class Matcher
         }
 
         return false;
+    }
+
+    /**
+     * @param array{name: string, a: int, b: int, of: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null} $pseudo
+     */
+    private function matchesNthChild(Element $element, array $pseudo, bool $fromEnd): bool
+    {
+        if (! $element->parent instanceof Node) {
+            return false;
+        }
+
+        $siblings = self::elementChildren($element->parent);
+        if ($pseudo['of'] !== null) {
+            $siblings = array_values(array_filter(
+                $siblings,
+                fn (Element $sibling): bool => $this->matchesAnyComplex($sibling, $pseudo['of']),
+            ));
+        }
+
+        if ($fromEnd) {
+            $siblings = array_reverse($siblings);
+        }
+
+        foreach ($siblings as $index => $sibling) {
+            if ($sibling === $element) {
+                return self::matchesAnPlusBIndex($index + 1, $pseudo['a'], $pseudo['b']);
+            }
+        }
+
+        return false;
+    }
+
+    private static function matchesAnPlusBIndex(int $index, int $a, int $b): bool
+    {
+        if ($a === 0) {
+            return $index === $b;
+        }
+
+        if ($a > 0) {
+            $diff = $index - $b;
+
+            return $diff >= 0 && $diff % $a === 0;
+        }
+
+        $diff = $b - $index;
+        $step = -$a;
+
+        return $diff >= 0 && $diff % $step === 0;
     }
 
     /**
@@ -905,6 +1112,15 @@ final class Matcher
      */
     private function stripWhitespaceTokens(array $tokens): array
     {
+        return self::trimTokenList($tokens);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return list<Token>
+     */
+    private static function trimTokenList(array $tokens): array
+    {
         while ($tokens !== [] && $tokens[0]->type === 'whitespace') {
             array_shift($tokens);
         }
@@ -985,6 +1201,21 @@ final class Matcher
             '~' => self::hasPreviousElementSibling($element, $root),
             default => false,
         };
+    }
+
+    /**
+     * @return list<Element>
+     */
+    private static function elementChildren(Node $root): array
+    {
+        $children = [];
+        for ($node = $root->firstChild; $node !== null; $node = $node->next) {
+            if ($node instanceof Element) {
+                $children[] = $node;
+            }
+        }
+
+        return $children;
     }
 
     private static function classAttributeContains(string $classAttribute, string $className, bool $caseInsensitive): bool

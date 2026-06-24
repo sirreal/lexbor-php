@@ -974,7 +974,7 @@ final class Parser
                 ];
             }
 
-            $selector = $this->parseSelectorComponent($ofSelectorTokens);
+            $selector = $this->parseSelectorList($ofSelectorTokens) ?? $this->parseSelectorComponent($ofSelectorTokens);
             if ($selector === null) {
                 $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($ofSelectorTokens));
 

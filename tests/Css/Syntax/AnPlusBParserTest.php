@@ -60,4 +60,14 @@ final class AnPlusBParserTest extends TestCase
     {
         self::assertSame(['value' => $value, 'errors' => $errors], (new AnPlusBParser())->parse($source));
     }
+
+    public function testIntegerOnlyAnPlusBFormulaSerializesAsZeroCoefficient(): void
+    {
+        $parser = new AnPlusBParser();
+
+        self::assertSame(['value' => '0n+3', 'errors' => []], $parser->parse('3'));
+        self::assertSame(['value' => '0n+3', 'errors' => []], $parser->parse('+3'));
+        self::assertSame(['value' => '0n-3', 'errors' => []], $parser->parse('-3'));
+        self::assertSame(['value' => '0n', 'errors' => []], $parser->parse('0'));
+    }
 }

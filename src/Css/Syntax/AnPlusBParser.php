@@ -18,6 +18,10 @@ final class AnPlusBParser
             return ['value' => $lower, 'errors' => []];
         }
 
+        if (preg_match('/^[+-]?\d+$/', $trimmed) === 1) {
+            return ['value' => self::serialize(0, (int) $trimmed), 'errors' => []];
+        }
+
         if (preg_match('/^([+-]?)(?:(\d+))?n(?:\s*([+-])\s*(\d+))?$/i', $trimmed, $matches) === 1) {
             $sign = $matches[1] ?? '';
             $coefficient = $matches[2] ?? '';
@@ -58,6 +62,14 @@ final class AnPlusBParser
         }
 
         if ($a === 0) {
+            if ($b > 0) {
+                return "0n+{$b}";
+            }
+
+            if ($b < 0) {
+                return "0n{$b}";
+            }
+
             return '0n';
         }
 
