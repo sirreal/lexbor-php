@@ -1766,6 +1766,9 @@ final class ParserTest extends TestCase
      */
     public static function borderDeclarationProvider(): iterable
     {
+        yield 'border accepts normal leading whitespace' => ['border:   1px solid red', [
+            ['type' => 'property', 'name' => 'border', 'value' => '1px solid red', 'important' => false],
+        ]];
         yield 'border accepts css-wide keyword' => ['border: inherit', [
             ['type' => 'property', 'name' => 'border', 'value' => 'inherit', 'important' => false],
         ]];
@@ -1818,6 +1821,9 @@ final class ParserTest extends TestCase
             ['type' => 'property', 'name' => 'border', 'value' => 'thick dotted blue', 'important' => true],
         ]];
         yield 'border-top accepts width style color' => ['border-top: thin dotted green', [
+            ['type' => 'property', 'name' => 'border-top', 'value' => 'thin dotted green', 'important' => false],
+        ]];
+        yield 'border-top accepts normal leading whitespace' => ['border-top:   thin dotted green', [
             ['type' => 'property', 'name' => 'border-top', 'value' => 'thin dotted green', 'important' => false],
         ]];
         yield 'border-right accepts style and color' => ['border-right: solid red', [
@@ -1888,6 +1894,21 @@ final class ParserTest extends TestCase
         ]];
         yield 'border rejects comment-separated leading whitespace like Lexbor' => ['border: /**/  solid', [
             ['type' => 'undef', 'name' => 'border', 'value' => 'solid', 'important' => false],
+        ]];
+        yield 'border rejects full value with comment-separated leading whitespace like Lexbor' => ['border: /**/  1px solid red', [
+            ['type' => 'undef', 'name' => 'border', 'value' => '1px solid red', 'important' => false],
+        ]];
+        yield 'border-top rejects comment-separated leading whitespace like Lexbor' => ['border-top: /**/  thin dotted green', [
+            ['type' => 'undef', 'name' => 'border-top', 'value' => 'thin dotted green', 'important' => false],
+        ]];
+        yield 'border-right rejects comment-separated leading whitespace like Lexbor' => ['border-right: /**/  solid red', [
+            ['type' => 'undef', 'name' => 'border-right', 'value' => 'solid red', 'important' => false],
+        ]];
+        yield 'border-bottom rejects comment-separated leading whitespace like Lexbor' => ['border-bottom: /**/  red 2px', [
+            ['type' => 'undef', 'name' => 'border-bottom', 'value' => 'red 2px', 'important' => false],
+        ]];
+        yield 'border-left rejects comment-separated leading whitespace like Lexbor' => ['border-left: /**/  rgb(1 2 3) double', [
+            ['type' => 'undef', 'name' => 'border-left', 'value' => 'rgb(1 2 3) double', 'important' => false],
         ]];
     }
 
