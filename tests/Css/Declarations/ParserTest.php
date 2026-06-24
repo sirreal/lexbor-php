@@ -735,6 +735,91 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function textCombineUprightDeclarationProvider(): iterable
+    {
+        yield 'text-combine-upright accepts none' => ['text-combine-upright: none', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'text-combine-upright accepts all' => ['text-combine-upright: all', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'all', 'important' => false],
+        ]];
+        yield 'text-combine-upright accepts css-wide keyword' => ['text-combine-upright: revert', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'text-combine-upright lowercases mixed-case keyword' => ['text-combine-upright: AlL', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'all', 'important' => false],
+        ]];
+        yield 'text-combine-upright accepts digits without integer' => ['text-combine-upright: digits', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits', 'important' => false],
+        ]];
+        yield 'text-combine-upright accepts digits 2' => ['text-combine-upright: digits 2', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 2', 'important' => false],
+        ]];
+        yield 'text-combine-upright accepts digits 4' => ['text-combine-upright: digits 4', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 4', 'important' => false],
+        ]];
+        yield 'text-combine-upright normalizes signed integer' => ['text-combine-upright: digits +4', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 4', 'important' => false],
+        ]];
+        yield 'text-combine-upright accepts adjacent plus two' => ['text-combine-upright: digits+2', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 2', 'important' => false],
+        ]];
+        yield 'text-combine-upright accepts adjacent plus four' => ['text-combine-upright: digits+4', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 4', 'important' => false],
+        ]];
+        yield 'text-combine-upright normalizes exponent integer' => ['text-combine-upright: digits 2e0', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 2', 'important' => false],
+        ]];
+        yield 'text-combine-upright normalizes integral decimal' => ['text-combine-upright: digits 2.0', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 2', 'important' => false],
+        ]];
+        yield 'text-combine-upright treats comments before integer as whitespace' => ['text-combine-upright: digits/**/4', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 4', 'important' => false],
+        ]];
+        yield 'text-combine-upright keeps important flag' => ['text-combine-upright: digits 2 !important', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 2', 'important' => true],
+        ]];
+        yield 'text-combine-upright rejects auto' => ['text-combine-upright: auto', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects none with integer' => ['text-combine-upright: none 2', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'none 2', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects all with integer' => ['text-combine-upright: all 2', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'all 2', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects css-wide keyword with integer' => ['text-combine-upright: inherit 2', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'inherit 2', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects digits 1' => ['text-combine-upright: digits 1', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits 1', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects digits 3' => ['text-combine-upright: digits 3', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits 3', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects negative integer' => ['text-combine-upright: digits -2', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits -2', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects fractional integer' => ['text-combine-upright: digits 2.5', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits 2.5', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects percentage integer' => ['text-combine-upright: digits 2%', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits 2%', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects length integer' => ['text-combine-upright: digits 2px', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits 2px', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects too many values' => ['text-combine-upright: digits 2 4', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits 2 4', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects comment-split keyword' => ['text-combine-upright: di/**/gits', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function textTransformDeclarationProvider(): iterable
     {
         yield 'text-transform accepts none' => ['text-transform: none', [
@@ -1469,6 +1554,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textKeywordDeclarationProvider')]
     public function testTextKeywordDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('textCombineUprightDeclarationProvider')]
+    public function testTextCombineUprightDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

@@ -66,6 +66,7 @@ final class Parser
         'text-align' => true,
         'text-align-all' => true,
         'text-align-last' => true,
+        'text-combine-upright' => true,
         'text-decoration' => true,
         'text-justify' => true,
         'text-orientation' => true,
@@ -665,6 +666,7 @@ final class Parser
             'opacity' => self::isValidNumberPercentage($valueTokens) ? 'property' : 'undef',
             'order' => self::isValidInteger($valueTokens) ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
+            'text-combine-upright' => self::textCombineUprightValue($valueTokens) !== null ? 'property' : 'undef',
             'text-transform' => self::textTransformValue($valueTokens) !== null ? 'property' : 'undef',
             'z-index' => self::isValidIntegerKeyword($valueTokens, ['auto' => true]) ? 'property' : 'undef',
             default => isset(self::KEYWORD_PROPERTIES[$property]) && self::isValidKeywordProperty($property, $valueTokens) ? 'property' : 'undef',
@@ -1191,6 +1193,44 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function textCombineUprightValue(array $tokens): ?string
+    {
+        $tokens = self::nonIgnorableTokens($tokens);
+
+        if (count($tokens) !== 1 && count($tokens) !== 2) {
+            return null;
+        }
+
+        if ($tokens[0]->type !== 'ident') {
+            return null;
+        }
+
+        $type = strtolower($tokens[0]->value);
+
+        if ($type !== 'digits') {
+            if (count($tokens) === 1 && (isset(self::CSS_WIDE_KEYWORDS[$type]) || $type === 'none' || $type === 'all')) {
+                return $type;
+            }
+
+            return null;
+        }
+
+        if (count($tokens) === 1) {
+            return 'digits';
+        }
+
+        if ($tokens[1]->type !== 'number') {
+            return null;
+        }
+
+        $digits = $tokens[1]->value;
+
+        return $digits === '2' || $digits === '4' ? 'digits ' . $digits : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function isValidNumberPercentage(array $tokens): bool
     {
         $token = self::singleValueToken($tokens);
@@ -1388,6 +1428,10 @@ final class Parser
 
         if ($property === 'text-transform') {
             return self::textTransformValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'text-combine-upright') {
+            return self::textCombineUprightValue($tokens) ?? $fallback;
         }
 
         if (
