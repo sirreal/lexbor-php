@@ -166,6 +166,98 @@ final class MatcherTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, list<string>}>
+     */
+    public static function sourceBackedSimplePseudoSelectorProvider(): iterable
+    {
+        yield 'selectors match active pseudo class by attribute' => [
+            '<!doctype html><body><div id=active active></div><div id=plain></div></body>',
+            ':active',
+            ['active'],
+        ];
+        yield 'selectors match focus pseudo class by attribute' => [
+            '<!doctype html><body><input id=focus focus><input id=plain></body>',
+            ':focus',
+            ['focus'],
+        ];
+        yield 'selectors match hover pseudo class by attribute' => [
+            '<!doctype html><body><div id=hover hover></div><div id=plain></div></body>',
+            ':hover',
+            ['hover'],
+        ];
+        yield 'selectors match any-link pseudo class on a area and map href' => [
+            '<!doctype html><body><a id=a href=x></a><area id=area href=x><link id=link href=x><map id=map href=x></map><a id=plain></a></body>',
+            ':any-link',
+            ['a', 'area', 'map'],
+        ];
+        yield 'selectors match link pseudo class on a area and link href' => [
+            '<!doctype html><body><a id=a href=x></a><area id=area href=x><link id=link href=x><map id=map href=x></map><a id=plain></a></body>',
+            ':link',
+            ['a', 'area', 'link'],
+        ];
+        yield 'selectors match checked pseudo class for checkbox radio option and unknown tags' => [
+            '<!doctype html><body><input id=checkbox type=CHECKBOX checked><input id=radio type=radio checked><input id=text type=text checked><input id=no-type checked><option id=option selected></option><x-check id=custom checked></x-check></body>',
+            ':checked',
+            ['checkbox', 'radio', 'option', 'custom'],
+        ];
+        yield 'selectors match disabled pseudo class for Lexbor-supported disabled elements' => [
+            '<!doctype html><body><button id=button disabled></button><input id=input disabled><select id=select disabled></select><textarea id=textarea disabled></textarea><div id=div disabled></div><x-control id=custom disabled></x-control></body>',
+            ':disabled',
+            ['button', 'input', 'select', 'textarea', 'custom'],
+        ];
+        yield 'selectors match disabled pseudo class with fieldset ancestor branch' => [
+            '<!doctype html><body><fieldset><div id=fieldset-child disabled></div></fieldset><fieldset><legend></legend><div id=legend-child disabled></div></fieldset></body>',
+            ':disabled',
+            ['fieldset-child'],
+        ];
+        yield 'selectors match disabled pseudo class keeps walking fieldset ancestors' => [
+            '<!doctype html><body><fieldset><div><fieldset><legend></legend><div id=nested disabled></div></fieldset></div></fieldset><fieldset><legend></legend><div><fieldset><legend></legend><div id=unmatched disabled></div></fieldset></div></fieldset></body>',
+            ':disabled',
+            ['nested'],
+        ];
+        yield 'selectors match enabled pseudo class as inverse of Lexbor disabled check' => [
+            '<!doctype html><body><button id=enabled></button><button id=disabled disabled></button><div id=div-disabled disabled></div><x-control id=custom-disabled disabled></x-control></body>',
+            ':enabled',
+            ['enabled', 'div-disabled'],
+        ];
+        yield 'selectors match enabled pseudo class after fieldset ancestor walk' => [
+            '<!doctype html><body><fieldset><div><fieldset><legend></legend><div id=nested disabled></div></fieldset></div></fieldset><fieldset><legend></legend><div><fieldset><legend></legend><div id=unmatched disabled></div></fieldset></div></fieldset></body>',
+            'div[id]:enabled',
+            ['unmatched'],
+        ];
+        yield 'selectors match optional pseudo class on unrequired controls' => [
+            '<!doctype html><body><input id=input><select id=select></select><textarea id=textarea></textarea><input id=required required><button id=button></button></body>',
+            ':optional',
+            ['input', 'select', 'textarea'],
+        ];
+        yield 'selectors match required pseudo class on required controls' => [
+            '<!doctype html><body><input id=input required><select id=select required></select><textarea id=textarea required></textarea><button id=button required></button></body>',
+            ':required',
+            ['input', 'select', 'textarea'],
+        ];
+        yield 'selectors match placeholder-shown pseudo class on input and textarea' => [
+            '<!doctype html><body><input id=input placeholder=hint><textarea id=textarea placeholder=hint></textarea><div id=div placeholder=hint></div></body>',
+            ':placeholder-shown',
+            ['input', 'textarea'],
+        ];
+        yield 'selectors match read-write pseudo class on writable input and textarea' => [
+            '<!doctype html><body><input id=input><input id=readonly readonly><input id=disabled disabled><textarea id=textarea></textarea><textarea id=textarea-readonly readonly></textarea><div id=div></div></body>',
+            ':read-write',
+            ['input', 'textarea'],
+        ];
+        yield 'selectors match read-only pseudo class as inverse of read-write' => [
+            '<!doctype html><body><input id=input><input id=readonly readonly><input id=disabled disabled><textarea id=textarea-readonly readonly></textarea><div id=div></div></body>',
+            ':read-only',
+            ['readonly', 'disabled', 'textarea-readonly', 'div'],
+        ];
+        yield 'selectors match blank pseudo class for empty whitespace and comment-only descendants' => [
+            "<!doctype html><body><div id=empty></div><div id=comment><!--x--></div><div id=space> \n\t</div><div id=nested><span></span></div><div id=text>x</div></body>",
+            'div:blank',
+            ['empty', 'comment', 'space'],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, string, int}>
      */
     public static function upstreamMatchingEdgeSelectorProvider(): iterable
@@ -349,6 +441,21 @@ final class MatcherTest extends TestCase
         );
     }
 
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('sourceBackedSimplePseudoSelectorProvider')]
+    public function testFindMatchesSourceBackedSimplePseudoSelector(string $html, string $selector, array $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame(
+            $expected,
+            self::attributeValues((new Matcher())->find($document->bodyElement(), $selector), 'id'),
+        );
+    }
+
     #[DataProvider('upstreamMatchingEdgeSelectorProvider')]
     public function testFindMatchesUpstreamSelectorEdgeCases(string $html, string $selector, int $expected): void
     {
@@ -472,8 +579,8 @@ final class MatcherTest extends TestCase
         $document = $this->fixtureDocument();
         $matcher = new Matcher();
 
-        self::assertSame([], $matcher->find($document->bodyElement(), 'div:hover'));
-        self::assertSame([], $matcher->find($document->bodyElement(), 'div:not(:hover)'));
+        self::assertSame([], $matcher->find($document->bodyElement(), 'div:target'));
+        self::assertSame([], $matcher->find($document->bodyElement(), 'div:not(:target)'));
     }
 
     public function testFindUsesRecoveredSelectorForInvalidForgivingHasBranch(): void

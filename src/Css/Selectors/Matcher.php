@@ -12,6 +12,7 @@ use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
 use Lexbor\Dom\Text;
 use Lexbor\Html\Document;
+use Lexbor\Html\Tag;
 
 final class Matcher
 {
@@ -64,14 +65,28 @@ final class Matcher
         'vlink' => true,
     ];
 
-    private const array STRUCTURAL_PSEUDO_CLASSES = [
+    private const array SIMPLE_PSEUDO_CLASSES = [
+        'active' => true,
+        'any-link' => true,
+        'blank' => true,
+        'checked' => true,
+        'disabled' => true,
         'empty' => true,
+        'enabled' => true,
         'first-child' => true,
         'first-of-type' => true,
+        'focus' => true,
+        'hover' => true,
         'last-child' => true,
         'last-of-type' => true,
+        'link' => true,
         'only-child' => true,
         'only-of-type' => true,
+        'optional' => true,
+        'placeholder-shown' => true,
+        'read-only' => true,
+        'read-write' => true,
+        'required' => true,
         'root' => true,
     ];
 
@@ -486,7 +501,7 @@ final class Matcher
         }
 
         $nameValue = strtolower($name->value);
-        if (! isset(self::STRUCTURAL_PSEUDO_CLASSES[$nameValue])) {
+        if (! isset(self::SIMPLE_PSEUDO_CLASSES[$nameValue])) {
             return null;
         }
 
@@ -982,14 +997,28 @@ final class Matcher
     private function matchesFunctionalPseudo(Element $element, array $pseudo, ?Element $scopeRoot): bool
     {
         return match ($pseudo['name']) {
+            'active' => $element->hasAttribute('active'),
+            'any-link' => self::hasHrefOnElement($element, ['a', 'area', 'map']),
+            'blank' => self::elementIsBlank($element),
+            'checked' => self::elementIsChecked($element),
+            'disabled' => self::elementIsDisabled($element),
             'root' => self::documentRootElement($element) === $element,
             'empty' => self::elementIsEmpty($element),
+            'enabled' => ! self::elementIsDisabled($element),
             'first-child' => self::previousElementSibling($element) === null,
             'last-child' => self::nextElementSibling($element) === null,
             'only-child' => self::previousElementSibling($element) === null && self::nextElementSibling($element) === null,
             'first-of-type' => self::previousElementSiblingOfType($element) === null,
             'last-of-type' => self::nextElementSiblingOfType($element) === null,
             'only-of-type' => self::previousElementSiblingOfType($element) === null && self::nextElementSiblingOfType($element) === null,
+            'focus' => $element->hasAttribute('focus'),
+            'hover' => $element->hasAttribute('hover'),
+            'link' => self::hasHrefOnElement($element, ['a', 'area', 'link']),
+            'optional' => self::isRequiredOptionalElement($element) && ! $element->hasAttribute('required'),
+            'placeholder-shown' => self::isPlaceholderElement($element) && $element->hasAttribute('placeholder'),
+            'read-only' => ! self::elementIsReadWrite($element),
+            'read-write' => self::elementIsReadWrite($element),
+            'required' => self::isRequiredOptionalElement($element) && $element->hasAttribute('required'),
             'is', 'where' => $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
             'not' => ! $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
             'has' => $this->hasRelativeMatchingAnyComplex($element, $pseudo['selectors']),
@@ -1424,6 +1453,92 @@ final class Matcher
         }
 
         return true;
+    }
+
+    private static function elementIsBlank(Element $element): bool
+    {
+        for ($node = $element->firstChild; $node !== null; $node = $node->next) {
+            if ($node instanceof Comment) {
+                continue;
+            }
+
+            if (! $node instanceof Text || strspn($node->data, "\t\n\f\r ") !== strlen($node->data)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * @param list<string> $tagNames
+     */
+    private static function hasHrefOnElement(Element $element, array $tagNames): bool
+    {
+        return in_array($element->tagName, $tagNames, true) && $element->hasAttribute('href');
+    }
+
+    private static function elementIsChecked(Element $element): bool
+    {
+        if ($element->tagName === 'input') {
+            $type = $element->getAttribute('type');
+
+            return $type !== null
+                && in_array(strtolower($type), ['checkbox', 'radio'], true)
+                && $element->hasAttribute('checked');
+        }
+
+        if ($element->tagName === 'option') {
+            return $element->hasAttribute('selected');
+        }
+
+        return self::isDynamicElement($element) && $element->hasAttribute('checked');
+    }
+
+    private static function elementIsDisabled(Element $element): bool
+    {
+        if (! $element->hasAttribute('disabled')) {
+            return false;
+        }
+
+        if (
+            in_array($element->tagName, ['button', 'input', 'select', 'textarea'], true)
+            || self::isDynamicElement($element)
+        ) {
+            return true;
+        }
+
+        for ($node = $element->parent; $node !== null; $node = $node->parent) {
+            if ($node instanceof Element && $node->tagName === 'fieldset') {
+                if (! ($node->firstChild instanceof Element && $node->firstChild->tagName === 'legend')) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static function elementIsReadWrite(Element $element): bool
+    {
+        return in_array($element->tagName, ['input', 'textarea'], true)
+            && ! $element->hasAttribute('readonly')
+            && ! self::elementIsDisabled($element);
+    }
+
+    private static function isRequiredOptionalElement(Element $element): bool
+    {
+        return in_array($element->tagName, ['input', 'select', 'textarea'], true);
+    }
+
+    private static function isPlaceholderElement(Element $element): bool
+    {
+        return in_array($element->tagName, ['input', 'textarea'], true);
+    }
+
+    private static function isDynamicElement(Element $element): bool
+    {
+        return $element->tagId !== null && $element->tagId >= Tag::LAST_ENTRY;
     }
 
     private static function hasTextChildContaining(Element $element, string $needle, bool $caseInsensitive): bool
