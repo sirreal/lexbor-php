@@ -13,11 +13,15 @@ final class Parser
         'align-content' => true,
         'align-items' => true,
         'align-self' => true,
+        'alignment-baseline' => true,
+        'baseline-shift' => true,
+        'baseline-source' => true,
         'box-sizing' => true,
         'bottom' => true,
         'clear' => true,
         'direction' => true,
         'display' => true,
+        'dominant-baseline' => true,
         'flex' => true,
         'flex-basis' => true,
         'flex-direction' => true,
@@ -730,12 +734,30 @@ final class Parser
         'text-top' => true,
     ];
 
+    private const array DOMINANT_BASELINE_KEYWORDS = [
+        'alphabetic' => true,
+        'auto' => true,
+        'central' => true,
+        'hanging' => true,
+        'ideographic' => true,
+        'mathematical' => true,
+        'middle' => true,
+        'text-bottom' => true,
+        'text-top' => true,
+    ];
+
     private const array BASELINE_SHIFT_KEYWORDS = [
         'bottom' => true,
         'center' => true,
         'sub' => true,
         'super' => true,
         'top' => true,
+    ];
+
+    private const array BASELINE_SOURCE_KEYWORDS = [
+        'auto' => true,
+        'first' => true,
+        'last' => true,
     ];
 
     private const array FONT_STRETCH_KEYWORDS = [
@@ -1045,7 +1067,16 @@ final class Parser
         [$valueTokens, $important] = self::extractImportant($valueTokens);
         $value = self::serializeComponentValue($valueTokens);
         $property = strtolower($name);
-        $classificationTokens = in_array($property, ['font-family', 'text-decoration-line', 'text-decoration-style', 'vertical-align'], true)
+        $classificationTokens = in_array($property, [
+            'alignment-baseline',
+            'baseline-shift',
+            'baseline-source',
+            'dominant-baseline',
+            'font-family',
+            'text-decoration-line',
+            'text-decoration-style',
+            'vertical-align',
+        ], true)
             ? [...$leadingValueTokens, ...$valueTokens]
             : $valueTokens;
         $type = $this->classifyDeclaration($name, $value, $classificationTokens);
@@ -1133,6 +1164,10 @@ final class Parser
         }
 
         return match ($property) {
+            'alignment-baseline' => self::singleLexborKeywordValue($valueTokens, self::ALIGNMENT_BASELINE_KEYWORDS) !== null ? 'property' : 'undef',
+            'baseline-shift' => self::baselineShiftDeclarationValue($valueTokens) !== null ? 'property' : 'undef',
+            'baseline-source' => self::singleLexborKeywordValue($valueTokens, self::BASELINE_SOURCE_KEYWORDS) !== null ? 'property' : 'undef',
+            'dominant-baseline' => self::singleLexborKeywordValue($valueTokens, self::DOMINANT_BASELINE_KEYWORDS) !== null ? 'property' : 'undef',
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
             'flex' => self::parseFlex($valueTokens) !== null ? 'property' : 'undef',
             'flex-basis' => self::isValidFlexBasis($valueTokens) ? 'property' : 'undef',
@@ -1714,6 +1749,12 @@ final class Parser
 
     private static function baselineShiftValue(Token $token): ?string
     {
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::BASELINE_SHIFT_KEYWORDS[$value]) ? $value : null;
+        }
+
         if ($token->type === 'number') {
             return $token->value === '0' ? $token->value : null;
         }
@@ -1727,6 +1768,26 @@ final class Parser
         }
 
         return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function baselineShiftDeclarationValue(array $tokens): ?string
+    {
+        $token = self::singleLexborValueToken($tokens);
+
+        if ($token === null) {
+            return null;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) ? $value : self::baselineShiftValue($token);
+        }
+
+        return self::baselineShiftValue($token);
     }
 
     /**
@@ -2601,6 +2662,22 @@ final class Parser
             return self::hangingPunctuationValue($tokens) ?? $fallback;
         }
 
+        if ($property === 'alignment-baseline') {
+            return self::singleLexborKeywordValue($tokens, self::ALIGNMENT_BASELINE_KEYWORDS) ?? $fallback;
+        }
+
+        if ($property === 'baseline-shift') {
+            return self::baselineShiftDeclarationValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'baseline-source') {
+            return self::singleLexborKeywordValue($tokens, self::BASELINE_SOURCE_KEYWORDS) ?? $fallback;
+        }
+
+        if ($property === 'dominant-baseline') {
+            return self::singleLexborKeywordValue($tokens, self::DOMINANT_BASELINE_KEYWORDS) ?? $fallback;
+        }
+
         if ($property === 'text-decoration-line') {
             return self::textDecorationLineValue($tokens) ?? $fallback;
         }
@@ -2926,6 +3003,42 @@ final class Parser
         $tokens = self::nonIgnorableTokens($tokens);
 
         return count($tokens) === 1 ? $tokens[0] : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function singleLexborValueToken(array $tokens): ?Token
+    {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (! isset($tokens[$offset])) {
+            return null;
+        }
+
+        $token = $tokens[$offset];
+        $offset++;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        return $offset >= count($tokens) || self::remainingTokensAreIgnorable($tokens, $offset) ? $token : null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @param array<string, true> $keywords
+     */
+    private static function singleLexborKeywordValue(array $tokens, array $keywords): ?string
+    {
+        $token = self::singleLexborValueToken($tokens);
+
+        if ($token === null || $token->type !== 'ident') {
+            return null;
+        }
+
+        $value = strtolower($token->value);
+
+        return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]) ? $value : null;
     }
 
     private static function isIgnorableToken(Token $token): bool

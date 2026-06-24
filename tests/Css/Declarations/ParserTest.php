@@ -1236,6 +1236,199 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function baselineDeclarationProvider(): iterable
+    {
+        yield 'alignment-baseline accepts baseline' => ['alignment-baseline: baseline', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'alignment-baseline accepts text-bottom' => ['alignment-baseline: text-bottom', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'text-bottom', 'important' => false],
+        ]];
+        yield 'alignment-baseline accepts alphabetic' => ['alignment-baseline: alphabetic', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'alphabetic', 'important' => false],
+        ]];
+        yield 'alignment-baseline accepts ideographic' => ['alignment-baseline: ideographic', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'ideographic', 'important' => false],
+        ]];
+        yield 'alignment-baseline accepts middle' => ['alignment-baseline: middle', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'middle', 'important' => false],
+        ]];
+        yield 'alignment-baseline accepts central' => ['alignment-baseline: central', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'central', 'important' => false],
+        ]];
+        yield 'alignment-baseline accepts mathematical' => ['alignment-baseline: mathematical', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'mathematical', 'important' => false],
+        ]];
+        yield 'alignment-baseline accepts text-top' => ['alignment-baseline: text-top', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'text-top', 'important' => false],
+        ]];
+        yield 'alignment-baseline accepts css-wide keyword' => ['alignment-baseline: inherit', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'alignment-baseline lowercases mixed-case keyword' => ['alignment-baseline: TeXt-ToP', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'text-top', 'important' => false],
+        ]];
+        yield 'alignment-baseline keeps important flag' => ['alignment-baseline: central !important', [
+            ['type' => 'property', 'name' => 'alignment-baseline', 'value' => 'central', 'important' => true],
+        ]];
+        yield 'alignment-baseline rejects dominant-baseline-only keyword' => ['alignment-baseline: hanging', [
+            ['type' => 'undef', 'name' => 'alignment-baseline', 'value' => 'hanging', 'important' => false],
+        ]];
+        yield 'alignment-baseline rejects multiple values' => ['alignment-baseline: baseline middle', [
+            ['type' => 'undef', 'name' => 'alignment-baseline', 'value' => 'baseline middle', 'important' => false],
+        ]];
+        yield 'alignment-baseline rejects comment-split keyword' => ['alignment-baseline: base/**/line', [
+            ['type' => 'undef', 'name' => 'alignment-baseline', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'alignment-baseline rejects comment-separated leading whitespace like Lexbor' => ['alignment-baseline: /**/  baseline', [
+            ['type' => 'undef', 'name' => 'alignment-baseline', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'baseline-source accepts auto' => ['baseline-source: auto', [
+            ['type' => 'property', 'name' => 'baseline-source', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'baseline-source accepts first' => ['baseline-source: first', [
+            ['type' => 'property', 'name' => 'baseline-source', 'value' => 'first', 'important' => false],
+        ]];
+        yield 'baseline-source accepts last' => ['baseline-source: last', [
+            ['type' => 'property', 'name' => 'baseline-source', 'value' => 'last', 'important' => false],
+        ]];
+        yield 'baseline-source accepts css-wide keyword' => ['baseline-source: revert', [
+            ['type' => 'property', 'name' => 'baseline-source', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'baseline-source lowercases mixed-case keyword' => ['baseline-source: FiRsT', [
+            ['type' => 'property', 'name' => 'baseline-source', 'value' => 'first', 'important' => false],
+        ]];
+        yield 'baseline-source keeps important flag' => ['baseline-source: last !important', [
+            ['type' => 'property', 'name' => 'baseline-source', 'value' => 'last', 'important' => true],
+        ]];
+        yield 'baseline-source rejects alignment keyword' => ['baseline-source: baseline', [
+            ['type' => 'undef', 'name' => 'baseline-source', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'baseline-source rejects multiple values' => ['baseline-source: first last', [
+            ['type' => 'undef', 'name' => 'baseline-source', 'value' => 'first last', 'important' => false],
+        ]];
+        yield 'baseline-source rejects comment-split keyword' => ['baseline-source: fi/**/rst', [
+            ['type' => 'undef', 'name' => 'baseline-source', 'value' => 'first', 'important' => false],
+        ]];
+        yield 'baseline-source rejects comment-separated leading whitespace like Lexbor' => ['baseline-source: /**/  first', [
+            ['type' => 'undef', 'name' => 'baseline-source', 'value' => 'first', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts auto' => ['dominant-baseline: auto', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts text-bottom' => ['dominant-baseline: text-bottom', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'text-bottom', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts alphabetic' => ['dominant-baseline: alphabetic', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'alphabetic', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts ideographic' => ['dominant-baseline: ideographic', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'ideographic', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts middle' => ['dominant-baseline: middle', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'middle', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts central' => ['dominant-baseline: central', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'central', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts mathematical' => ['dominant-baseline: mathematical', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'mathematical', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts hanging' => ['dominant-baseline: hanging', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'hanging', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts text-top' => ['dominant-baseline: text-top', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'text-top', 'important' => false],
+        ]];
+        yield 'dominant-baseline accepts css-wide keyword' => ['dominant-baseline: unset', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'dominant-baseline lowercases mixed-case keyword' => ['dominant-baseline: TeXt-BoTtOm', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'text-bottom', 'important' => false],
+        ]];
+        yield 'dominant-baseline keeps important flag' => ['dominant-baseline: hanging !important', [
+            ['type' => 'property', 'name' => 'dominant-baseline', 'value' => 'hanging', 'important' => true],
+        ]];
+        yield 'dominant-baseline rejects alignment-only baseline keyword' => ['dominant-baseline: baseline', [
+            ['type' => 'undef', 'name' => 'dominant-baseline', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'dominant-baseline rejects multiple values' => ['dominant-baseline: auto hanging', [
+            ['type' => 'undef', 'name' => 'dominant-baseline', 'value' => 'auto hanging', 'important' => false],
+        ]];
+        yield 'dominant-baseline rejects comment-split keyword' => ['dominant-baseline: hang/**/ing', [
+            ['type' => 'undef', 'name' => 'dominant-baseline', 'value' => 'hanging', 'important' => false],
+        ]];
+        yield 'dominant-baseline rejects comment-separated leading whitespace like Lexbor' => ['dominant-baseline: /**/  auto', [
+            ['type' => 'undef', 'name' => 'dominant-baseline', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts sub' => ['baseline-shift: sub', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'sub', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts super' => ['baseline-shift: super', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'super', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts top' => ['baseline-shift: top', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'top', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts center' => ['baseline-shift: center', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'center', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts bottom' => ['baseline-shift: bottom', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'bottom', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts css-wide keyword' => ['baseline-shift: initial', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'initial', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts length' => ['baseline-shift: -2px', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => '-2px', 'important' => false],
+        ]];
+        yield 'baseline-shift lowercases mixed-case length unit' => ['baseline-shift: 2PX', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'baseline-shift serializes q length with Lexbor uppercase spelling' => ['baseline-shift: 2q', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => '2Q', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts percentage' => ['baseline-shift: 12.5%', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => '12.5%', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts signed percentage' => ['baseline-shift: -10%', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => '-10%', 'important' => false],
+        ]];
+        yield 'baseline-shift accepts unitless zero' => ['baseline-shift: 0', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => '0', 'important' => false],
+        ]];
+        yield 'baseline-shift lowercases mixed-case keyword' => ['baseline-shift: SuPeR', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'super', 'important' => false],
+        ]];
+        yield 'baseline-shift keeps important flag' => ['baseline-shift: center !important', [
+            ['type' => 'property', 'name' => 'baseline-shift', 'value' => 'center', 'important' => true],
+        ]];
+        yield 'baseline-shift rejects alignment keyword' => ['baseline-shift: baseline', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'baseline-shift rejects nonzero number' => ['baseline-shift: 1', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => '1', 'important' => false],
+        ]];
+        yield 'baseline-shift rejects non-length dimension' => ['baseline-shift: 1deg', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => '1deg', 'important' => false],
+        ]];
+        yield 'baseline-shift rejects multiple values' => ['baseline-shift: sub 1px', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => 'sub 1px', 'important' => false],
+        ]];
+        yield 'baseline-shift rejects comment-split keyword' => ['baseline-shift: su/**/per', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => 'super', 'important' => false],
+        ]];
+        yield 'baseline-shift rejects comment-split length' => ['baseline-shift: 1/**/px', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'baseline-shift rejects comment-separated leading whitespace like Lexbor' => ['baseline-shift: /**/  sub', [
+            ['type' => 'undef', 'name' => 'baseline-shift', 'value' => 'sub', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function fontStyleDeclarationProvider(): iterable
     {
         yield 'font-style accepts normal' => ['font-style: normal', [
@@ -2467,6 +2660,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('verticalAlignDeclarationProvider')]
     public function testVerticalAlignDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('baselineDeclarationProvider')]
+    public function testBaselineDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
