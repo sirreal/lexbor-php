@@ -94,6 +94,7 @@ final class Parser
         if (count($tokens) === 1) {
             return match ($tokens[0]->type) {
                 'ident', 'hash' => ['value' => $tokens[0]->value, 'errors' => []],
+                'delim' => $tokens[0]->value === '*' ? ['value' => '*', 'errors' => []] : self::error($tokens[0]->value),
                 default => self::error($tokens[0]->value),
             };
         }
@@ -507,6 +508,13 @@ final class Parser
 
         $attribute = $this->parseAttributeSelector(array_slice($tokens, 1));
         if ($attribute === null) {
+            return null;
+        }
+
+        if (
+            $attribute['value'] === ''
+            && ($attribute['errors'][0] ?? '') !== 'Syntax error. Selectors. End Of File in attribute selector'
+        ) {
             return null;
         }
 

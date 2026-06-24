@@ -26,6 +26,7 @@ final class ParserTest extends TestCase
         yield 'selectors.c #9 trims selector whitespace' => [' .super ', '.super', []];
         yield 'selectors.c #10 unexpected percentage after class selector' => ['.super 1%', '', ['Syntax error. Selectors. Unexpected token: 1%']];
         yield 'selectors.c #11 hash selector' => ['#hash', '#hash', []];
+        yield 'selectors regression bare universal selector' => ['*', '*', []];
         yield 'selectors.c #12 universal namespace universal selector' => ['*|*', '*|*', []];
         yield 'selectors.c #13 universal namespace type selector' => ['*|div', '*|div', []];
         yield 'selectors.c #14 empty namespace type selector' => ['|div', '|div', []];
@@ -137,6 +138,7 @@ final class ParserTest extends TestCase
         yield 'selectors.c #125 has selector skips nested block containing comma' => [':has(:not(div, {([([{, .class}])])}), #hash)', ':has(#hash)', ['Syntax error. Selectors. Unexpected token: {', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #126 selector list with compound nth-child and nested not has' => ['div > :nth-child(2n+1):not(:has(a)),p:has(a):not([href]) span, div', 'div > :nth-child(odd):not(:has(a)), p:has(a):not([href]) span, div', []];
         yield 'selectors.c #127 selector list with descendant nth-child and nested not has' => ['div > :nth-child(2n+1) :not(:has(a)),p:has(a) :not([href]) span, div', 'div > :nth-child(odd) :not(:has(a)), p:has(a) :not([href]) span, div', []];
+        yield 'selectors regression compound attribute id continuation' => ["span[id = 's4']#s4[span = '4']", 'span[id="s4"]#s4[span="4"]', []];
         yield 'selectors.c #147 spaced dash-match attribute selector' => ['[lang |= en]', '[lang|="en"]', []];
         yield 'selectors.c #148 tight dash-match attribute selector' => ['[lang|=en]', '[lang|="en"]', []];
         yield 'selectors.c #149 dash-match attribute selector with spaced value' => ['[lang|= en]', '[lang|="en"]', []];
