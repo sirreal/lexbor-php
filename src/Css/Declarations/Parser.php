@@ -1328,6 +1328,9 @@ final class Parser
             'flex-grow',
             'flex-shrink',
             'font-family',
+            'font-size',
+            'font-stretch',
+            'font-weight',
             'letter-spacing',
             'line-height',
             'opacity',
@@ -3358,7 +3361,7 @@ final class Parser
      */
     private static function fontWeightValue(array $tokens): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
             return null;
@@ -3387,7 +3390,7 @@ final class Parser
      */
     private static function fontStretchValue(array $tokens): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
             return null;
@@ -3478,7 +3481,7 @@ final class Parser
      */
     private static function fontSizeValue(array $tokens): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
             return null;

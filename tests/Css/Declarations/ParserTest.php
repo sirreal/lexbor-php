@@ -540,6 +540,9 @@ final class ParserTest extends TestCase
         yield 'font-weight accepts css-wide keyword' => ['font-weight: inherit', [
             ['type' => 'property', 'name' => 'font-weight', 'value' => 'inherit', 'important' => false],
         ]];
+        yield 'font-weight accepts normal leading whitespace' => ['font-weight:   bold', [
+            ['type' => 'property', 'name' => 'font-weight', 'value' => 'bold', 'important' => false],
+        ]];
         yield 'font-weight lowercases mixed-case keyword' => ['font-weight: BoLd', [
             ['type' => 'property', 'name' => 'font-weight', 'value' => 'bold', 'important' => false],
         ]];
@@ -572,6 +575,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'font-weight rejects comment-split keyword' => ['font-weight: bo/**/ld', [
             ['type' => 'undef', 'name' => 'font-weight', 'value' => 'bold', 'important' => false],
+        ]];
+        yield 'font-weight rejects number with comment-separated leading whitespace like Lexbor' => ['font-weight: /**/  700', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => '700', 'important' => false],
+        ]];
+        yield 'font-weight rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['font-weight: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'font-weight', 'value' => 'inherit', 'important' => false],
         ]];
         yield 'font-weight keeps important flag' => ['font-weight: 700 !important', [
             ['type' => 'property', 'name' => 'font-weight', 'value' => '700', 'important' => true],
@@ -606,6 +615,9 @@ final class ParserTest extends TestCase
         yield 'font-stretch accepts css-wide keyword' => ['font-stretch: inherit', [
             ['type' => 'property', 'name' => 'font-stretch', 'value' => 'inherit', 'important' => false],
         ]];
+        yield 'font-stretch accepts trailing whitespace-comment-whitespace like Lexbor' => ['font-stretch: 87.5% /**/  ', [
+            ['type' => 'property', 'name' => 'font-stretch', 'value' => '87.5%', 'important' => false],
+        ]];
         yield 'font-stretch lowercases mixed-case keyword' => ['font-stretch: SeMi-ExPaNdEd', [
             ['type' => 'property', 'name' => 'font-stretch', 'value' => 'semi-expanded', 'important' => false],
         ]];
@@ -635,6 +647,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'font-stretch rejects comment-split percentage' => ['font-stretch: 10/**/%', [
             ['type' => 'undef', 'name' => 'font-stretch', 'value' => '10%', 'important' => false],
+        ]];
+        yield 'font-stretch rejects percentage with comment-separated leading whitespace like Lexbor' => ['font-stretch: /**/  87.5%', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => '87.5%', 'important' => false],
+        ]];
+        yield 'font-stretch rejects keyword with comment-separated leading whitespace like Lexbor' => ['font-stretch: /**/  normal', [
+            ['type' => 'undef', 'name' => 'font-stretch', 'value' => 'normal', 'important' => false],
         ]];
         yield 'font-stretch keeps important flag' => ['font-stretch: 120% !important', [
             ['type' => 'property', 'name' => 'font-stretch', 'value' => '120%', 'important' => true],
@@ -2196,6 +2214,9 @@ final class ParserTest extends TestCase
         yield 'font-size accepts css-wide keyword' => ['font-size: revert', [
             ['type' => 'property', 'name' => 'font-size', 'value' => 'revert', 'important' => false],
         ]];
+        yield 'font-size accepts normal leading whitespace' => ['font-size:   medium', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => 'medium', 'important' => false],
+        ]];
         yield 'font-size lowercases mixed-case keyword' => ['font-size: Xx-LaRgE', [
             ['type' => 'property', 'name' => 'font-size', 'value' => 'xx-large', 'important' => false],
         ]];
@@ -2216,6 +2237,9 @@ final class ParserTest extends TestCase
         ]];
         yield 'font-size accepts unitless zero' => ['font-size: 0', [
             ['type' => 'property', 'name' => 'font-size', 'value' => '0', 'important' => false],
+        ]];
+        yield 'font-size accepts trailing whitespace-comment-whitespace like Lexbor' => ['font-size: 12px /**/  ', [
+            ['type' => 'property', 'name' => 'font-size', 'value' => '12px', 'important' => false],
         ]];
         yield 'font-size keeps important flag' => ['font-size: 14px !important', [
             ['type' => 'property', 'name' => 'font-size', 'value' => '14px', 'important' => true],
@@ -2246,6 +2270,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'font-size rejects comment-split percentage' => ['font-size: 10/**/%', [
             ['type' => 'undef', 'name' => 'font-size', 'value' => '10%', 'important' => false],
+        ]];
+        yield 'font-size rejects length with comment-separated leading whitespace like Lexbor' => ['font-size: /**/  12px', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => '12px', 'important' => false],
+        ]];
+        yield 'font-size rejects keyword with comment-separated leading whitespace like Lexbor' => ['font-size: /**/  medium', [
+            ['type' => 'undef', 'name' => 'font-size', 'value' => 'medium', 'important' => false],
         ]];
         yield 'font-size rejects function' => ['font-size: calc(12px)', [
             ['type' => 'undef', 'name' => 'font-size', 'value' => 'calc(12px)', 'important' => false],
