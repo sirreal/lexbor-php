@@ -1567,6 +1567,9 @@ final class ParserTest extends TestCase
      */
     public static function colorDeclarationProvider(): iterable
     {
+        yield 'color accepts normal leading whitespace' => ['color:   red', [
+            ['type' => 'property', 'name' => 'color', 'value' => 'red', 'important' => false],
+        ]];
         yield 'color accepts named color' => ['color: red', [
             ['type' => 'property', 'name' => 'color', 'value' => 'red', 'important' => false],
         ]];
@@ -1591,11 +1594,23 @@ final class ParserTest extends TestCase
         yield 'background-color accepts named color' => ['background-color: green', [
             ['type' => 'property', 'name' => 'background-color', 'value' => 'green', 'important' => false],
         ]];
+        yield 'background-color accepts normal leading whitespace' => ['background-color:   green', [
+            ['type' => 'property', 'name' => 'background-color', 'value' => 'green', 'important' => false],
+        ]];
+        yield 'background-color rejects named color with comment-separated leading whitespace like Lexbor' => ['background-color: /**/  green', [
+            ['type' => 'undef', 'name' => 'background-color', 'value' => 'green', 'important' => false],
+        ]];
         yield 'background-color accepts system color' => ['background-color: CanvasText', [
             ['type' => 'property', 'name' => 'background-color', 'value' => 'CanvasText', 'important' => false],
         ]];
         yield 'text-decoration-color accepts currentcolor' => ['text-decoration-color: currentcolor', [
             ['type' => 'property', 'name' => 'text-decoration-color', 'value' => 'currentcolor', 'important' => false],
+        ]];
+        yield 'text-decoration-color accepts normal leading whitespace' => ['text-decoration-color:   currentcolor', [
+            ['type' => 'property', 'name' => 'text-decoration-color', 'value' => 'currentcolor', 'important' => false],
+        ]];
+        yield 'text-decoration-color rejects currentcolor with comment-separated leading whitespace like Lexbor' => ['text-decoration-color: /**/  currentcolor', [
+            ['type' => 'undef', 'name' => 'text-decoration-color', 'value' => 'currentcolor', 'important' => false],
         ]];
         yield 'border-top-color accepts named color' => ['border-top-color: red', [
             ['type' => 'property', 'name' => 'border-top-color', 'value' => 'red', 'important' => false],
@@ -1603,11 +1618,26 @@ final class ParserTest extends TestCase
         yield 'border-right-color accepts css-wide keyword' => ['border-right-color: unset', [
             ['type' => 'property', 'name' => 'border-right-color', 'value' => 'unset', 'important' => false],
         ]];
+        yield 'border-right-color accepts normal leading whitespace before css-wide keyword' => ['border-right-color:   unset', [
+            ['type' => 'property', 'name' => 'border-right-color', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'border-right-color rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['border-right-color: /**/  unset', [
+            ['type' => 'undef', 'name' => 'border-right-color', 'value' => 'unset', 'important' => false],
+        ]];
         yield 'border-bottom-color accepts function color' => ['border-bottom-color: rgb(1 2 3)', [
             ['type' => 'property', 'name' => 'border-bottom-color', 'value' => 'rgb(1 2 3)', 'important' => false],
         ]];
+        yield 'border-bottom-color rejects function color with comment-separated leading whitespace like Lexbor' => ['border-bottom-color: /**/  rgb(1 2 3)', [
+            ['type' => 'undef', 'name' => 'border-bottom-color', 'value' => 'rgb(1 2 3)', 'important' => false],
+        ]];
         yield 'border-left-color accepts hex color' => ['border-left-color: #abc', [
             ['type' => 'property', 'name' => 'border-left-color', 'value' => '#abc', 'important' => false],
+        ]];
+        yield 'border-left-color accepts normal leading whitespace before hex color' => ['border-left-color:   #ABC', [
+            ['type' => 'property', 'name' => 'border-left-color', 'value' => '#abc', 'important' => false],
+        ]];
+        yield 'border-left-color rejects hex color with comment-separated leading whitespace like Lexbor' => ['border-left-color: /**/  #ABC', [
+            ['type' => 'undef', 'name' => 'border-left-color', 'value' => '#ABC', 'important' => false],
         ]];
         yield 'color accepts short hex' => ['color: #ABC', [
             ['type' => 'property', 'name' => 'color', 'value' => '#abc', 'important' => false],
