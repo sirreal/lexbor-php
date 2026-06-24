@@ -11,6 +11,7 @@ enum Status: string
     case Continue = 'continue';
     case SmallBuffer = 'small_buffer';
     case ErrorUnexpectedData = 'error_unexpected_data';
+    case ErrorUnexpectedResult = 'error_unexpected_result';
     case ErrorOverflow = 'error_overflow';
     case ErrorMemoryAllocation = 'error_memory_allocation';
 }

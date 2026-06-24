@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Lexbor\Tests\Unicode;
 
+use Lexbor\Core\LexborException;
+use Lexbor\Core\Status;
 use Lexbor\Encoding\Utf8;
 use Lexbor\Unicode\Unicode;
 use Lexbor\Unicode\UnicodeData;
@@ -40,6 +42,25 @@ final class UnicodeTest extends TestCase
         self::assertSame($expectedCount, UnicodeData::IDNA_NON_DISALLOWED_CODE_POINT_COUNT);
     }
 
+    public function testGeneratedIdnaMappingsMatchUpstreamResource(): void
+    {
+        $expected = self::expectedIdnaMappings();
+
+        self::assertSame($expected, UnicodeData::IDNA_MAPPING_MAP);
+        self::assertSame(count($expected), UnicodeData::IDNA_MAPPING_CODE_POINT_COUNT);
+
+        self::assertSame([0x0061], Unicode::idnaMapping(0x0041));
+        self::assertNull(Unicode::idnaMapping(0x0061));
+    }
+
+    public function testGeneratedMarkRangesMatchPinnedGeneratorData(): void
+    {
+        $expected = self::expectedMarkRanges();
+
+        self::assertSame($expected, UnicodeData::MARK_RANGES);
+        self::assertSame(count($expected), UnicodeData::MARK_RANGE_COUNT);
+    }
+
     public function testIdnaTypeMatchesGeneratedRangeBoundaries(): void
     {
         foreach (UnicodeData::IDNA_TYPE_RANGES as [$start, $end, $type]) {
@@ -51,6 +72,191 @@ final class UnicodeTest extends TestCase
         foreach ([-1, 0x80, 0xE00FF, 0x10FFFF, 0x110000] as $codePoint) {
             self::assertSame(Unicode::IDNA_DISALLOWED, Unicode::idnaType($codePoint));
         }
+    }
+
+    public function testUpstreamIdnaToAsciiUtf8Fixture(): void
+    {
+        foreach (self::idnaFixtureRows() as $index => [$source, $ascii, $status]) {
+            self::assertIdnaFixtureResult(
+                static fn (): string => Unicode::idnaToAscii($source, Unicode::IDNA_FLAG_USE_STD3ASCII_RULES),
+                $ascii,
+                $status,
+                "IDNA UTF-8 fixture #{$index}",
+            );
+        }
+    }
+
+    public function testUpstreamIdnaToAsciiCodePointFixture(): void
+    {
+        foreach (self::idnaFixtureRows() as $index => [$source, $ascii, $status]) {
+            $codePoints = self::decodeValidUtf8CodePoints($source);
+
+            self::assertIdnaFixtureResult(
+                static fn (): string => Unicode::idnaCodePointsToAscii($codePoints, Unicode::IDNA_FLAG_USE_STD3ASCII_RULES),
+                $ascii,
+                $status,
+                "IDNA code-point fixture #{$index}",
+            );
+        }
+    }
+
+    public function testIdnaToAsciiFlagAndCodePointEdges(): void
+    {
+        $std3 = Unicode::IDNA_FLAG_USE_STD3ASCII_RULES;
+        $verifyDnsLength = $std3 | Unicode::IDNA_FLAG_VERIFY_DNS_LENGTH;
+
+        self::assertSame('xn--fa-hia.de', Unicode::idnaToAscii("fa\u{00DF}.de", $std3));
+        self::assertSame(
+            'fass.de',
+            Unicode::idnaToAscii("fa\u{00DF}.de", $std3 | Unicode::IDNA_FLAG_TRANSITIONAL_PROCESSING),
+        );
+        self::assertSame(
+            'ab',
+            Unicode::idnaToAscii("a\u{200C}b", $std3 | Unicode::IDNA_FLAG_TRANSITIONAL_PROCESSING),
+        );
+        self::assertSame(
+            'ss.de',
+            Unicode::idnaToAscii("\u{1E9E}.de", $std3 | Unicode::IDNA_FLAG_TRANSITIONAL_PROCESSING),
+        );
+        self::assertSame(
+            'fass.de',
+            Unicode::idnaToAscii("fa\u{1E9E}.de", $std3 | Unicode::IDNA_FLAG_TRANSITIONAL_PROCESSING),
+        );
+        self::assertSame(
+            'xn--zca.de',
+            Unicode::idnaToAscii("\u{1E9E}.de", $std3),
+        );
+        self::assertSame(
+            'xn--fa-hia.de',
+            Unicode::idnaToAscii('xn--fa-hia.de', $std3 | Unicode::IDNA_FLAG_TRANSITIONAL_PROCESSING),
+        );
+        self::assertSame('xn--a-ttd.de', Unicode::idnaToAscii("a\u{0903}.de", $std3));
+
+        self::assertSame(str_repeat('a', 63), Unicode::idnaToAscii(str_repeat('a', 63), $verifyDnsLength));
+        self::assertSame(
+            'abc-d',
+            Unicode::idnaToAscii('abc-d', $std3 | Unicode::IDNA_FLAG_CHECK_HYPHENS),
+        );
+        self::assertSame(
+            'abcd-e',
+            Unicode::idnaToAscii('abcd-e', $std3 | Unicode::IDNA_FLAG_CHECK_HYPHENS),
+        );
+        self::assertSame('abc', Unicode::idnaToAscii('abc', $std3 | Unicode::IDNA_FLAG_CHECK_BIDI));
+        self::assertSame('abc', Unicode::idnaToAscii('abc', $std3 | Unicode::IDNA_FLAG_CHECK_JOINERS));
+        self::assertSame(
+            'xn--ngba799q',
+            Unicode::idnaToAscii("\u{0628}\u{200C}\u{0628}", $std3 | Unicode::IDNA_FLAG_CHECK_JOINERS),
+        );
+        self::assertSame(
+            'xn--11b2ezcs70k',
+            Unicode::idnaToAscii("\u{0915}\u{094D}\u{200C}\u{0937}", $std3 | Unicode::IDNA_FLAG_CHECK_JOINERS),
+        );
+        self::assertSame(
+            'xn--11b2ezcw70k',
+            Unicode::idnaToAscii("\u{0915}\u{094D}\u{200D}\u{0937}", $std3 | Unicode::IDNA_FLAG_CHECK_JOINERS),
+        );
+        self::assertSame(
+            'xn--4dbc',
+            Unicode::idnaToAscii("\u{05D0}\u{05D1}", $std3 | Unicode::IDNA_FLAG_CHECK_BIDI),
+        );
+        self::assertSame(
+            'abc.xn--4dbc',
+            Unicode::idnaToAscii("abc.\u{05D0}\u{05D1}", $std3 | Unicode::IDNA_FLAG_CHECK_BIDI),
+        );
+        self::assertSame('a', Unicode::idnaToAscii("\xC1\x81", $std3));
+        self::assertSame('a.b', Unicode::idnaToAscii("a\xC0\xAEb", $std3));
+        self::assertSame(
+            'xn--ab-mia',
+            Unicode::idnaToAscii("a\xC2Ab", $std3),
+        );
+        self::assertSame(
+            Unicode::idnaCodePointsToAscii(Utf8::decode("\xC1\x81"), $std3),
+            Unicode::idnaToAscii("\xC1\x81", $std3),
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaCodePointsToAscii([0x1FFFFF], $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaCodePointsToAscii([0x0061, 0x1FFFFF, 0x0062], $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii(str_repeat('a', 64), $verifyDnsLength),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('a..b', $verifyDnsLength),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('example.com.', $verifyDnsLength),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('a_b', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('a b', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('a!b', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('ab--d', $std3 | Unicode::IDNA_FLAG_CHECK_HYPHENS),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii("a\u{200C}b", $std3 | Unicode::IDNA_FLAG_CHECK_JOINERS),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii("a\u{200D}b", $std3 | Unicode::IDNA_FLAG_CHECK_JOINERS),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii("\u{05D0}a", $std3 | Unicode::IDNA_FLAG_CHECK_BIDI),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii("\u{05D0}1\u{0661}", $std3 | Unicode::IDNA_FLAG_CHECK_BIDI),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii("123.\u{05D0}\u{05D1}", $std3 | Unicode::IDNA_FLAG_CHECK_BIDI),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii("\u{0301}.de", $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii("\u{0903}.de", $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii("\u{20DD}.de", $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('xn--abc-', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('xn--u-ccb.com', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('xn--0', $std3),
+            Status::ErrorUnexpectedResult,
+        );
+        self::assertIdnaFailure(
+            static fn (): string => Unicode::idnaToAscii('abc', 1 << 20),
+            Status::ErrorUnexpectedData,
+        );
     }
 
     public function testUpstreamCompositionFixture(): void
@@ -290,6 +496,118 @@ final class UnicodeTest extends TestCase
         }
 
         $cached = [$ranges, $nonDisallowedCount];
+
+        return $cached;
+    }
+
+    /**
+     * @return array<int, list<int>>
+     */
+    private static function expectedIdnaMappings(): array
+    {
+        static $cached = null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $sourcePath = dirname(__DIR__, 2) . '/upstream/lexbor/source/lexbor/unicode/res.h';
+        $source = file_get_contents($sourcePath);
+
+        if ($source === false) {
+            throw new RuntimeException("Unable to read upstream Unicode resource: {$sourcePath}");
+        }
+
+        preg_match_all(
+            '/\{\s*(\d+)\s*,\s*(\d+)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_entries'),
+            $entryMatches,
+            PREG_SET_ORDER,
+        );
+
+        $unicodeEntries = [];
+        foreach ($entryMatches as $match) {
+            $unicodeEntries[] = [(int) $match[1], (int) $match[2]];
+        }
+
+        preg_match_all(
+            '/\{\s*(LXB_UNICODE_IDNA_[A-Z_]+|0)\s*,\s*(\d+)\s*,\s*(\d+)\s*\}/',
+            self::captureArray($source, 'lxb_unicode_idna_entries'),
+            $idnaMatches,
+            PREG_SET_ORDER,
+        );
+
+        $idnaEntries = [];
+        foreach ($idnaMatches as $match) {
+            $idnaEntries[] = [
+                'length' => (int) $match[2],
+                'index' => (int) $match[3],
+            ];
+        }
+
+        preg_match_all(
+            '/0x[0-9A-Fa-f]+|\d+/',
+            self::captureArray($source, 'lxb_unicode_idna_cps'),
+            $idnaCpMatches,
+        );
+
+        $idnaCodePoints = [];
+        foreach ($idnaCpMatches[0] as $number) {
+            $idnaCodePoints[] = self::parseNumber($number);
+        }
+
+        $map = [];
+
+        foreach (self::unicodeTableMaps($source) as [$start, , $indexes]) {
+            foreach ($indexes as $offset => $entryIndex) {
+                $codePoint = $start + $offset;
+                $idnaIndex = $unicodeEntries[$entryIndex][1] ?? 0;
+                $idna = $idnaEntries[$idnaIndex] ?? null;
+
+                if ($idna === null || $idna['length'] === 0) {
+                    continue;
+                }
+
+                $map[$codePoint] = array_slice($idnaCodePoints, $idna['index'], $idna['length']);
+            }
+        }
+
+        ksort($map);
+
+        $cached = $map;
+
+        return $cached;
+    }
+
+    /**
+     * @return list<array{int, int}>
+     */
+    private static function expectedMarkRanges(): array
+    {
+        static $cached = null;
+
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        $sourcePath = dirname(__DIR__, 2) . '/tools/generate_unicode_data.php';
+        $source = file_get_contents($sourcePath);
+
+        if ($source === false) {
+            throw new RuntimeException("Unable to read Unicode data generator: {$sourcePath}");
+        }
+
+        if (preg_match("/return <<<'RANGES'\n(.*?)\nRANGES;/s", $source, $match) !== 1) {
+            throw new RuntimeException('Unable to locate pinned Mark ranges.');
+        }
+
+        $ranges = [];
+        foreach (explode("\n", trim($match[1])) as $line) {
+            [$start, $end] = explode('..', trim($line), 2);
+            $ranges[] = [hexdec($start), hexdec($end)];
+        }
+
+        $cached = $ranges;
 
         return $cached;
     }
@@ -594,6 +912,36 @@ final class UnicodeTest extends TestCase
     }
 
     /**
+     * @return iterable<int, array{string, string, int}>
+     */
+    private static function idnaFixtureRows(): iterable
+    {
+        $sourcePath = dirname(__DIR__, 2) . '/upstream/lexbor/test/lexbor/unicode/unicode_idna_test_res.h';
+        if (!is_file($sourcePath)) {
+            throw new RuntimeException("Unable to read upstream Unicode IDNA fixture: {$sourcePath}");
+        }
+
+        foreach (new \SplFileObject($sourcePath) as $line) {
+            if (
+                !is_string($line)
+                || preg_match(
+                    '/^\s*\{\.source = \(const lxb_char_t \*\) "((?:\\\\x[0-9A-Fa-f]{2})*)", \.ascii = \(const lxb_char_t \*\) "((?:\\\\x[0-9A-Fa-f]{2})*)", \.status = (\d+)\} \/\* (\d+) \*\/,?$/',
+                    rtrim($line),
+                    $match,
+                ) !== 1
+            ) {
+                continue;
+            }
+
+            yield (int) $match[4] => [
+                self::parseEscapedHexBytes($match[1]),
+                self::parseEscapedHexBytes($match[2]),
+                (int) $match[3],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<int, array{source: list<int>, nfc: list<int>, nfd: list<int>, nfkc: list<int>, nfkd: list<int>}>
      */
     private static function normalizationFixtureRows(): iterable
@@ -791,5 +1139,94 @@ final class UnicodeTest extends TestCase
         }
 
         return $codePoints;
+    }
+
+    /**
+     * @return list<int>
+     */
+    private static function decodeValidUtf8CodePoints(string $data): array
+    {
+        $length = strlen($data);
+        $codePoints = [];
+
+        for ($offset = 0; $offset < $length;) {
+            $first = ord($data[$offset]);
+            $needed = match (true) {
+                $first < 0x80 => 1,
+                ($first & 0xE0) === 0xC0 => 2,
+                ($first & 0xF0) === 0xE0 => 3,
+                ($first & 0xF8) === 0xF0 => 4,
+                default => 0,
+            };
+
+            if ($needed === 0) {
+                $codePoints[] = 0x1FFFFF;
+                $offset++;
+                continue;
+            }
+
+            if ($length - $offset < $needed) {
+                $codePoints[] = 0x1FFFFF;
+                break;
+            }
+
+            $second = $needed >= 2 ? ord($data[$offset + 1]) : 0;
+            $third = $needed >= 3 ? ord($data[$offset + 2]) : 0;
+            $fourth = $needed >= 4 ? ord($data[$offset + 3]) : 0;
+
+            $codePoints[] = match ($needed) {
+                1 => $first,
+                2 => (($first ^ (0xC0 & $first)) << 6)
+                    | ($second ^ (0x80 & $second)),
+                3 => (($first ^ (0xE0 & $first)) << 12)
+                    | (($second ^ (0x80 & $second)) << 6)
+                    | ($third ^ (0x80 & $third)),
+                4 => (($first ^ (0xF0 & $first)) << 18)
+                    | (($second ^ (0x80 & $second)) << 12)
+                    | (($third ^ (0x80 & $third)) << 6)
+                    | ($fourth ^ (0x80 & $fourth)),
+            };
+            $offset += $needed;
+        }
+
+        return $codePoints;
+    }
+
+    private static function parseEscapedHexBytes(string $source): string
+    {
+        preg_match_all('/\\\\x([0-9A-Fa-f]{2})/', $source, $matches);
+
+        return implode('', array_map(
+            static fn (string $hex): string => chr(hexdec($hex)),
+            $matches[1],
+        ));
+    }
+
+    private static function assertIdnaFixtureResult(callable $convert, string $ascii, int $status, string $message): void
+    {
+        try {
+            $actual = $convert();
+        } catch (LexborException $exception) {
+            if ($status !== 0) {
+                self::assertTrue(true, "{$message}: expected {$exception->status->value}.");
+                return;
+            }
+
+            self::fail("{$message}: unexpected {$exception->status->value}.");
+        }
+
+        self::assertSame($ascii, $actual, $message);
+    }
+
+    private static function assertIdnaFailure(callable $convert, Status $status): void
+    {
+        try {
+            $convert();
+        } catch (LexborException $exception) {
+            self::assertSame($status, $exception->status);
+            return;
+        }
+
+        self::fail("Expected IDNA failure with {$status->value}.");
     }
 }
