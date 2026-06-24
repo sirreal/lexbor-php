@@ -18,7 +18,10 @@ final class Parser
         'clear' => true,
         'direction' => true,
         'display' => true,
+        'flex-basis' => true,
         'flex-direction' => true,
+        'flex-grow' => true,
+        'flex-shrink' => true,
         'flex-wrap' => true,
         'height' => true,
         'hyphens' => true,
@@ -239,6 +242,13 @@ final class Parser
         'none' => true,
         'revert' => true,
         'unset' => true,
+    ];
+
+    private const array FLEX_BASIS_KEYWORDS = [
+        'auto' => true,
+        'content' => true,
+        'max-content' => true,
+        'min-content' => true,
     ];
 
     private const array KEYWORD_PROPERTIES = [
@@ -587,8 +597,10 @@ final class Parser
 
         return match ($property) {
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
+            'flex-basis' => self::isValidFlexBasis($valueTokens) ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
             'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
+            'flex-grow', 'flex-shrink' => self::isValidNonNegativeNumber($valueTokens) ? 'property' : 'undef',
             'letter-spacing', 'word-spacing' => self::isValidLengthKeyword($valueTokens, ['normal' => true]) ? 'property' : 'undef',
             'line-height' => self::isValidNumberLengthPercentage($valueTokens, ['normal' => true]) ? 'property' : 'undef',
             'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
@@ -745,6 +757,53 @@ final class Parser
     private static function isSignedPercentage(string $value): bool
     {
         return preg_match('/^[+-]?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?%$/i', $value) === 1;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function isValidNonNegativeNumber(array $tokens): bool
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return false;
+        }
+
+        if ($token->type === 'ident') {
+            return isset(self::CSS_WIDE_KEYWORDS[strtolower($token->value)]);
+        }
+
+        return $token->type === 'number' && (float) $token->value >= 0.0;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function isValidFlexBasis(array $tokens): bool
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return false;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value])
+                || isset(self::FLEX_BASIS_KEYWORDS[$value]);
+        }
+
+        if ($token->type === 'number') {
+            return $token->value === '0';
+        }
+
+        if ($token->type === 'percentage') {
+            return self::isSignedPercentage($token->value);
+        }
+
+        return $token->type === 'dimension' && self::isValidLengthDimension($token->value);
     }
 
     /**
@@ -913,10 +972,15 @@ final class Parser
             return self::serializeIdentSequence($tokens) ?? $fallback;
         }
 
+        if (in_array($property, ['flex-grow', 'flex-shrink'], true)) {
+            return self::singleValueToken($tokens)?->value ?? $fallback;
+        }
+
         if (
             in_array($property, ['margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top'], true)
             || in_array($property, ['padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top'], true)
             || in_array($property, ['bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top'], true)
+            || $property === 'flex-basis'
         ) {
             return implode(' ', array_map(
                 static fn (array $component): string => self::serializeComponentValue($component),

@@ -787,6 +787,94 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function flexValueDeclarationProvider(): iterable
+    {
+        yield 'flex-grow accepts zero' => ['flex-grow: 0', [
+            ['type' => 'property', 'name' => 'flex-grow', 'value' => '0', 'important' => false],
+        ]];
+        yield 'flex-grow accepts decimal number' => ['flex-grow: 1.5', [
+            ['type' => 'property', 'name' => 'flex-grow', 'value' => '1.5', 'important' => false],
+        ]];
+        yield 'flex-grow accepts exponent number' => ['flex-grow: 1e2', [
+            ['type' => 'property', 'name' => 'flex-grow', 'value' => '100', 'important' => false],
+        ]];
+        yield 'flex-grow accepts css-wide keyword' => ['flex-grow: inherit', [
+            ['type' => 'property', 'name' => 'flex-grow', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'flex-grow trims whitespace before trailing comment' => ['flex-grow: 2 /**/;', [
+            ['type' => 'property', 'name' => 'flex-grow', 'value' => '2', 'important' => false],
+        ]];
+        yield 'flex-grow rejects negative number' => ['flex-grow: -1', [
+            ['type' => 'undef', 'name' => 'flex-grow', 'value' => '-1', 'important' => false],
+        ]];
+        yield 'flex-grow rejects percentage' => ['flex-grow: 1%', [
+            ['type' => 'undef', 'name' => 'flex-grow', 'value' => '1%', 'important' => false],
+        ]];
+        yield 'flex-grow rejects comment-split number' => ['flex-grow: 1/**/2', [
+            ['type' => 'undef', 'name' => 'flex-grow', 'value' => '12', 'important' => false],
+        ]];
+        yield 'flex-shrink accepts number' => ['flex-shrink: 2', [
+            ['type' => 'property', 'name' => 'flex-shrink', 'value' => '2', 'important' => false],
+        ]];
+        yield 'flex-shrink accepts css-wide keyword' => ['flex-shrink: revert', [
+            ['type' => 'property', 'name' => 'flex-shrink', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'flex-shrink rejects negative number' => ['flex-shrink: -0.5', [
+            ['type' => 'undef', 'name' => 'flex-shrink', 'value' => '-0.5', 'important' => false],
+        ]];
+        yield 'flex-shrink rejects length' => ['flex-shrink: 1px', [
+            ['type' => 'undef', 'name' => 'flex-shrink', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'flex-basis accepts auto' => ['flex-basis: auto', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'flex-basis accepts content' => ['flex-basis: content', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => 'content', 'important' => false],
+        ]];
+        yield 'flex-basis accepts min-content' => ['flex-basis: min-content', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => 'min-content', 'important' => false],
+        ]];
+        yield 'flex-basis accepts max-content' => ['flex-basis: max-content', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => 'max-content', 'important' => false],
+        ]];
+        yield 'flex-basis accepts length' => ['flex-basis: 12px', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => '12px', 'important' => false],
+        ]];
+        yield 'flex-basis accepts negative length like Lexbor width handler' => ['flex-basis: -1px', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => '-1px', 'important' => false],
+        ]];
+        yield 'flex-basis accepts negative percentage like Lexbor width handler' => ['flex-basis: -10%', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => '-10%', 'important' => false],
+        ]];
+        yield 'flex-basis accepts unitless zero' => ['flex-basis: 0', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => '0', 'important' => false],
+        ]];
+        yield 'flex-basis accepts css-wide keyword' => ['flex-basis: unset', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'flex-basis trims whitespace before trailing comment' => ['flex-basis: content /**/;', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => 'content', 'important' => false],
+        ]];
+        yield 'flex-basis rejects none' => ['flex-basis: none', [
+            ['type' => 'undef', 'name' => 'flex-basis', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'flex-basis rejects nonzero number' => ['flex-basis: 1', [
+            ['type' => 'undef', 'name' => 'flex-basis', 'value' => '1', 'important' => false],
+        ]];
+        yield 'flex-basis rejects non-length dimension' => ['flex-basis: 1deg', [
+            ['type' => 'undef', 'name' => 'flex-basis', 'value' => '1deg', 'important' => false],
+        ]];
+        yield 'flex-basis rejects multiple values' => ['flex-basis: auto 1px', [
+            ['type' => 'undef', 'name' => 'flex-basis', 'value' => 'auto 1px', 'important' => false],
+        ]];
+        yield 'flex-basis rejects comment-split length' => ['flex-basis: 1/**/px', [
+            ['type' => 'undef', 'name' => 'flex-basis', 'value' => '1px', 'important' => false],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -899,6 +987,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('flexKeywordDeclarationProvider')]
     public function testFlexKeywordDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('flexValueDeclarationProvider')]
+    public function testFlexValueDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
