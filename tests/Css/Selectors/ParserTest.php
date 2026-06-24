@@ -70,6 +70,13 @@ final class ParserTest extends TestCase
         yield 'selectors.c #52 not pseudo function name is case-insensitive' => [':NoT(div)', ':not(div)', []];
         yield 'selectors.c #53 not pseudo function selector list' => [':not(div, #hash, .class)', ':not(div, #hash, .class)', []];
         yield 'selectors.c #54 not pseudo function normalizes selector list whitespace' => [':not( div,#hash,.class )', ':not(div, #hash, .class)', []];
+        yield 'selectors regression is pseudo function selector list' => ['p:is([p="2"], [p="5"])', 'p:is([p="2"], [p="5"])', []];
+        yield 'selectors regression where pseudo function in descendant selector' => ['p :where(span#s4)', 'p :where(span#s4)', []];
+        yield 'selectors regression is pseudo function skips invalid selector' => ['p:is([p="2"], 1%, [p="5"])', 'p:is([p="2"], [p="5"])', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors regression where pseudo function skips invalid selector' => ['p:where([p="2"], 1%, [p="5"])', 'p:where([p="2"], [p="5"])', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors regression is pseudo function recovers inside selector list' => ['p:is([p="2"], 1%, [p="5"]), a', 'p:is([p="2"], [p="5"]), a', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors regression is pseudo function preserves combinator prefix on recovery' => ['div > p:is([p="1"], 1%, [p="2"])', 'div > p:is([p="1"], [p="2"])', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors regression is pseudo function preserves compound suffix on recovery' => ['p:is([p="1"], 1%, [p="2"]).super', 'p:is([p="1"], [p="2"]).super', ['Syntax error. Selectors. Unexpected token: 1%']];
         yield 'selectors.c #55 rejects invalid not selector after valid selector' => [':not(div, .class 1%)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #56 rejects invalid not selector before valid selector' => [':not(.class 1%, div)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #57 rejects invalid not selector between valid selectors' => [':not(div, .class 1%, #hash)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
@@ -80,7 +87,13 @@ final class ParserTest extends TestCase
         yield 'selectors.c #62 EOF in nested not selector list' => [':not(div, :not(.class, :not([x], #hash), span)', ':not(div, :not(.class, :not([x], #hash), span))', ['Syntax error. Selectors. End Of File in pseudo function']];
         yield 'selectors.c #63 EOF in nested not selector' => [':not(div, :not(div', ':not(div, :not(div))', ['Syntax error. Selectors. End Of File in pseudo function', 'Syntax error. Selectors. End Of File in pseudo function']];
         yield 'selectors.c #64 EOF in empty nested not selector' => [':not(div, :not(', '', ['Syntax error. Selectors. Unexpected token: END-OF-FILE', 'Syntax error. Selectors. End Of File in pseudo function', "Syntax error. Selectors. Pseudo function can't be empty: not()", 'Syntax error. Selectors. End Of File in pseudo function', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors regression has relative next-sibling selector' => [':has(+ a)', ':has(+ a)', []];
+        yield 'selectors regression has pseudo function preserves combinator prefix on recovery' => ['div > :has(, a)', 'div > :has(a)', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors regression has pseudo function preserves complex suffix on recovery' => ['div > p:has(, a) > a', 'div > p:has(a) > a', ['Syntax error. Selectors. Unexpected token: ,']];
         yield 'selectors.c #65 has selector skips empty selector after comma' => [':has(div,, .class)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: ,']];
+        yield 'selectors regression not pseudo function rejects leading empty selector' => [':not(,div)', '', ["Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors regression not pseudo function rejects trailing empty selector' => [':not(div,)', '', ["Syntax error. Selectors. Pseudo function can't be empty: not()"]];
+        yield 'selectors regression not pseudo function rejects repeated empty selector' => [':not(div,,span)', '', ["Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #66 has selector skips leading and repeated empty selectors' => [':has(,div,, .class,)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: ,', 'Syntax error. Selectors. Unexpected token: ,']];
         yield 'selectors.c #67 has selector skips invalid nested not selector' => [':has(div, :not(1%), .class)', ':has(div, .class)', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: not()"]];
         yield 'selectors.c #68 has selector skips invalid class selector' => [':has(div, .class 1%)', ':has(div)', ['Syntax error. Selectors. Unexpected token: 1%']];
@@ -168,9 +181,14 @@ final class ParserTest extends TestCase
         $twoHundredAs = str_repeat('A', 200);
 
         yield 'selectors.c #128 complex list with nth-child' => ['parseComplexList', 'div > :nth-child(2n+1) span, div', 'div > :nth-child(odd) span, div', []];
+        yield 'selectors regression complex list preserves forgiving is recovery' => ['parseComplexList', 'div > p:is([p="1"], 1%, [p="2"])', 'div > p:is([p="1"], [p="2"])', ['Syntax error. Selectors. Unexpected token: 1%']];
         yield 'selectors.c #129 compound list rejects child combinator' => ['parseCompoundList', 'div > :nth-child(2n+1)', '', ['Syntax error. Selectors. Unexpected token: >']];
         yield 'selectors.c #130 compound list with nth-child and type selector' => ['parseCompoundList', ':nth-child(2n+1), div', ':nth-child(odd), div', []];
+        yield 'selectors regression compound list preserves forgiving is recovery' => ['parseCompoundList', 'p:is([p="1"], 1%, [p="2"])', 'p:is([p="1"], [p="2"])', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors regression compound list rejects trailing token after forgiving is recovery' => ['parseCompoundList', 'p:is([p="1"], 1%, [p="2"]) > a', '', ['Syntax error. Selectors. Unexpected token: 1%', 'Syntax error. Selectors. Unexpected token: >']];
         yield 'selectors.c #131 simple list with nth-child and type selector' => ['parseSimpleList', ':nth-child(2n+1), div', ':nth-child(odd), div', []];
+        yield 'selectors regression simple list preserves forgiving is recovery' => ['parseSimpleList', ':is([p="1"], 1%, [p="2"])', ':is([p="1"], [p="2"])', ['Syntax error. Selectors. Unexpected token: 1%']];
+        yield 'selectors regression simple list rejects trailing token after forgiving is recovery' => ['parseSimpleList', ':is([p="1"], 1%, [p="2"]).x', '', ['Syntax error. Selectors. Unexpected token: 1%', 'Syntax error. Selectors. Unexpected token: .']];
         yield 'selectors.c #132 simple list rejects double-colon nth-child' => ['parseSimpleList', '::nth-child(2n+1)', '', ['Syntax error. Selectors. Unexpected token: :']];
         yield 'selectors.c #133 relative list with nth-child descendants' => ['parseRelativeList', '+ :nth-child(2n+1) div, > span', '+ :nth-child(odd) div, > span', []];
         yield 'selectors.c #134 complex selector with nth-child descendant' => ['parseComplex', 'div > :nth-child(2n+1) span', 'div > :nth-child(odd) span', []];
@@ -185,6 +203,8 @@ final class ParserTest extends TestCase
         yield 'selectors.c #143 simple selector rejects child combinator' => ['parseSimple', ':nth-child(2n+1) > span', '', ['Syntax error. Selectors. Unexpected token: >']];
         yield 'selectors.c #144 relative selector with nth-child' => ['parseRelative', '+ :nth-child(2n+1)', '+ :nth-child(odd)', []];
         yield 'selectors.c #145 relative selector rejects child combinator' => ['parseRelative', '+ :nth-child(2n+1) > span', '', ['Syntax error. Selectors. Unexpected token: >']];
+        yield 'selectors regression relative selector keeps empty failed forgiving selector empty' => ['parseRelative', '+ :is(1%)', '', ['Syntax error. Selectors. Unexpected token: 1%', "Syntax error. Selectors. Pseudo function can't be empty: is()"]];
+        yield 'selectors regression relative selector rejects trailing token after forgiving has recovery' => ['parseRelative', '+ p:has(, a) > a', '', ['Syntax error. Selectors. Unexpected token: ,', 'Syntax error. Selectors. Unexpected token: >']];
         yield 'selectors.c #146 relative selector rejects selector-list comma' => ['parseRelative', '+ :nth-child(2n+1), span', '', ['Syntax error. Selectors. Unexpected token: ,']];
         yield 'selectors.c #153 simple list spaced dash-match attribute selector' => ['parseSimpleList', '[lang |= en]', '[lang|="en"]', []];
         yield 'selectors.c #154 simple list tight dash-match attribute selector' => ['parseSimpleList', '[lang|=en]', '[lang|="en"]', []];

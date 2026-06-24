@@ -269,6 +269,7 @@ final class Parser
 
         $part = [];
         $serialized = [];
+        $errors = [];
         $stack = [];
 
         foreach ($tokens as $token) {
@@ -288,10 +289,14 @@ final class Parser
                 }
 
                 if ($selector['errors'] !== []) {
-                    return [
-                        'value' => '',
-                        'errors' => $selector['errors'],
-                    ];
+                    if ($selector['value'] === '') {
+                        return [
+                            'value' => '',
+                            'errors' => $selector['errors'],
+                        ];
+                    }
+
+                    array_push($errors, ...$selector['errors']);
                 }
 
                 $serialized[] = $selector['value'];
@@ -314,17 +319,21 @@ final class Parser
         }
 
         if ($selector['errors'] !== []) {
-            return [
-                'value' => '',
-                'errors' => $selector['errors'],
-            ];
+            if ($selector['value'] === '') {
+                return [
+                    'value' => '',
+                    'errors' => $selector['errors'],
+                ];
+            }
+
+            array_push($errors, ...$selector['errors']);
         }
 
         $serialized[] = $selector['value'];
 
         return [
             'value' => implode(', ', $serialized),
-            'errors' => [],
+            'errors' => $errors,
         ];
     }
 
@@ -336,6 +345,7 @@ final class Parser
     {
         $part = [];
         $serialized = [];
+        $errors = [];
         $stack = [];
 
         foreach ($tokens as $token) {
@@ -347,10 +357,14 @@ final class Parser
 
                 $selector = $this->parseRelativeSelector($part);
                 if ($selector['errors'] !== []) {
-                    return [
-                        'value' => '',
-                        'errors' => $selector['errors'],
-                    ];
+                    if ($selector['value'] === '') {
+                        return [
+                            'value' => '',
+                            'errors' => $selector['errors'],
+                        ];
+                    }
+
+                    array_push($errors, ...$selector['errors']);
                 }
 
                 $serialized[] = $selector['value'];
@@ -369,17 +383,21 @@ final class Parser
 
         $selector = $this->parseRelativeSelector($part);
         if ($selector['errors'] !== []) {
-            return [
-                'value' => '',
-                'errors' => $selector['errors'],
-            ];
+            if ($selector['value'] === '') {
+                return [
+                    'value' => '',
+                    'errors' => $selector['errors'],
+                ];
+            }
+
+            array_push($errors, ...$selector['errors']);
         }
 
         $serialized[] = $selector['value'];
 
         return [
             'value' => implode(', ', $serialized),
-            'errors' => [],
+            'errors' => $errors,
         ];
     }
 
@@ -392,6 +410,7 @@ final class Parser
     {
         $part = [];
         $serialized = [];
+        $errors = [];
         $stack = [];
 
         foreach ($tokens as $token) {
@@ -407,10 +426,14 @@ final class Parser
 
                 $selector = $parsePart($part);
                 if ($selector['errors'] !== []) {
-                    return [
-                        'value' => '',
-                        'errors' => $selector['errors'],
-                    ];
+                    if ($selector['value'] === '') {
+                        return [
+                            'value' => '',
+                            'errors' => $selector['errors'],
+                        ];
+                    }
+
+                    array_push($errors, ...$selector['errors']);
                 }
 
                 $serialized[] = $selector['value'];
@@ -429,17 +452,21 @@ final class Parser
 
         $selector = $parsePart($part);
         if ($selector['errors'] !== []) {
-            return [
-                'value' => '',
-                'errors' => $selector['errors'],
-            ];
+            if ($selector['value'] === '') {
+                return [
+                    'value' => '',
+                    'errors' => $selector['errors'],
+                ];
+            }
+
+            array_push($errors, ...$selector['errors']);
         }
 
         $serialized[] = $selector['value'];
 
         return [
             'value' => implode(', ', $serialized),
-            'errors' => [],
+            'errors' => $errors,
         ];
     }
 
@@ -644,7 +671,7 @@ final class Parser
         }
 
         $name = strtolower(substr($tokens[1]->value, 0, -1));
-        if (! in_array($name, ['not', 'has', 'nth-child', 'nth-last-child', 'lexbor-contains'], true)) {
+        if (! in_array($name, ['not', 'is', 'where', 'has', 'nth-child', 'nth-last-child', 'lexbor-contains'], true)) {
             return self::error($tokens[1]->value);
         }
 
@@ -659,6 +686,10 @@ final class Parser
 
         if ($name === 'has') {
             return $this->parseHasPseudoFunction($body, $closed, $trailing);
+        }
+
+        if ($name === 'is' || $name === 'where') {
+            return $this->parseForgivingPseudoFunction($name, $body, $closed, $trailing);
         }
 
         if ($trailing !== []) {
@@ -805,11 +836,7 @@ final class Parser
         $serialized = [];
 
         foreach ($selectorParts as $selectorTokens) {
-            $selector = $this->parseSelectorComponent($selectorTokens);
-            if ($selector === null) {
-                $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($selectorTokens));
-                continue;
-            }
+            $selector = $this->parseRelativeSelector($selectorTokens);
 
             if ($selector['errors'] !== []) {
                 array_push($errors, ...$selector['errors']);
@@ -844,6 +871,60 @@ final class Parser
 
         return [
             'value' => sprintf(':has(%s)', implode(', ', $serialized)),
+            'errors' => $errors,
+        ];
+    }
+
+    /**
+     * @param list<Token> $body
+     * @param list<Token> $trailing
+     * @return array{value: string, errors: list<string>}
+     */
+    private function parseForgivingPseudoFunction(string $name, array $body, bool $closed, array $trailing): array
+    {
+        [$selectorParts, $errors] = self::splitForgivingSelectorList($body);
+        $serialized = [];
+
+        foreach ($selectorParts as $selectorTokens) {
+            $selector = $this->parseSelectorComponent($selectorTokens);
+            if ($selector === null) {
+                $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($selectorTokens));
+                continue;
+            }
+
+            if ($selector['errors'] !== []) {
+                array_push($errors, ...$selector['errors']);
+            }
+
+            if ($selector['value'] !== '') {
+                $serialized[] = $selector['value'];
+            }
+        }
+
+        if (! $closed) {
+            $errors[] = self::eofPseudoFunctionError();
+        }
+
+        if ($trailing !== []) {
+            $errors[] = self::unexpectedTokenError(self::firstUnexpectedToken($trailing));
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
+        if ($serialized === []) {
+            $errors[] = self::emptyPseudoFunctionError($name);
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
+        }
+
+        return [
+            'value' => sprintf(':%s(%s)', $name, implode(', ', $serialized)),
             'errors' => $errors,
         ];
     }
@@ -1258,11 +1339,16 @@ final class Parser
             return null;
         }
 
+        $serialized = [$compound['value']];
+        $errors = [];
         if ($compound['errors'] !== []) {
-            return $compound;
+            if ($compound['value'] === '') {
+                return $compound;
+            }
+
+            array_push($errors, ...$compound['errors']);
         }
 
-        $serialized = [$compound['value']];
         $count = count($tokens);
 
         while ($offset < $count) {
@@ -1295,7 +1381,11 @@ final class Parser
             }
 
             if ($compound['errors'] !== []) {
-                return $compound;
+                if ($compound['value'] === '') {
+                    return $compound;
+                }
+
+                array_push($errors, ...$compound['errors']);
             }
 
             $serialized[] = $combinator === ' '
@@ -1305,7 +1395,7 @@ final class Parser
 
         return [
             'value' => implode('', $serialized),
-            'errors' => [],
+            'errors' => $errors,
         ];
     }
 
@@ -1406,11 +1496,7 @@ final class Parser
             return self::error(self::firstUnexpectedToken(array_slice($tokens, $offset)));
         }
 
-        if ($selector['errors'] !== []) {
-            return $selector;
-        }
-
-        if ($combinator !== '') {
+        if ($combinator !== '' && $selector['value'] !== '') {
             $selector['value'] = "{$combinator} {$selector['value']}";
         }
 
@@ -1424,13 +1510,15 @@ final class Parser
      */
     private function completeSingularSelector(array $selector, array $tokens, int $offset): array
     {
-        if ($selector['errors'] !== []) {
-            return $selector;
-        }
-
         self::skipWhitespace($tokens, $offset);
         if (isset($tokens[$offset])) {
-            return self::error($tokens[$offset]->value);
+            $errors = $selector['errors'];
+            $errors[] = self::unexpectedTokenError($tokens[$offset]->value);
+
+            return [
+                'value' => '',
+                'errors' => $errors,
+            ];
         }
 
         return $selector;
@@ -1464,6 +1552,10 @@ final class Parser
         }
 
         if ($complex['errors'] !== []) {
+            if ($complex['value'] !== '' && $combinator !== '') {
+                $complex['value'] = "{$combinator} {$complex['value']}";
+            }
+
             return $complex;
         }
 
@@ -1481,6 +1573,7 @@ final class Parser
     {
         $start = $offset;
         $serialized = [];
+        $errors = [];
 
         $typeSelector = self::consumeTypeSelector($tokens, $offset);
         if ($typeSelector !== null) {
@@ -1509,7 +1602,11 @@ final class Parser
             }
 
             if ($selector['errors'] !== []) {
-                return $selector;
+                if ($selector['value'] === '') {
+                    return $selector;
+                }
+
+                array_push($errors, ...$selector['errors']);
             }
 
             $serialized[] = $selector['value'];
@@ -1523,7 +1620,7 @@ final class Parser
 
         return [
             'value' => implode('', $serialized),
-            'errors' => [],
+            'errors' => $errors,
         ];
     }
 
@@ -1732,10 +1829,11 @@ final class Parser
         foreach ($tokens as $token) {
             if ($token->type === 'comma' && $stack === []) {
                 $part = self::trimTokenList($part);
-                if ($part !== []) {
-                    $parts[] = $part;
+                if ($part === []) {
+                    return [];
                 }
 
+                $parts[] = $part;
                 $part = [];
                 continue;
             }
@@ -1763,9 +1861,11 @@ final class Parser
         }
 
         $part = self::trimTokenList($part);
-        if ($part !== []) {
-            $parts[] = $part;
+        if ($part === []) {
+            return [];
         }
+
+        $parts[] = $part;
 
         return $parts;
     }

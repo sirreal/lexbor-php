@@ -110,15 +110,25 @@ final class Matcher
     }
 
     /**
-     * @return list<array{parts: list<array{tag: string|null, universal: bool, ids: list<string>, classes: list<string>, attributes: list<array{name: string, matcher: string, value: string|null, modifier: string|null}>}>, combinators: list<string>}>|null
+     * @return list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null
      */
     private function parseSelectorList(string $selector): ?array
     {
-        if ($this->parser->parse($selector)['errors'] !== []) {
+        $parsed = $this->parser->parse($selector);
+        if ($parsed['value'] === '') {
             return null;
         }
 
-        $parts = $this->splitSelectorList($this->stripWhitespaceTokens($this->tokenizer->tokenize($selector)));
+        return $this->parseSelectorTokenList($this->stripWhitespaceTokens($this->tokenizer->tokenize($parsed['value'])));
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null
+     */
+    private function parseSelectorTokenList(array $tokens): ?array
+    {
+        $parts = $this->splitSelectorList($tokens);
         if ($parts === []) {
             return null;
         }
@@ -138,6 +148,50 @@ final class Matcher
 
     /**
      * @param list<Token> $tokens
+     * @return list<array{parts: list<array<string, mixed>>, combinators: list<string>}>|null
+     */
+    private function parseForgivingSelectorTokenList(array $tokens): ?array
+    {
+        $parts = $this->splitForgivingSelectorList($tokens);
+        if ($parts === []) {
+            return null;
+        }
+
+        $selectors = [];
+        foreach ($parts as $part) {
+            $complex = $this->parseComplexSelector($part);
+            if ($complex !== null) {
+                $selectors[] = $complex;
+            }
+        }
+
+        return $selectors === [] ? null : $selectors;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return list<array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string}>|null
+     */
+    private function parseForgivingRelativeSelectorTokenList(array $tokens): ?array
+    {
+        $parts = $this->splitForgivingSelectorList($tokens);
+        if ($parts === []) {
+            return null;
+        }
+
+        $selectors = [];
+        foreach ($parts as $part) {
+            $complex = $this->parseRelativeSelector($part);
+            if ($complex !== null) {
+                $selectors[] = $complex;
+            }
+        }
+
+        return $selectors === [] ? null : $selectors;
+    }
+
+    /**
+     * @param list<Token> $tokens
      * @return list<list<Token>>
      */
     private function splitSelectorList(array $tokens): array
@@ -145,6 +199,7 @@ final class Matcher
         $parts = [];
         $part = [];
         $bracketDepth = 0;
+        $functionDepth = 0;
 
         foreach ($tokens as $token) {
             if ($token->type === 'left-square-bracket') {
@@ -153,7 +208,13 @@ final class Matcher
                 $bracketDepth--;
             }
 
-            if ($token->type === 'comma' && $bracketDepth === 0) {
+            if ($token->type === 'function') {
+                $functionDepth++;
+            } elseif ($token->type === 'right-parenthesis' && $functionDepth > 0) {
+                $functionDepth--;
+            }
+
+            if ($token->type === 'comma' && $bracketDepth === 0 && $functionDepth === 0) {
                 $part = $this->stripWhitespaceTokens($part);
                 if ($part === []) {
                     return [];
@@ -179,7 +240,52 @@ final class Matcher
 
     /**
      * @param list<Token> $tokens
-     * @return array{parts: list<array{tag: string|null, universal: bool, ids: list<string>, classes: list<string>, attributes: list<array{name: string, matcher: string, value: string|null, modifier: string|null}>}>, combinators: list<string>}|null
+     * @return list<list<Token>>
+     */
+    private function splitForgivingSelectorList(array $tokens): array
+    {
+        $parts = [];
+        $part = [];
+        $bracketDepth = 0;
+        $functionDepth = 0;
+
+        foreach ($tokens as $token) {
+            if ($token->type === 'left-square-bracket') {
+                $bracketDepth++;
+            } elseif ($token->type === 'right-square-bracket' && $bracketDepth > 0) {
+                $bracketDepth--;
+            }
+
+            if ($token->type === 'function') {
+                $functionDepth++;
+            } elseif ($token->type === 'right-parenthesis' && $functionDepth > 0) {
+                $functionDepth--;
+            }
+
+            if ($token->type === 'comma' && $bracketDepth === 0 && $functionDepth === 0) {
+                $part = $this->stripWhitespaceTokens($part);
+                if ($part !== []) {
+                    $parts[] = $part;
+                }
+
+                $part = [];
+                continue;
+            }
+
+            $part[] = $token;
+        }
+
+        $part = $this->stripWhitespaceTokens($part);
+        if ($part !== []) {
+            $parts[] = $part;
+        }
+
+        return $parts;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array{parts: list<array<string, mixed>>, combinators: list<string>}|null
      */
     private function parseComplexSelector(array $tokens): ?array
     {
@@ -240,7 +346,41 @@ final class Matcher
 
     /**
      * @param list<Token> $tokens
-     * @return array{tag: string|null, universal: bool, ids: list<string>, classes: list<string>, attributes: list<array{name: string, matcher: string, value: string|null, modifier: string|null}>}|null
+     * @return array{parts: list<array<string, mixed>>, combinators: list<string>, relative: string}|null
+     */
+    private function parseRelativeSelector(array $tokens): ?array
+    {
+        $tokens = $this->stripWhitespaceTokens($tokens);
+        if ($tokens === []) {
+            return null;
+        }
+
+        $offset = 0;
+        $relative = ' ';
+        $token = $tokens[$offset] ?? null;
+        if ($token?->type === 'delim' && in_array($token->value, ['>', '+', '~'], true)) {
+            $relative = $token->value;
+            $offset++;
+            self::skipWhitespace($tokens, $offset);
+
+            if ($offset >= count($tokens)) {
+                return null;
+            }
+        }
+
+        $complex = $this->parseComplexSelector(array_slice($tokens, $offset));
+        if ($complex === null) {
+            return null;
+        }
+
+        $complex['relative'] = $relative;
+
+        return $complex;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return array<string, mixed>|null
      */
     private function parseCompoundSelector(array $tokens): ?array
     {
@@ -251,6 +391,7 @@ final class Matcher
             'ids' => [],
             'classes' => [],
             'attributes' => [],
+            'pseudos' => [],
         ];
 
         $token = $tokens[$offset] ?? null;
@@ -293,6 +434,16 @@ final class Matcher
                 }
 
                 $compound['attributes'][] = $attribute;
+                continue;
+            }
+
+            if ($token->type === 'colon') {
+                $pseudo = $this->parseFunctionalPseudoSelector($tokens, $offset);
+                if ($pseudo === null) {
+                    return null;
+                }
+
+                $compound['pseudos'][] = $pseudo;
                 continue;
             }
 
@@ -384,44 +535,140 @@ final class Matcher
     }
 
     /**
-     * @param array{parts: list<array{tag: string|null, universal: bool, ids: list<string>, classes: list<string>, attributes: list<array{name: string, matcher: string, value: string|null, modifier: string|null}>}>, combinators: list<string>} $complex
+     * @param list<Token> $tokens
+     * @return array{name: string, selectors: list<array{parts: list<array<string, mixed>>, combinators: list<string>}>}|null
      */
-    private function matchesComplex(Element $element, array $complex): bool
+    private function parseFunctionalPseudoSelector(array $tokens, int &$offset): ?array
     {
-        return $this->matchesComplexAt($element, $complex, count($complex['parts']) - 1);
+        $function = $tokens[$offset + 1] ?? null;
+        if ($function?->type !== 'function') {
+            return null;
+        }
+
+        $name = strtolower(substr($function->value, 0, -1));
+        if (! in_array($name, ['not', 'is', 'where', 'has'], true)) {
+            return null;
+        }
+
+        $offset += 2;
+        $body = [];
+        $depth = 1;
+
+        while ($offset < count($tokens)) {
+            $token = $tokens[$offset];
+
+            if ($token->type === 'right-parenthesis') {
+                $depth--;
+                if ($depth === 0) {
+                    $offset++;
+                    break;
+                }
+
+                $body[] = $token;
+                $offset++;
+                continue;
+            }
+
+            if ($token->type === 'function') {
+                $depth++;
+            }
+
+            $body[] = $token;
+            $offset++;
+        }
+
+        if ($depth !== 0) {
+            return null;
+        }
+
+        $body = $this->stripWhitespaceTokens($body);
+        $selectors = match ($name) {
+            'not' => $this->parseSelectorTokenList($body),
+            'has' => $this->parseForgivingRelativeSelectorTokenList($body),
+            default => $this->parseForgivingSelectorTokenList($body),
+        };
+        if ($selectors === null) {
+            return null;
+        }
+
+        return [
+            'name' => $name,
+            'selectors' => $selectors,
+        ];
     }
 
     /**
-     * @param array{parts: list<array{tag: string|null, universal: bool, ids: list<string>, classes: list<string>, attributes: list<array{name: string, matcher: string, value: string|null, modifier: string|null}>}>, combinators: list<string>} $complex
+     * @param array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string} $complex
      */
-    private function matchesComplexAt(Element $element, array $complex, int $index): bool
+    private function matchesComplex(
+        Element $element,
+        array $complex,
+        ?Element $scopeRoot = null,
+        ?Element $relativeRoot = null,
+        ?string $relativeCombinator = null,
+    ): bool
     {
-        if (! $this->matchesCompound($element, $complex['parts'][$index])) {
+        return $this->matchesComplexAt(
+            $element,
+            $complex,
+            count($complex['parts']) - 1,
+            $scopeRoot,
+            $relativeRoot,
+            $relativeCombinator,
+        );
+    }
+
+    /**
+     * @param array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string} $complex
+     */
+    private function matchesComplexAt(
+        Element $element,
+        array $complex,
+        int $index,
+        ?Element $scopeRoot = null,
+        ?Element $relativeRoot = null,
+        ?string $relativeCombinator = null,
+    ): bool {
+        if (! $this->matchesCompound($element, $complex['parts'][$index], $scopeRoot)) {
             return false;
         }
 
         if ($index === 0) {
-            return true;
+            return $relativeRoot === null
+                || $relativeCombinator === null
+                || self::matchesRelativeAnchor($element, $relativeRoot, $relativeCombinator);
         }
 
         return match ($complex['combinators'][$index - 1]) {
-            ' ' => $this->hasAncestorMatching($element, $complex, $index - 1),
+            ' ' => $this->hasAncestorMatching($element, $complex, $index - 1, $scopeRoot, $relativeRoot, $relativeCombinator),
             '>' => $element->parent instanceof Element
-                && $this->matchesComplexAt($element->parent, $complex, $index - 1),
+                && ($scopeRoot === null || self::isDescendantOf($element->parent, $scopeRoot))
+                && $this->matchesComplexAt($element->parent, $complex, $index - 1, $scopeRoot, $relativeRoot, $relativeCombinator),
             '+' => ($previous = self::previousElementSibling($element)) !== null
-                && $this->matchesComplexAt($previous, $complex, $index - 1),
-            '~' => $this->hasPreviousSiblingMatching($element, $complex, $index - 1),
+                && $this->matchesComplexAt($previous, $complex, $index - 1, $scopeRoot, $relativeRoot, $relativeCombinator),
+            '~' => $this->hasPreviousSiblingMatching($element, $complex, $index - 1, $scopeRoot, $relativeRoot, $relativeCombinator),
             default => false,
         };
     }
 
     /**
-     * @param array{parts: list<array{tag: string|null, universal: bool, ids: list<string>, classes: list<string>, attributes: list<array{name: string, matcher: string, value: string|null, modifier: string|null}>}>, combinators: list<string>} $complex
+     * @param array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string} $complex
      */
-    private function hasAncestorMatching(Element $element, array $complex, int $index): bool
+    private function hasAncestorMatching(
+        Element $element,
+        array $complex,
+        int $index,
+        ?Element $scopeRoot,
+        ?Element $relativeRoot = null,
+        ?string $relativeCombinator = null,
+    ): bool
     {
         for ($node = $element->parent; $node !== null; $node = $node->parent) {
-            if ($node instanceof Element && $this->matchesComplexAt($node, $complex, $index)) {
+            if ($scopeRoot !== null && ! ($node instanceof Element && self::isDescendantOf($node, $scopeRoot))) {
+                break;
+            }
+
+            if ($node instanceof Element && $this->matchesComplexAt($node, $complex, $index, $scopeRoot, $relativeRoot, $relativeCombinator)) {
                 return true;
             }
         }
@@ -430,12 +677,19 @@ final class Matcher
     }
 
     /**
-     * @param array{parts: list<array{tag: string|null, universal: bool, ids: list<string>, classes: list<string>, attributes: list<array{name: string, matcher: string, value: string|null, modifier: string|null}>}>, combinators: list<string>} $complex
+     * @param array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string} $complex
      */
-    private function hasPreviousSiblingMatching(Element $element, array $complex, int $index): bool
+    private function hasPreviousSiblingMatching(
+        Element $element,
+        array $complex,
+        int $index,
+        ?Element $scopeRoot,
+        ?Element $relativeRoot = null,
+        ?string $relativeCombinator = null,
+    ): bool
     {
         for ($node = $element->prev; $node !== null; $node = $node->prev) {
-            if ($node instanceof Element && $this->matchesComplexAt($node, $complex, $index)) {
+            if ($node instanceof Element && $this->matchesComplexAt($node, $complex, $index, $scopeRoot, $relativeRoot, $relativeCombinator)) {
                 return true;
             }
         }
@@ -444,9 +698,9 @@ final class Matcher
     }
 
     /**
-     * @param array{tag: string|null, universal: bool, ids: list<string>, classes: list<string>, attributes: list<array{name: string, matcher: string, value: string|null, modifier: string|null}>} $compound
+     * @param array<string, mixed> $compound
      */
-    private function matchesCompound(Element $element, array $compound): bool
+    private function matchesCompound(Element $element, array $compound, ?Element $scopeRoot = null): bool
     {
         if ($compound['tag'] !== null && $element->tagName !== $compound['tag']) {
             return false;
@@ -472,7 +726,59 @@ final class Matcher
             }
         }
 
+        foreach ($compound['pseudos'] as $pseudo) {
+            if (! $this->matchesFunctionalPseudo($element, $pseudo, $scopeRoot)) {
+                return false;
+            }
+        }
+
         return true;
+    }
+
+    /**
+     * @param array{name: string, selectors: list<array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string}>} $pseudo
+     */
+    private function matchesFunctionalPseudo(Element $element, array $pseudo, ?Element $scopeRoot): bool
+    {
+        return match ($pseudo['name']) {
+            'is', 'where' => $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
+            'not' => ! $this->matchesAnyComplex($element, $pseudo['selectors'], $scopeRoot),
+            'has' => $this->hasRelativeMatchingAnyComplex($element, $pseudo['selectors']),
+            default => false,
+        };
+    }
+
+    /**
+     * @param list<array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string}> $selectors
+     */
+    private function matchesAnyComplex(Element $element, array $selectors, ?Element $scopeRoot = null): bool
+    {
+        foreach ($selectors as $complex) {
+            if ($this->matchesComplex($element, $complex, $scopeRoot)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<array{parts: list<array<string, mixed>>, combinators: list<string>, relative?: string}> $selectors
+     */
+    private function hasRelativeMatchingAnyComplex(Element $root, array $selectors): bool
+    {
+        foreach ($selectors as $complex) {
+            $relative = $complex['relative'] ?? ' ';
+            $scopeRoot = in_array($relative, [' ', '>'], true) ? $root : null;
+
+            foreach ($this->relativeCandidateElements($root, $relative) as $element) {
+                if ($this->matchesComplex($element, $complex, $scopeRoot, $root, $relative)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -535,11 +841,12 @@ final class Matcher
     {
         $part = [];
         $bracketDepth = 0;
+        $functionDepth = 0;
 
         for (; $offset < count($tokens); $offset++) {
             $token = $tokens[$offset];
 
-            if ($bracketDepth === 0) {
+            if ($bracketDepth === 0 && $functionDepth === 0) {
                 if ($token->type === 'whitespace') {
                     break;
                 }
@@ -553,6 +860,12 @@ final class Matcher
                 $bracketDepth++;
             } elseif ($token->type === 'right-square-bracket' && $bracketDepth > 0) {
                 $bracketDepth--;
+            }
+
+            if ($token->type === 'function') {
+                $functionDepth++;
+            } elseif ($token->type === 'right-parenthesis' && $functionDepth > 0) {
+                $functionDepth--;
             }
 
             $part[] = $token;
@@ -617,6 +930,63 @@ final class Matcher
         }
     }
 
+    /**
+     * @return iterable<Element>
+     */
+    private function relativeCandidateElements(Element $root, string $relative): iterable
+    {
+        if ($relative === ' ' || $relative === '>') {
+            yield from $this->descendantElements($root);
+            return;
+        }
+
+        if ($relative !== '+' && $relative !== '~') {
+            return;
+        }
+
+        for ($node = $root->next; $node !== null; $node = $node->next) {
+            if ($node instanceof Element) {
+                yield from $this->elementAndDescendantElements($node);
+            } else {
+                yield from $this->descendantElements($node);
+            }
+        }
+    }
+
+    /**
+     * @return iterable<Element>
+     */
+    private function elementAndDescendantElements(Element $root): iterable
+    {
+        yield $root;
+        yield from $this->descendantElements($root);
+    }
+
+    /**
+     * @return iterable<Element>
+     */
+    private function descendantElements(Node $root): iterable
+    {
+        for ($node = $root->firstChild; $node !== null; $node = $node->next) {
+            if ($node instanceof Element) {
+                yield $node;
+            }
+
+            yield from $this->descendantElements($node);
+        }
+    }
+
+    private static function matchesRelativeAnchor(Element $element, Element $root, string $relative): bool
+    {
+        return match ($relative) {
+            ' ' => self::isDescendantOf($element, $root),
+            '>' => $element->parent === $root,
+            '+' => self::previousElementSibling($element) === $root,
+            '~' => self::hasPreviousElementSibling($element, $root),
+            default => false,
+        };
+    }
+
     private static function classAttributeContains(string $classAttribute, string $className, bool $caseInsensitive): bool
     {
         if ($className === '') {
@@ -641,6 +1011,28 @@ final class Matcher
         }
 
         return null;
+    }
+
+    private static function hasPreviousElementSibling(Element $element, Element $previous): bool
+    {
+        for ($node = $element->prev; $node !== null; $node = $node->prev) {
+            if ($node === $previous) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function isDescendantOf(Element $element, Element $ancestor): bool
+    {
+        for ($node = $element->parent; $node !== null; $node = $node->parent) {
+            if ($node === $ancestor) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static function isHtmlCaseInsensitiveAttribute(Element $element, string $name): bool

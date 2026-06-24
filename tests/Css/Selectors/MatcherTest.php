@@ -102,6 +102,20 @@ final class MatcherTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, list<string>}>
+     */
+    public static function upstreamFunctionalPseudoSelectorProvider(): iterable
+    {
+        yield 'selectors match has pseudo function' => ['p:has(a)', 'p', ['1', '2', '3', '4', '5', '7']];
+        yield 'selectors match has relative next-sibling pseudo function' => ['span:has(+ a)', 'span', ['6', '9']];
+        yield 'selectors match has relative sibling chain pseudo function' => ['div:has(+ div ~ main > h2[h2]) ~ div', 'div', ['Second']];
+        yield 'selectors match is pseudo function' => ["p:is([p='2'], [p='5'])", 'p', ['2', '5']];
+        yield 'selectors match nested has and not pseudo functions' => ['div:has(p :not(span))', 'div', ['First', 'Second']];
+        yield 'selectors match not pseudo function selector list' => [':not(span, div)', 'tagName', ['p', 'a', 'p', 'a', 'p', 'a', 'p', 'a', 'p', 'a', 'p', 'p', 'a', 'a', 'a', 'main', 'h2', 'h2', 'h2', 'h2', 'h2', 'h2']];
+        yield 'selectors match where pseudo function' => ['p :where(span#s4)', 'span', ['4']];
+    }
+
+    /**
      * @param list<string> $expected
      */
     #[DataProvider('upstreamSimpleSelectorProvider')]
@@ -120,6 +134,20 @@ final class MatcherTest extends TestCase
      */
     #[DataProvider('upstreamCombinatorSelectorProvider')]
     public function testFindMatchesUpstreamCombinatorSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
+    {
+        $document = $this->fixtureDocument();
+
+        self::assertSame(
+            $expected,
+            self::attributeValues((new Matcher())->find($document->bodyElement(), $selector), $labelAttribute),
+        );
+    }
+
+    /**
+     * @param list<string> $expected
+     */
+    #[DataProvider('upstreamFunctionalPseudoSelectorProvider')]
+    public function testFindMatchesUpstreamFunctionalPseudoSelectorFoundation(string $selector, string $labelAttribute, array $expected): void
     {
         $document = $this->fixtureDocument();
 
@@ -173,6 +201,75 @@ final class MatcherTest extends TestCase
         self::assertFalse($matcher->matches($span, "p[p='7'] > span"));
     }
 
+    public function testMatchesSupportsFunctionalPseudos(): void
+    {
+        $document = $this->fixtureDocument();
+        $span = $document->byId('s4');
+        $matcher = new Matcher();
+
+        self::assertInstanceOf(Element::class, $span);
+        self::assertTrue($matcher->matches($span, 'span:is(a, span):not([span="5"])'));
+        self::assertFalse($matcher->matches($span, ':not(span, div)'));
+        self::assertFalse($matcher->matches($span, ':not(div,,span)'));
+        self::assertSame([], $matcher->find($document->bodyElement(), 'div:has(div p)'));
+        self::assertSame([], $matcher->find($document->bodyElement(), 'p:has(p > a)'));
+        self::assertSame([], $matcher->find($document->bodyElement(), 'div:has(:where(div p))'));
+        self::assertSame([], $matcher->find($document->bodyElement(), 'div:has(:not(:not(div p)))'));
+        self::assertSame([], $matcher->find($document->bodyElement(), 'p:has(:is(p > a))'));
+        self::assertSame(['First'], self::attributeValues($matcher->find($document->bodyElement(), 'div:has(> p[p="1"])'), 'div'));
+        self::assertSame(['2', '5'], self::attributeValues($matcher->find($document->bodyElement(), 'p:is([p="2"], 1%, [p="5"])'), 'p'));
+        self::assertSame(['2', '5'], self::attributeValues($matcher->find($document->bodyElement(), 'p:where([p="2"], 1%, [p="5"])'), 'p'));
+        self::assertSame(['p', 'p', 'a'], self::attributeValues($matcher->find($document->bodyElement(), 'p:is([p="2"], 1%, [p="5"]), a[a="6"]'), 'tagName'));
+    }
+
+    public function testFindUsesRecoveredSelectorForInvalidForgivingHasBranch(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><body><div div=match><span id=hash></span></div><div div=miss></div></body>'));
+
+        self::assertSame(
+            ['match'],
+            self::attributeValues(
+                (new Matcher())->find($document->bodyElement(), 'div:has(:not(div, {([([{}])])}, .class), #hash)'),
+                'div',
+            ),
+        );
+    }
+
+    public function testFindPreservesComplexSelectorPrefixAfterForgivingRecovery(): void
+    {
+        $document = new Document();
+        self::assertSame(
+            Status::Ok,
+            $document->parse('<!doctype html><body><div div=parent><p p=child><a></a></p></div><p p=outer><a></a></p></body>'),
+        );
+
+        self::assertSame(
+            ['child'],
+            self::attributeValues(
+                (new Matcher())->find($document->bodyElement(), 'div > p:has(, a)'),
+                'p',
+            ),
+        );
+    }
+
+    public function testFindPreservesComplexSelectorSuffixAfterForgivingRecovery(): void
+    {
+        $document = new Document();
+        self::assertSame(
+            Status::Ok,
+            $document->parse('<!doctype html><body><div><p p=parent><a a=child></a></p></div><p p=outer><a a=outer></a></p></body>'),
+        );
+
+        self::assertSame(
+            ['child'],
+            self::attributeValues(
+                (new Matcher())->find($document->bodyElement(), 'div > p:has(, a) > a'),
+                'a',
+            ),
+        );
+    }
+
     private function fixtureDocument(): Document
     {
         $document = new Document();
@@ -189,7 +286,7 @@ final class MatcherTest extends TestCase
     private static function attributeValues(array $elements, string $name): array
     {
         return array_map(
-            static fn (Element $element): string => $element->getAttribute($name) ?? '',
+            static fn (Element $element): string => $name === 'tagName' ? $element->tagName : ($element->getAttribute($name) ?? ''),
             $elements,
         );
     }
