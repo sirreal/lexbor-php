@@ -1233,6 +1233,100 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function wrapDeclarationProvider(): iterable
+    {
+        yield 'wrap-flow accepts auto' => ['wrap-flow: auto', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'wrap-flow accepts both' => ['wrap-flow: both', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'both', 'important' => false],
+        ]];
+        yield 'wrap-flow accepts start' => ['wrap-flow: start', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'start', 'important' => false],
+        ]];
+        yield 'wrap-flow accepts end' => ['wrap-flow: end', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'end', 'important' => false],
+        ]];
+        yield 'wrap-flow accepts minimum' => ['wrap-flow: minimum', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'minimum', 'important' => false],
+        ]];
+        yield 'wrap-flow accepts maximum' => ['wrap-flow: maximum', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'maximum', 'important' => false],
+        ]];
+        yield 'wrap-flow accepts clear' => ['wrap-flow: clear', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'clear', 'important' => false],
+        ]];
+        yield 'wrap-flow accepts css-wide keyword' => ['wrap-flow: revert', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'wrap-flow lowercases mixed-case keyword' => ['wrap-flow: MinImUm', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'minimum', 'important' => false],
+        ]];
+        yield 'wrap-flow keeps important flag' => ['wrap-flow: maximum !important', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'maximum', 'important' => true],
+        ]];
+        yield 'wrap-flow accepts trailing whitespace-comment-whitespace like Lexbor' => ['wrap-flow: auto /**/  ', [
+            ['type' => 'property', 'name' => 'wrap-flow', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'wrap-flow rejects wrap-through keyword' => ['wrap-flow: wrap', [
+            ['type' => 'undef', 'name' => 'wrap-flow', 'value' => 'wrap', 'important' => false],
+        ]];
+        yield 'wrap-flow rejects unknown keyword' => ['wrap-flow: inside', [
+            ['type' => 'undef', 'name' => 'wrap-flow', 'value' => 'inside', 'important' => false],
+        ]];
+        yield 'wrap-flow rejects multiple values' => ['wrap-flow: auto both', [
+            ['type' => 'undef', 'name' => 'wrap-flow', 'value' => 'auto both', 'important' => false],
+        ]];
+        yield 'wrap-flow rejects non-ident token' => ['wrap-flow: 1', [
+            ['type' => 'undef', 'name' => 'wrap-flow', 'value' => '1', 'important' => false],
+        ]];
+        yield 'wrap-flow rejects comment-split keyword' => ['wrap-flow: mini/**/mum', [
+            ['type' => 'undef', 'name' => 'wrap-flow', 'value' => 'minimum', 'important' => false],
+        ]];
+        yield 'wrap-flow rejects comment-separated leading whitespace like Lexbor' => ['wrap-flow: /**/  auto', [
+            ['type' => 'undef', 'name' => 'wrap-flow', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'wrap-through accepts wrap' => ['wrap-through: wrap', [
+            ['type' => 'property', 'name' => 'wrap-through', 'value' => 'wrap', 'important' => false],
+        ]];
+        yield 'wrap-through accepts none' => ['wrap-through: none', [
+            ['type' => 'property', 'name' => 'wrap-through', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'wrap-through accepts css-wide keyword' => ['wrap-through: initial', [
+            ['type' => 'property', 'name' => 'wrap-through', 'value' => 'initial', 'important' => false],
+        ]];
+        yield 'wrap-through lowercases mixed-case keyword' => ['wrap-through: NoNe', [
+            ['type' => 'property', 'name' => 'wrap-through', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'wrap-through keeps important flag' => ['wrap-through: wrap !important', [
+            ['type' => 'property', 'name' => 'wrap-through', 'value' => 'wrap', 'important' => true],
+        ]];
+        yield 'wrap-through accepts trailing whitespace-comment-whitespace like Lexbor' => ['wrap-through: none /**/  ', [
+            ['type' => 'property', 'name' => 'wrap-through', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'wrap-through rejects wrap-flow keyword' => ['wrap-through: both', [
+            ['type' => 'undef', 'name' => 'wrap-through', 'value' => 'both', 'important' => false],
+        ]];
+        yield 'wrap-through rejects unknown keyword' => ['wrap-through: through', [
+            ['type' => 'undef', 'name' => 'wrap-through', 'value' => 'through', 'important' => false],
+        ]];
+        yield 'wrap-through rejects multiple values' => ['wrap-through: wrap none', [
+            ['type' => 'undef', 'name' => 'wrap-through', 'value' => 'wrap none', 'important' => false],
+        ]];
+        yield 'wrap-through rejects non-ident token' => ['wrap-through: 1', [
+            ['type' => 'undef', 'name' => 'wrap-through', 'value' => '1', 'important' => false],
+        ]];
+        yield 'wrap-through rejects comment-split keyword' => ['wrap-through: wr/**/ap', [
+            ['type' => 'undef', 'name' => 'wrap-through', 'value' => 'wrap', 'important' => false],
+        ]];
+        yield 'wrap-through rejects comment-separated leading whitespace like Lexbor' => ['wrap-through: /**/  wrap', [
+            ['type' => 'undef', 'name' => 'wrap-through', 'value' => 'wrap', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function colorDeclarationProvider(): iterable
     {
         yield 'color accepts named color' => ['color: red', [
@@ -3089,6 +3183,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textDecorationShorthandProvider')]
     public function testTextDecorationShorthand(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('wrapDeclarationProvider')]
+    public function testWrapDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

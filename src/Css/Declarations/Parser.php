@@ -107,6 +107,8 @@ final class Parser
         'word-break' => true,
         'word-wrap' => true,
         'word-spacing' => true,
+        'wrap-flow' => true,
+        'wrap-through' => true,
         'writing-mode' => true,
         'z-index' => true,
     ];
@@ -981,6 +983,21 @@ final class Parser
         'last' => true,
     ];
 
+    private const array WRAP_FLOW_KEYWORDS = [
+        'auto' => true,
+        'both' => true,
+        'clear' => true,
+        'end' => true,
+        'maximum' => true,
+        'minimum' => true,
+        'start' => true,
+    ];
+
+    private const array WRAP_THROUGH_KEYWORDS = [
+        'none' => true,
+        'wrap' => true,
+    ];
+
     private const array FONT_STRETCH_KEYWORDS = [
         'condensed' => true,
         'expanded' => true,
@@ -1310,6 +1327,8 @@ final class Parser
             'text-decoration-line',
             'text-decoration-style',
             'vertical-align',
+            'wrap-flow',
+            'wrap-through',
         ], true)
             ? [...$leadingValueTokens, ...$valueTokens]
             : $valueTokens;
@@ -1436,6 +1455,8 @@ final class Parser
             'text-indent' => self::textIndentValue($valueTokens) !== null ? 'property' : 'undef',
             'text-transform' => self::textTransformValue($valueTokens) !== null ? 'property' : 'undef',
             'vertical-align' => self::verticalAlignValue($valueTokens) !== null ? 'property' : 'undef',
+            'wrap-flow' => self::singleLexborKeywordValue($valueTokens, self::WRAP_FLOW_KEYWORDS) !== null ? 'property' : 'undef',
+            'wrap-through' => self::singleLexborKeywordValue($valueTokens, self::WRAP_THROUGH_KEYWORDS) !== null ? 'property' : 'undef',
             'z-index' => self::isValidIntegerKeyword($valueTokens, ['auto' => true]) ? 'property' : 'undef',
             default => isset(self::KEYWORD_PROPERTIES[$property]) && self::isValidKeywordProperty($property, $valueTokens) ? 'property' : 'undef',
         };
@@ -3808,6 +3829,14 @@ final class Parser
 
         if ($property === 'vertical-align') {
             return self::verticalAlignValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'wrap-flow') {
+            return self::singleLexborKeywordValue($tokens, self::WRAP_FLOW_KEYWORDS) ?? $fallback;
+        }
+
+        if ($property === 'wrap-through') {
+            return self::singleLexborKeywordValue($tokens, self::WRAP_THROUGH_KEYWORDS) ?? $fallback;
         }
 
         if ($property === 'font-weight') {
