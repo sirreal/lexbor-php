@@ -15,11 +15,15 @@ final class Parser
         'direction' => true,
         'display' => true,
         'height' => true,
+        'letter-spacing' => true,
+        'line-height' => true,
         'margin' => true,
         'margin-bottom' => true,
         'margin-left' => true,
         'margin-right' => true,
         'margin-top' => true,
+        'opacity' => true,
+        'order' => true,
         'overflow-block' => true,
         'overflow-inline' => true,
         'overflow-wrap' => true,
@@ -35,6 +39,8 @@ final class Parser
         'visibility' => true,
         'width' => true,
         'word-wrap' => true,
+        'word-spacing' => true,
+        'z-index' => true,
     ];
 
     private const array CSS_WIDE_KEYWORDS = [
@@ -184,6 +190,9 @@ final class Parser
         'vmin' => true,
         'vw' => true,
     ];
+
+    private const string LONG_MAX_DECIMAL = '9223372036854775807';
+    private const string LONG_MIN_ABS_DECIMAL = '9223372036854775808';
 
     private const array KEYWORD_PROPERTIES = [
         'box-sizing' => [
@@ -424,8 +433,13 @@ final class Parser
         return match ($property) {
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
             'height', 'width' => self::isValidLengthSize($value, $valueTokens) ? 'property' : 'undef',
+            'letter-spacing', 'word-spacing' => self::isValidLengthKeyword($valueTokens, ['normal' => true]) ? 'property' : 'undef',
+            'line-height' => self::isValidNumberLengthPercentage($valueTokens, ['normal' => true]) ? 'property' : 'undef',
             'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
+            'opacity' => self::isValidNumberPercentage($valueTokens) ? 'property' : 'undef',
+            'order' => self::isValidInteger($valueTokens) ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
+            'z-index' => self::isValidIntegerKeyword($valueTokens, ['auto' => true]) ? 'property' : 'undef',
             default => isset(self::KEYWORD_PROPERTIES[$property]) && self::isValidKeywordProperty($property, $valueTokens) ? 'property' : 'undef',
         };
     }
@@ -578,6 +592,142 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function isValidNumberPercentage(array $tokens): bool
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return false;
+        }
+
+        if ($token->type === 'ident') {
+            return isset(self::CSS_WIDE_KEYWORDS[strtolower($token->value)]);
+        }
+
+        return in_array($token->type, ['number', 'percentage'], true);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @param array<string, true> $keywords
+     */
+    private static function isValidNumberLengthPercentage(array $tokens, array $keywords): bool
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return false;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]);
+        }
+
+        if (in_array($token->type, ['number', 'percentage'], true)) {
+            return true;
+        }
+
+        return $token->type === 'dimension' && self::isValidLengthDimension($token->value);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @param array<string, true> $keywords
+     */
+    private static function isValidLengthKeyword(array $tokens, array $keywords): bool
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return false;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]);
+        }
+
+        if ($token->type === 'number') {
+            return $token->value === '0';
+        }
+
+        return $token->type === 'dimension' && self::isValidLengthDimension($token->value);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function isValidInteger(array $tokens): bool
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return false;
+        }
+
+        if ($token->type === 'ident') {
+            return isset(self::CSS_WIDE_KEYWORDS[strtolower($token->value)]);
+        }
+
+        return $token->type === 'number' && self::isLongInteger($token->value);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @param array<string, true> $keywords
+     */
+    private static function isValidIntegerKeyword(array $tokens, array $keywords): bool
+    {
+        $token = self::singleValueToken($tokens);
+
+        if ($token === null) {
+            return false;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]);
+        }
+
+        return $token->type === 'number' && self::isLongInteger($token->value);
+    }
+
+    private static function isValidLengthDimension(string $value): bool
+    {
+        if (! preg_match('/^[+-]?(?:\d+|\d*\.\d+)(?:e[+-]?\d+)?([a-zA-Z]+)$/i', $value, $matches)) {
+            return false;
+        }
+
+        return isset(self::LENGTH_UNITS[strtolower($matches[1])]);
+    }
+
+    private static function isLongInteger(string $value): bool
+    {
+        if (preg_match('/^-?\d+$/', $value) !== 1) {
+            return false;
+        }
+
+        $negative = str_starts_with($value, '-');
+        $digits = $negative ? substr($value, 1) : $value;
+        $digits = ltrim($digits, '0');
+
+        if ($digits === '') {
+            return true;
+        }
+
+        $limit = $negative ? self::LONG_MIN_ABS_DECIMAL : self::LONG_MAX_DECIMAL;
+
+        return strlen($digits) < strlen($limit)
+            || (strlen($digits) === strlen($limit) && strcmp($digits, $limit) <= 0);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function isValidKeywordProperty(string $property, array $tokens): bool
     {
         $tokens = self::nonIgnorableTokens($tokens);
@@ -654,6 +804,16 @@ final class Parser
             $tokens,
             static fn (Token $token): bool => ! self::isIgnorableToken($token),
         ));
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function singleValueToken(array $tokens): ?Token
+    {
+        $tokens = self::nonIgnorableTokens($tokens);
+
+        return count($tokens) === 1 ? $tokens[0] : null;
     }
 
     private static function isIgnorableToken(Token $token): bool

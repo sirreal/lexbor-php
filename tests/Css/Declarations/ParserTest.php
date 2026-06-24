@@ -452,6 +452,94 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function numericDeclarationProvider(): iterable
+    {
+        yield 'opacity accepts number' => ['opacity: .5', [
+            ['type' => 'property', 'name' => 'opacity', 'value' => '0.5', 'important' => false],
+        ]];
+        yield 'opacity accepts percentage' => ['opacity: 50%', [
+            ['type' => 'property', 'name' => 'opacity', 'value' => '50%', 'important' => false],
+        ]];
+        yield 'opacity accepts css-wide keyword' => ['opacity: inherit', [
+            ['type' => 'property', 'name' => 'opacity', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'opacity rejects length' => ['opacity: 1px', [
+            ['type' => 'undef', 'name' => 'opacity', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'opacity rejects comment-split percentage' => ['opacity: 1/**/%', [
+            ['type' => 'undef', 'name' => 'opacity', 'value' => '1%', 'important' => false],
+        ]];
+        yield 'order accepts integer' => ['order: -2', [
+            ['type' => 'property', 'name' => 'order', 'value' => '-2', 'important' => false],
+        ]];
+        yield 'order accepts normalized exponent integer' => ['order: 1e2', [
+            ['type' => 'property', 'name' => 'order', 'value' => '100', 'important' => false],
+        ]];
+        yield 'order rejects decimal number' => ['order: 1.5', [
+            ['type' => 'undef', 'name' => 'order', 'value' => '1.5', 'important' => false],
+        ]];
+        yield 'order rejects integer above long range' => ['order: 1e19', [
+            ['type' => 'undef', 'name' => 'order', 'value' => '10000000000000000000', 'important' => false],
+        ]];
+        yield 'order rejects comment-split integer' => ['order: 1/**/2', [
+            ['type' => 'undef', 'name' => 'order', 'value' => '12', 'important' => false],
+        ]];
+        yield 'z-index accepts auto' => ['z-index: auto', [
+            ['type' => 'property', 'name' => 'z-index', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'z-index accepts integer' => ['z-index: 10', [
+            ['type' => 'property', 'name' => 'z-index', 'value' => '10', 'important' => false],
+        ]];
+        yield 'z-index rejects percentage' => ['z-index: 10%', [
+            ['type' => 'undef', 'name' => 'z-index', 'value' => '10%', 'important' => false],
+        ]];
+        yield 'z-index rejects integer below long range' => ['z-index: -1e19', [
+            ['type' => 'undef', 'name' => 'z-index', 'value' => '-10000000000000000000', 'important' => false],
+        ]];
+        yield 'line-height accepts normal' => ['line-height: normal', [
+            ['type' => 'property', 'name' => 'line-height', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'line-height accepts number' => ['line-height: 1.2', [
+            ['type' => 'property', 'name' => 'line-height', 'value' => '1.2', 'important' => false],
+        ]];
+        yield 'line-height accepts length' => ['line-height: -1px', [
+            ['type' => 'property', 'name' => 'line-height', 'value' => '-1px', 'important' => false],
+        ]];
+        yield 'line-height accepts percentage' => ['line-height: 120%', [
+            ['type' => 'property', 'name' => 'line-height', 'value' => '120%', 'important' => false],
+        ]];
+        yield 'line-height rejects multiple tokens' => ['line-height: 1px 2px', [
+            ['type' => 'undef', 'name' => 'line-height', 'value' => '1px 2px', 'important' => false],
+        ]];
+        yield 'letter-spacing accepts normal' => ['letter-spacing: normal', [
+            ['type' => 'property', 'name' => 'letter-spacing', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'letter-spacing accepts zero number' => ['letter-spacing: 0', [
+            ['type' => 'property', 'name' => 'letter-spacing', 'value' => '0', 'important' => false],
+        ]];
+        yield 'letter-spacing accepts length' => ['letter-spacing: -0.25em', [
+            ['type' => 'property', 'name' => 'letter-spacing', 'value' => '-0.25em', 'important' => false],
+        ]];
+        yield 'letter-spacing rejects nonzero number' => ['letter-spacing: 1', [
+            ['type' => 'undef', 'name' => 'letter-spacing', 'value' => '1', 'important' => false],
+        ]];
+        yield 'word-spacing accepts normal' => ['word-spacing: normal', [
+            ['type' => 'property', 'name' => 'word-spacing', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'word-spacing accepts length' => ['word-spacing: 2px', [
+            ['type' => 'property', 'name' => 'word-spacing', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'word-spacing rejects percentage' => ['word-spacing: 2%', [
+            ['type' => 'undef', 'name' => 'word-spacing', 'value' => '2%', 'important' => false],
+        ]];
+        yield 'word-spacing rejects comment-split length' => ['word-spacing: 2/**/px', [
+            ['type' => 'undef', 'name' => 'word-spacing', 'value' => '2px', 'important' => false],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -519,6 +607,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('displayCommentProvider')]
     public function testDisplayCommentBoundaries(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('numericDeclarationProvider')]
+    public function testNumericDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
