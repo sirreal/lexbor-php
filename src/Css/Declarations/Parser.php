@@ -11,10 +11,16 @@ final class Parser
 {
     private const array KNOWN_PROPERTIES = [
         'box-sizing' => true,
+        'bottom' => true,
         'clear' => true,
         'direction' => true,
         'display' => true,
         'height' => true,
+        'inset-block-end' => true,
+        'inset-block-start' => true,
+        'inset-inline-end' => true,
+        'inset-inline-start' => true,
+        'left' => true,
         'letter-spacing' => true,
         'line-height' => true,
         'margin' => true,
@@ -39,7 +45,9 @@ final class Parser
         'padding-right' => true,
         'padding-top' => true,
         'position' => true,
+        'right' => true,
         'text-decoration' => true,
+        'top' => true,
         'visibility' => true,
         'width' => true,
         'word-wrap' => true,
@@ -457,6 +465,7 @@ final class Parser
         return match ($property) {
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
+            'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
             'letter-spacing', 'word-spacing' => self::isValidLengthKeyword($valueTokens, ['normal' => true]) ? 'property' : 'undef',
             'line-height' => self::isValidNumberLengthPercentage($valueTokens, ['normal' => true]) ? 'property' : 'undef',
             'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
@@ -784,6 +793,7 @@ final class Parser
         if (
             in_array($property, ['margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top'], true)
             || in_array($property, ['padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top'], true)
+            || in_array($property, ['bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top'], true)
         ) {
             return implode(' ', array_map(
                 static fn (array $component): string => self::serializeComponentValue($component),

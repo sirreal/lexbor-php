@@ -595,6 +595,70 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function positionOffsetDeclarationProvider(): iterable
+    {
+        yield 'top accepts auto' => ['top: auto', [
+            ['type' => 'property', 'name' => 'top', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'top accepts negative length' => ['top: -2px', [
+            ['type' => 'property', 'name' => 'top', 'value' => '-2px', 'important' => false],
+        ]];
+        yield 'top accepts percentage' => ['top: 25%', [
+            ['type' => 'property', 'name' => 'top', 'value' => '25%', 'important' => false],
+        ]];
+        yield 'top accepts css-wide keyword' => ['top: initial', [
+            ['type' => 'property', 'name' => 'top', 'value' => 'initial', 'important' => false],
+        ]];
+        yield 'top trims whitespace before trailing comment' => ['top: auto /**/;', [
+            ['type' => 'property', 'name' => 'top', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'top rejects none' => ['top: none', [
+            ['type' => 'undef', 'name' => 'top', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'right accepts length' => ['right: 1.5em', [
+            ['type' => 'property', 'name' => 'right', 'value' => '1.5em', 'important' => false],
+        ]];
+        yield 'right rejects multiple values' => ['right: 1px 2px', [
+            ['type' => 'undef', 'name' => 'right', 'value' => '1px 2px', 'important' => false],
+        ]];
+        yield 'bottom accepts negative percentage' => ['bottom: -10%', [
+            ['type' => 'property', 'name' => 'bottom', 'value' => '-10%', 'important' => false],
+        ]];
+        yield 'bottom rejects non-length dimension' => ['bottom: 1deg', [
+            ['type' => 'undef', 'name' => 'bottom', 'value' => '1deg', 'important' => false],
+        ]];
+        yield 'left accepts unitless zero' => ['left: 0', [
+            ['type' => 'property', 'name' => 'left', 'value' => '0', 'important' => false],
+        ]];
+        yield 'left rejects nonzero number' => ['left: 1', [
+            ['type' => 'undef', 'name' => 'left', 'value' => '1', 'important' => false],
+        ]];
+        yield 'left rejects comment-split length' => ['left: 1/**/px', [
+            ['type' => 'undef', 'name' => 'left', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'inset-block-start accepts auto' => ['inset-block-start: auto', [
+            ['type' => 'property', 'name' => 'inset-block-start', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'inset-block-end accepts length' => ['inset-block-end: -3rem', [
+            ['type' => 'property', 'name' => 'inset-block-end', 'value' => '-3rem', 'important' => false],
+        ]];
+        yield 'inset-inline-start accepts percentage' => ['inset-inline-start: 12.5%', [
+            ['type' => 'property', 'name' => 'inset-inline-start', 'value' => '12.5%', 'important' => false],
+        ]];
+        yield 'inset-inline-end accepts css-wide keyword' => ['inset-inline-end: inherit', [
+            ['type' => 'property', 'name' => 'inset-inline-end', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'inset-inline-start rejects none' => ['inset-inline-start: none', [
+            ['type' => 'undef', 'name' => 'inset-inline-start', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'inset-inline-end rejects multiple values' => ['inset-inline-end: auto 1px', [
+            ['type' => 'undef', 'name' => 'inset-inline-end', 'value' => 'auto 1px', 'important' => false],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -680,6 +744,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('minMaxSizeDeclarationProvider')]
     public function testMinMaxSizeDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('positionOffsetDeclarationProvider')]
+    public function testPositionOffsetDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
