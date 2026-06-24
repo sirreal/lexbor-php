@@ -10,6 +10,9 @@ use Lexbor\Css\Syntax\Tokenizer;
 final class Parser
 {
     private const array KNOWN_PROPERTIES = [
+        'box-sizing' => true,
+        'clear' => true,
+        'direction' => true,
         'display' => true,
         'height' => true,
         'margin' => true,
@@ -17,13 +20,28 @@ final class Parser
         'margin-left' => true,
         'margin-right' => true,
         'margin-top' => true,
+        'overflow-block' => true,
+        'overflow-inline' => true,
+        'overflow-wrap' => true,
+        'overflow-x' => true,
+        'overflow-y' => true,
         'padding' => true,
         'padding-bottom' => true,
         'padding-left' => true,
         'padding-right' => true,
         'padding-top' => true,
+        'position' => true,
         'text-decoration' => true,
+        'visibility' => true,
         'width' => true,
+        'word-wrap' => true,
+    ];
+
+    private const array CSS_WIDE_KEYWORDS = [
+        'inherit' => true,
+        'initial' => true,
+        'revert' => true,
+        'unset' => true,
     ];
 
     private const array DISPLAY_VALUES = [
@@ -167,6 +185,78 @@ final class Parser
         'vw' => true,
     ];
 
+    private const array KEYWORD_PROPERTIES = [
+        'box-sizing' => [
+            'border-box' => true,
+            'content-box' => true,
+        ],
+        'clear' => [
+            'block-end' => true,
+            'block-start' => true,
+            'bottom' => true,
+            'inline-end' => true,
+            'inline-start' => true,
+            'left' => true,
+            'none' => true,
+            'right' => true,
+            'top' => true,
+        ],
+        'direction' => [
+            'ltr' => true,
+            'rtl' => true,
+        ],
+        'overflow-block' => [
+            'auto' => true,
+            'clip' => true,
+            'hidden' => true,
+            'scroll' => true,
+            'visible' => true,
+        ],
+        'overflow-inline' => [
+            'auto' => true,
+            'clip' => true,
+            'hidden' => true,
+            'scroll' => true,
+            'visible' => true,
+        ],
+        'overflow-wrap' => [
+            'anywhere' => true,
+            'break-word' => true,
+            'normal' => true,
+        ],
+        'overflow-x' => [
+            'auto' => true,
+            'clip' => true,
+            'hidden' => true,
+            'scroll' => true,
+            'visible' => true,
+        ],
+        'overflow-y' => [
+            'auto' => true,
+            'clip' => true,
+            'hidden' => true,
+            'scroll' => true,
+            'visible' => true,
+        ],
+        'position' => [
+            'absolute' => true,
+            'fixed' => true,
+            'relative' => true,
+            'static' => true,
+            'sticky' => true,
+        ],
+        'visibility' => [
+            'collapse' => true,
+            'hidden' => true,
+            'visible' => true,
+        ],
+        'word-wrap' => [
+            'anywhere' => true,
+            'break-word' => true,
+            'normal' => true,
+        ],
+    ];
+
     public function __construct(
         private readonly Tokenizer $tokenizer = new Tokenizer(),
     ) {
@@ -204,7 +294,7 @@ final class Parser
      */
     private function skipDeclarationSeparators(array $tokens, int &$offset): void
     {
-        while ($offset < count($tokens) && in_array($tokens[$offset]->type, ['whitespace', 'semicolon', 'comment'], true)) {
+        while ($offset < count($tokens) && ($tokens[$offset]->type === 'semicolon' || self::isIgnorableToken($tokens[$offset]))) {
             $offset++;
         }
     }
@@ -216,7 +306,7 @@ final class Parser
     {
         $offset++;
 
-        while ($offset < count($tokens) && $tokens[$offset]->type === 'whitespace') {
+        while ($offset < count($tokens) && self::isIgnorableToken($tokens[$offset])) {
             $offset++;
         }
 
@@ -232,7 +322,7 @@ final class Parser
         $name = $tokens[$offset]->value;
         $offset++;
 
-        while ($offset < count($tokens) && $tokens[$offset]->type === 'whitespace') {
+        while ($offset < count($tokens) && self::isIgnorableToken($tokens[$offset])) {
             $offset++;
         }
 
@@ -240,18 +330,19 @@ final class Parser
             $offset++;
         }
 
-        while ($offset < count($tokens) && $tokens[$offset]->type === 'whitespace') {
+        while ($offset < count($tokens) && self::isIgnorableToken($tokens[$offset])) {
             $offset++;
         }
 
         $valueTokens = $this->consumeValueTokens($tokens, $offset);
         [$valueTokens, $important] = self::extractImportant($valueTokens);
         $value = self::serializeComponentValue($valueTokens);
+        $type = $this->classifyDeclaration($name, $value, $valueTokens);
 
         return [
-            'type' => $this->classifyDeclaration($name, $value, $valueTokens),
+            'type' => $type,
             'name' => $name,
-            'value' => $value,
+            'value' => $type === 'property' ? self::serializeKnownPropertyValue(strtolower($name), $valueTokens, $value) : $value,
             'important' => $important,
         ];
     }
@@ -330,18 +421,12 @@ final class Parser
             return 'custom';
         }
 
-        foreach ($valueTokens as $token) {
-            if ($token->type === 'comment') {
-                return 'undef';
-            }
-        }
-
         return match ($property) {
-            'display' => isset(self::DISPLAY_VALUES[strtolower($value)]) ? 'property' : 'undef',
+            'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
             'height', 'width' => self::isValidLengthSize($value, $valueTokens) ? 'property' : 'undef',
             'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
-            default => 'undef',
+            default => isset(self::KEYWORD_PROPERTIES[$property]) && self::isValidKeywordProperty($property, $valueTokens) ? 'property' : 'undef',
         };
     }
 
@@ -390,6 +475,16 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function isValidDisplay(array $tokens): bool
+    {
+        $value = self::serializeIdentSequence($tokens);
+
+        return $value !== null && isset(self::DISPLAY_VALUES[strtolower($value)]);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function isValidBoxSpacing(string $property, array $tokens, bool $allowAuto): bool
     {
         $components = self::splitWhitespaceSeparatedComponents($tokens);
@@ -419,7 +514,7 @@ final class Parser
         $component = [];
 
         foreach ($tokens as $token) {
-            if ($token->type === 'whitespace') {
+            if (self::isIgnorableToken($token)) {
                 if ($component !== []) {
                     $components[] = $component;
                     $component = [];
@@ -482,15 +577,111 @@ final class Parser
 
     /**
      * @param list<Token> $tokens
+     */
+    private static function isValidKeywordProperty(string $property, array $tokens): bool
+    {
+        $tokens = self::nonIgnorableTokens($tokens);
+
+        if (count($tokens) !== 1 || $tokens[0]->type !== 'ident') {
+            return false;
+        }
+
+        $value = strtolower($tokens[0]->value);
+
+        return isset(self::CSS_WIDE_KEYWORDS[$value])
+            || isset(self::KEYWORD_PROPERTIES[$property][$value]);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function serializeKnownPropertyValue(string $property, array $tokens, string $fallback): string
+    {
+        if ($property === 'display') {
+            return self::serializeIdentSequence($tokens) ?? $fallback;
+        }
+
+        if (isset(self::KEYWORD_PROPERTIES[$property])) {
+            return self::serializeIdentSequence($tokens) ?? $fallback;
+        }
+
+        if (
+            in_array($property, ['margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top'], true)
+            || in_array($property, ['padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top'], true)
+        ) {
+            return implode(' ', array_map(
+                static fn (array $component): string => self::serializeComponentValue($component),
+                self::splitWhitespaceSeparatedComponents($tokens),
+            ));
+        }
+
+        return $fallback;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function serializeIdentSequence(array $tokens): ?string
+    {
+        $tokens = self::nonIgnorableTokens($tokens);
+
+        if ($tokens === []) {
+            return null;
+        }
+
+        $values = [];
+
+        foreach ($tokens as $token) {
+            if ($token->type !== 'ident') {
+                return null;
+            }
+
+            $values[] = $token->value;
+        }
+
+        return implode(' ', $values);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return list<Token>
+     */
+    private static function nonIgnorableTokens(array $tokens): array
+    {
+        $tokens = self::stripWhitespaceTokens($tokens);
+
+        return array_values(array_filter(
+            $tokens,
+            static fn (Token $token): bool => ! self::isIgnorableToken($token),
+        ));
+    }
+
+    private static function isIgnorableToken(Token $token): bool
+    {
+        return $token->type === 'whitespace' || $token->type === 'comment';
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function trimTrailingIgnorableTokens(array &$tokens): void
+    {
+        while ($tokens !== [] && self::isIgnorableToken($tokens[array_key_last($tokens)])) {
+            array_pop($tokens);
+        }
+    }
+
+    /**
+     * @param list<Token> $tokens
      * @return list<Token>
      */
     private static function stripWhitespaceTokens(array $tokens): array
     {
-        while ($tokens !== [] && $tokens[0]->type === 'whitespace') {
+        while ($tokens !== [] && self::isIgnorableToken($tokens[0])) {
             array_shift($tokens);
         }
 
-        while ($tokens !== [] && $tokens[array_key_last($tokens)]->type === 'whitespace') {
+        while ($tokens !== [] && self::isIgnorableToken($tokens[array_key_last($tokens)])) {
             array_pop($tokens);
         }
 
@@ -529,12 +720,12 @@ final class Parser
      */
     private static function extractImportant(array $tokens): array
     {
-        while ($tokens !== [] && $tokens[array_key_last($tokens)]->type === 'whitespace') {
-            array_pop($tokens);
-        }
+        $remaining = $tokens;
+        self::trimTrailingIgnorableTokens($remaining);
 
-        $importantToken = array_pop($tokens);
-        $bangToken = array_pop($tokens);
+        $importantToken = array_pop($remaining);
+        self::trimTrailingIgnorableTokens($remaining);
+        $bangToken = array_pop($remaining);
 
         if (
             $importantToken !== null
@@ -544,19 +735,9 @@ final class Parser
             && $bangToken->type === 'delim'
             && $bangToken->value === '!'
         ) {
-            while ($tokens !== [] && $tokens[array_key_last($tokens)]->type === 'whitespace') {
-                array_pop($tokens);
-            }
+            self::trimTrailingIgnorableTokens($remaining);
 
-            return [$tokens, true];
-        }
-
-        if ($bangToken !== null) {
-            $tokens[] = $bangToken;
-        }
-
-        if ($importantToken !== null) {
-            $tokens[] = $importantToken;
+            return [$remaining, true];
         }
 
         return [$tokens, false];

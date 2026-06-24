@@ -303,6 +303,9 @@ final class ParserTest extends TestCase
         yield 'margin accepts one length' => ['margin: 1px', [
             ['type' => 'property', 'name' => 'margin', 'value' => '1px', 'important' => false],
         ]];
+        yield 'margin accepts comment-separated values' => ['margin: 1px/**/2px', [
+            ['type' => 'property', 'name' => 'margin', 'value' => '1px 2px', 'important' => false],
+        ]];
         yield 'margin accepts four mixed length percentage auto values' => ['margin: 1px 2% auto -4em', [
             ['type' => 'property', 'name' => 'margin', 'value' => '1px 2% auto -4em', 'important' => false],
         ]];
@@ -338,6 +341,113 @@ final class ParserTest extends TestCase
         ]];
         yield 'padding side rejects multiple values' => ['padding-top: 1px 2px', [
             ['type' => 'undef', 'name' => 'padding-top', 'value' => '1px 2px', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function keywordDeclarationProvider(): iterable
+    {
+        yield 'box-sizing accepts content-box' => ['box-sizing: content-box', [
+            ['type' => 'property', 'name' => 'box-sizing', 'value' => 'content-box', 'important' => false],
+        ]];
+        yield 'box-sizing accepts border-box with important' => ['box-sizing: border-box !important', [
+            ['type' => 'property', 'name' => 'box-sizing', 'value' => 'border-box', 'important' => true],
+        ]];
+        yield 'box-sizing rejects unknown keyword' => ['box-sizing: padding-box', [
+            ['type' => 'undef', 'name' => 'box-sizing', 'value' => 'padding-box', 'important' => false],
+        ]];
+        yield 'position accepts fixed' => ['position: fixed', [
+            ['type' => 'property', 'name' => 'position', 'value' => 'fixed', 'important' => false],
+        ]];
+        yield 'position accepts comments around complete keyword' => ['position: /**/fixed/**/', [
+            ['type' => 'property', 'name' => 'position', 'value' => 'fixed', 'important' => false],
+        ]];
+        yield 'position accepts css-wide keyword' => ['position: revert', [
+            ['type' => 'property', 'name' => 'position', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'position rejects comment-split keyword' => ['position: fi/**/xed', [
+            ['type' => 'undef', 'name' => 'position', 'value' => 'fixed', 'important' => false],
+        ]];
+        yield 'position rejects multiple keywords' => ['position: sticky fixed', [
+            ['type' => 'undef', 'name' => 'position', 'value' => 'sticky fixed', 'important' => false],
+        ]];
+        yield 'clear accepts logical keyword' => ['clear: inline-start', [
+            ['type' => 'property', 'name' => 'clear', 'value' => 'inline-start', 'important' => false],
+        ]];
+        yield 'clear accepts physical keyword' => ['clear: bottom', [
+            ['type' => 'property', 'name' => 'clear', 'value' => 'bottom', 'important' => false],
+        ]];
+        yield 'clear rejects multiple keywords' => ['clear: left right', [
+            ['type' => 'undef', 'name' => 'clear', 'value' => 'left right', 'important' => false],
+        ]];
+        yield 'direction accepts rtl' => ['direction: rtl', [
+            ['type' => 'property', 'name' => 'direction', 'value' => 'rtl', 'important' => false],
+        ]];
+        yield 'direction rejects auto' => ['direction: auto', [
+            ['type' => 'undef', 'name' => 'direction', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'visibility accepts collapse' => ['visibility: collapse', [
+            ['type' => 'property', 'name' => 'visibility', 'value' => 'collapse', 'important' => false],
+        ]];
+        yield 'visibility rejects none' => ['visibility: none', [
+            ['type' => 'undef', 'name' => 'visibility', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'overflow-x accepts scroll' => ['overflow-x: scroll', [
+            ['type' => 'property', 'name' => 'overflow-x', 'value' => 'scroll', 'important' => false],
+        ]];
+        yield 'overflow-x accepts trailing comment' => ['overflow-x: scroll/**/', [
+            ['type' => 'property', 'name' => 'overflow-x', 'value' => 'scroll', 'important' => false],
+        ]];
+        yield 'overflow-y accepts clip' => ['overflow-y: clip', [
+            ['type' => 'property', 'name' => 'overflow-y', 'value' => 'clip', 'important' => false],
+        ]];
+        yield 'overflow-block accepts auto' => ['overflow-block: auto', [
+            ['type' => 'property', 'name' => 'overflow-block', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'overflow-inline accepts visible' => ['overflow-inline: visible', [
+            ['type' => 'property', 'name' => 'overflow-inline', 'value' => 'visible', 'important' => false],
+        ]];
+        yield 'overflow-x rejects overlay' => ['overflow-x: overlay', [
+            ['type' => 'undef', 'name' => 'overflow-x', 'value' => 'overlay', 'important' => false],
+        ]];
+        yield 'overflow-wrap accepts break-word' => ['overflow-wrap: break-word', [
+            ['type' => 'property', 'name' => 'overflow-wrap', 'value' => 'break-word', 'important' => false],
+        ]];
+        yield 'overflow-wrap accepts anywhere' => ['overflow-wrap: anywhere', [
+            ['type' => 'property', 'name' => 'overflow-wrap', 'value' => 'anywhere', 'important' => false],
+        ]];
+        yield 'overflow-wrap rejects visible' => ['overflow-wrap: visible', [
+            ['type' => 'undef', 'name' => 'overflow-wrap', 'value' => 'visible', 'important' => false],
+        ]];
+        yield 'word-wrap follows overflow-wrap keywords' => ['word-wrap: break-word', [
+            ['type' => 'property', 'name' => 'word-wrap', 'value' => 'break-word', 'important' => false],
+        ]];
+        yield 'word-wrap rejects overflow keywords' => ['word-wrap: scroll', [
+            ['type' => 'undef', 'name' => 'word-wrap', 'value' => 'scroll', 'important' => false],
+        ]];
+        yield 'keyword declaration accepts comment before important' => ['box-sizing: border-box/**/ ! /**/ important', [
+            ['type' => 'property', 'name' => 'box-sizing', 'value' => 'border-box', 'important' => true],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function displayCommentProvider(): iterable
+    {
+        yield 'display accepts comment-separated complete keywords' => ['display: block/**/flow', [
+            ['type' => 'property', 'name' => 'display', 'value' => 'block flow', 'important' => false],
+        ]];
+        yield 'display rejects comment-split keyword' => ['display: in/**/line', [
+            ['type' => 'undef', 'name' => 'display', 'value' => 'inline', 'important' => false],
+        ]];
+        yield 'display rejects comment-split legacy keyword' => ['display: inline-/**/block', [
+            ['type' => 'undef', 'name' => 'display', 'value' => 'inline-block', 'important' => false],
+        ]];
+        yield 'display rejects comment-split css-wide keyword' => ['display: in/**/herit', [
+            ['type' => 'undef', 'name' => 'display', 'value' => 'inherit', 'important' => false],
         ]];
     }
 
@@ -391,6 +501,24 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('boxSpacingProvider')]
     public function testBoxSpacingDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('keywordDeclarationProvider')]
+    public function testKeywordDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('displayCommentProvider')]
+    public function testDisplayCommentBoundaries(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
