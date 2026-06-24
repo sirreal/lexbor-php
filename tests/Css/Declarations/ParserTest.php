@@ -2804,6 +2804,9 @@ final class ParserTest extends TestCase
         yield 'flex-basis accepts length' => ['flex-basis: 12px', [
             ['type' => 'property', 'name' => 'flex-basis', 'value' => '12px', 'important' => false],
         ]];
+        yield 'flex-basis accepts normal leading whitespace' => ['flex-basis:   12px', [
+            ['type' => 'property', 'name' => 'flex-basis', 'value' => '12px', 'important' => false],
+        ]];
         yield 'flex-basis serializes q unit with Lexbor uppercase spelling' => ['flex-basis: 2q', [
             ['type' => 'property', 'name' => 'flex-basis', 'value' => '2Q', 'important' => false],
         ]];
@@ -2824,6 +2827,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'flex-basis trims whitespace before trailing comment' => ['flex-basis: content /**/;', [
             ['type' => 'property', 'name' => 'flex-basis', 'value' => 'content', 'important' => false],
+        ]];
+        yield 'flex-basis rejects length with comment-separated leading whitespace like Lexbor' => ['flex-basis: /**/  12px', [
+            ['type' => 'undef', 'name' => 'flex-basis', 'value' => '12px', 'important' => false],
+        ]];
+        yield 'flex-basis rejects content with comment-separated leading whitespace like Lexbor' => ['flex-basis: /**/  content', [
+            ['type' => 'undef', 'name' => 'flex-basis', 'value' => 'content', 'important' => false],
+        ]];
+        yield 'flex-basis rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['flex-basis: /**/  unset', [
+            ['type' => 'undef', 'name' => 'flex-basis', 'value' => 'unset', 'important' => false],
         ]];
         yield 'flex-basis rejects none' => ['flex-basis: none', [
             ['type' => 'undef', 'name' => 'flex-basis', 'value' => 'none', 'important' => false],

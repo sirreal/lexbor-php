@@ -1325,6 +1325,7 @@ final class Parser
             'float-defer',
             'float-offset',
             'float-reference',
+            'flex-basis',
             'flex-grow',
             'flex-shrink',
             'font-family',
@@ -4042,13 +4043,11 @@ final class Parser
      */
     private static function flexBasisValue(array $tokens): ?string
     {
-        $components = self::splitWhitespaceSeparatedComponents($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
-        if (count($components) !== 1 || count($components[0]) !== 1) {
+        if ($token === null) {
             return null;
         }
-
-        $token = $components[0][0];
 
         if ($token->type === 'ident') {
             $value = strtolower($token->value);
