@@ -735,6 +735,106 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function textIndentDeclarationProvider(): iterable
+    {
+        yield 'text-indent accepts length' => ['text-indent: 2px', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'text-indent accepts negative length' => ['text-indent: -2px', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '-2px', 'important' => false],
+        ]];
+        yield 'text-indent serializes q unit with Lexbor uppercase spelling' => ['text-indent: 2q', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2Q', 'important' => false],
+        ]];
+        yield 'text-indent lowercases mixed-case length unit' => ['text-indent: 2PX', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'text-indent accepts percentage' => ['text-indent: 10%', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '10%', 'important' => false],
+        ]];
+        yield 'text-indent accepts negative percentage' => ['text-indent: -10%', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '-10%', 'important' => false],
+        ]];
+        yield 'text-indent accepts unitless zero' => ['text-indent: 0', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '0', 'important' => false],
+        ]];
+        yield 'text-indent accepts css-wide keyword' => ['text-indent: unset', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'text-indent accepts length then hanging' => ['text-indent: 2px hanging', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px hanging', 'important' => false],
+        ]];
+        yield 'text-indent serializes hanging after length' => ['text-indent: hanging 2px', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px hanging', 'important' => false],
+        ]];
+        yield 'text-indent accepts adjacent positive length after hanging' => ['text-indent: hanging+2px', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px hanging', 'important' => false],
+        ]];
+        yield 'text-indent accepts length then each-line' => ['text-indent: 2px each-line', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px each-line', 'important' => false],
+        ]];
+        yield 'text-indent serializes each-line after length' => ['text-indent: each-line 2px', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px each-line', 'important' => false],
+        ]];
+        yield 'text-indent accepts length with both keywords' => ['text-indent: 2px hanging each-line', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px hanging each-line', 'important' => false],
+        ]];
+        yield 'text-indent serializes both keywords in Lexbor order' => ['text-indent: each-line hanging 2px', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px hanging each-line', 'important' => false],
+        ]];
+        yield 'text-indent treats comments between keyword and length as whitespace' => ['text-indent: hanging/**/2px', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2px hanging', 'important' => false],
+        ]];
+        yield 'text-indent keeps important flag' => ['text-indent: 2em each-line !important', [
+            ['type' => 'property', 'name' => 'text-indent', 'value' => '2em each-line', 'important' => true],
+        ]];
+        yield 'text-indent rejects hanging without length' => ['text-indent: hanging', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'hanging', 'important' => false],
+        ]];
+        yield 'text-indent rejects each-line without length' => ['text-indent: each-line', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'each-line', 'important' => false],
+        ]];
+        yield 'text-indent rejects keywords without length' => ['text-indent: hanging each-line', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'hanging each-line', 'important' => false],
+        ]];
+        yield 'text-indent rejects css-wide keyword with length' => ['text-indent: inherit 2px', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'inherit 2px', 'important' => false],
+        ]];
+        yield 'text-indent rejects duplicate hanging' => ['text-indent: 2px hanging hanging', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => '2px hanging hanging', 'important' => false],
+        ]];
+        yield 'text-indent rejects duplicate each-line' => ['text-indent: 2px each-line each-line', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => '2px each-line each-line', 'important' => false],
+        ]];
+        yield 'text-indent rejects multiple lengths' => ['text-indent: 1px 2px', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => '1px 2px', 'important' => false],
+        ]];
+        yield 'text-indent rejects auto' => ['text-indent: auto', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'text-indent rejects none' => ['text-indent: none', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'text-indent rejects non-length dimension' => ['text-indent: 1deg', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => '1deg', 'important' => false],
+        ]];
+        yield 'text-indent rejects nonzero number' => ['text-indent: 1', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => '1', 'important' => false],
+        ]];
+        yield 'text-indent rejects comment-split keyword' => ['text-indent: hang/**/ing 2px', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'hanging 2px', 'important' => false],
+        ]];
+        yield 'text-indent rejects function' => ['text-indent: calc(1px)', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'calc(1px)', 'important' => false],
+        ]];
+        yield 'text-indent rejects adjacent negative length after hanging' => ['text-indent: hanging-2px', [
+            ['type' => 'undef', 'name' => 'text-indent', 'value' => 'hanging-2px', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function textCombineUprightDeclarationProvider(): iterable
     {
         yield 'text-combine-upright accepts none' => ['text-combine-upright: none', [
@@ -1554,6 +1654,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textKeywordDeclarationProvider')]
     public function testTextKeywordDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('textIndentDeclarationProvider')]
+    public function testTextIndentDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

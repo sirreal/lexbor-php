@@ -68,6 +68,7 @@ final class Parser
         'text-align-last' => true,
         'text-combine-upright' => true,
         'text-decoration' => true,
+        'text-indent' => true,
         'text-justify' => true,
         'text-orientation' => true,
         'text-transform' => true,
@@ -667,6 +668,7 @@ final class Parser
             'order' => self::isValidInteger($valueTokens) ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
             'text-combine-upright' => self::textCombineUprightValue($valueTokens) !== null ? 'property' : 'undef',
+            'text-indent' => self::textIndentValue($valueTokens) !== null ? 'property' : 'undef',
             'text-transform' => self::textTransformValue($valueTokens) !== null ? 'property' : 'undef',
             'z-index' => self::isValidIntegerKeyword($valueTokens, ['auto' => true]) ? 'property' : 'undef',
             default => isset(self::KEYWORD_PROPERTIES[$property]) && self::isValidKeywordProperty($property, $valueTokens) ? 'property' : 'undef',
@@ -1231,6 +1233,79 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function textIndentValue(array $tokens): ?string
+    {
+        $tokens = self::nonIgnorableTokens($tokens);
+
+        if ($tokens === [] || count($tokens) > 3) {
+            return null;
+        }
+
+        $length = null;
+        $hanging = false;
+        $eachLine = false;
+
+        foreach ($tokens as $token) {
+            $lengthValue = self::lengthPercentageComponentValue([$token], false);
+            if ($lengthValue !== null) {
+                if ($length !== null) {
+                    return null;
+                }
+
+                $length = $lengthValue;
+                continue;
+            }
+
+            if ($token->type !== 'ident') {
+                return null;
+            }
+
+            $value = strtolower($token->value);
+
+            if (isset(self::CSS_WIDE_KEYWORDS[$value])) {
+                return count($tokens) === 1 ? $value : null;
+            }
+
+            if ($value === 'hanging') {
+                if ($hanging) {
+                    return null;
+                }
+
+                $hanging = true;
+                continue;
+            }
+
+            if ($value === 'each-line') {
+                if ($eachLine) {
+                    return null;
+                }
+
+                $eachLine = true;
+                continue;
+            }
+
+            return null;
+        }
+
+        if ($length === null) {
+            return null;
+        }
+
+        $parts = [$length];
+        if ($hanging) {
+            $parts[] = 'hanging';
+        }
+
+        if ($eachLine) {
+            $parts[] = 'each-line';
+        }
+
+        return implode(' ', $parts);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function isValidNumberPercentage(array $tokens): bool
     {
         $token = self::singleValueToken($tokens);
@@ -1432,6 +1507,10 @@ final class Parser
 
         if ($property === 'text-combine-upright') {
             return self::textCombineUprightValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'text-indent') {
+            return self::textIndentValue($tokens) ?? $fallback;
         }
 
         if (
