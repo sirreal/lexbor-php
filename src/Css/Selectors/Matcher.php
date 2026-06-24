@@ -18,6 +18,7 @@ final class Matcher
 {
     public const int OPT_DEFAULT = 0;
     public const int OPT_MATCH_ROOT = 1;
+    public const int OPT_MATCH_FIRST = 2;
 
     private const array HTML_CASE_INSENSITIVE_ATTRIBUTES = [
         'accept' => true,
@@ -110,26 +111,23 @@ final class Matcher
         }
 
         $matches = [];
-        if (($options & self::OPT_MATCH_ROOT) !== 0 && $root instanceof Element) {
+        $appendMatches = function (Element $element) use ($selectors, &$matches, $options): void {
             foreach ($selectors as $complex) {
-                if ($this->matchesComplex($root, $complex)) {
-                    $matches[] = $root;
-                    break;
-                }
-            }
-        }
+                if ($this->matchesComplex($element, $complex)) {
+                    $matches[] = $element;
 
-        $this->walkDescendantElements(
-            $root,
-            function (Element $element) use ($selectors, &$matches): void {
-                foreach ($selectors as $complex) {
-                    if ($this->matchesComplex($element, $complex)) {
-                        $matches[] = $element;
+                    if (($options & self::OPT_MATCH_FIRST) !== 0) {
                         return;
                     }
                 }
-            },
-        );
+            }
+        };
+
+        if (($options & self::OPT_MATCH_ROOT) !== 0 && $root instanceof Element) {
+            $appendMatches($root);
+        }
+
+        $this->walkDescendantElements($root, $appendMatches);
 
         return $matches;
     }

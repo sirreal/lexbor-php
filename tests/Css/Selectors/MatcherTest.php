@@ -537,6 +537,28 @@ final class MatcherTest extends TestCase
         );
     }
 
+    public function testFindSupportsLexborMatchFirstOption(): void
+    {
+        $document = $this->fixtureDocument();
+        $selector = "p[lang|='ru'] > span:first-child, [p='7'] [span='6']";
+
+        self::assertSame(
+            ['6'],
+            self::attributeValues((new Matcher())->find($document->bodyElement(), $selector, Matcher::OPT_MATCH_FIRST), 'span'),
+        );
+    }
+
+    public function testFindDefaultReportsEachMatchingSelectorListBranch(): void
+    {
+        $document = $this->fixtureDocument();
+        $selector = "p[lang|='ru'] > span:first-child, [p='7'] [span='6']";
+
+        self::assertSame(
+            ['6', '6'],
+            self::attributeValues((new Matcher())->find($document->bodyElement(), $selector), 'span'),
+        );
+    }
+
     public function testMatchesSupportsSelectorLists(): void
     {
         $document = $this->fixtureDocument();
