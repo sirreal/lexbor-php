@@ -7,7 +7,6 @@ namespace Lexbor\Tests\Css\Selectors;
 use Lexbor\Core\Status;
 use Lexbor\Css\Selectors\Matcher;
 use Lexbor\Dom\Element;
-use Lexbor\Dom\ExceptionCode;
 use Lexbor\Html\Document;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -492,14 +491,25 @@ final class MatcherTest extends TestCase
     public function testRootPseudoClassUsesFirstDocumentElement(): void
     {
         $document = $this->fixtureDocument();
-        $doctype = $document->createDocumentType('html');
 
-        self::assertNotNull($doctype);
-        self::assertSame(ExceptionCode::Ok, $document->insertBeforeSpec($doctype, $document->bodyElement()));
+        self::assertNotNull($document->documentType());
+        self::assertSame($document->bodyElement(), $document->documentType()->next);
         self::assertSame(
             ['body'],
             self::attributeValues((new Matcher())->find($document, ':root'), 'tagName'),
         );
+    }
+
+    public function testLegacyPublicDoctypeStillEnablesQuirksClassMatching(): void
+    {
+        $document = new Document();
+        self::assertSame(
+            Status::Ok,
+            $document->parse('<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN"><body><div class="Test"></div></body>'),
+        );
+
+        self::assertTrue($document->isQuirksMode());
+        self::assertCount(1, (new Matcher())->find($document->bodyElement(), '.test'));
     }
 
     public function testFindMatchesUniversalSelectorInDocumentOrder(): void

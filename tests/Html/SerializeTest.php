@@ -73,6 +73,83 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, bool}>
+     */
+    public static function upstreamSerializeExtDocumentTypeProvider(): iterable
+    {
+        yield 'document_type.ton #1 html doctype document' => [
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'document_type.ton #2 html doctype with body content' => [
+            '<!DOCTYPE html><html><head></head><body><p>text</p></body></html>',
+            '<!DOCTYPE html><html><head></head><body><p>text</p></body></html>',
+            false,
+        ];
+        yield 'document_type.ton #3 full plain html doctype' => [
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'document_type.ton #4 full xhtml strict doctype' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'document_type.ton #5 full xhtml transitional doctype' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'document_type.ton #6 full html 4 strict doctype' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'document_type.ton #7 full html 4 transitional doctype' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'document_type.ton #8 full html 4 frameset doctype' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd"><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Frameset//EN" "http://www.w3.org/TR/html4/frameset.dtd"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'document_type.ton #9 full public doctype without system id' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN"><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0//EN"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'document_type.ton #10 full system doctype' => [
+            '<!DOCTYPE html SYSTEM "about:legacy-compat"><html><head></head><body></body></html>',
+            '<!DOCTYPE html SYSTEM "about:legacy-compat"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'document_type.ton #11 default xhtml strict doctype' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html><head></head><body></body></html>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'document_type.ton #12 default system doctype' => [
+            '<!DOCTYPE html SYSTEM "about:legacy-compat"><html><head></head><body></body></html>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'document_type.ton #17 document without doctype' => [
+            '<html><head></head><body><p>no doctype</p></body></html>',
+            '<html><head></head><body><p>no doctype</p></body></html>',
+            false,
+        ];
+        yield 'document_type.ton #18 repeated html doctype document' => [
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, string}>
      */
     public static function tokenizerCharacterReferenceProvider(): iterable
@@ -165,6 +242,61 @@ final class SerializeTest extends TestCase
         self::assertSame(Status::Ok, $document->parse($html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('upstreamSerializeExtDocumentTypeProvider')]
+    public function testUpstreamSerializeExtDocumentTypeFixtures(string $html, string $expected, bool $fullDoctype): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document, fullDoctype: $fullDoctype));
+    }
+
+    public function testRemovedParsedDocumentTypeIsNotSerialized(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><html><head></head><body><p>x</p></body></html>'));
+
+        $doctype = $document->documentType();
+        self::assertNotNull($doctype);
+
+        $doctype->remove();
+
+        self::assertNull($document->documentType());
+        self::assertSame('<html><head></head><body><p>x</p></body></html>', Serializer::serializeDeep($document));
+    }
+
+    public function testWholeDocumentSerializationPreservesParsedBodyAttributes(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><body class=x data-id=1><p>t</p></body>'));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body class="x" data-id="1"><p>t</p></body></html>',
+            Serializer::serializeDeep($document),
+        );
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function emptyDocumentTypeIdentifierProvider(): iterable
+    {
+        yield 'empty system identifier' => ['<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>'];
+        yield 'empty public identifier' => ['<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>'];
+    }
+
+    #[DataProvider('emptyDocumentTypeIdentifierProvider')]
+    public function testFullDocumentTypeSerializationOmitsEmptyIdentifiers(string $html): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
     }
 
     #[DataProvider('tokenizerCharacterReferenceProvider')]

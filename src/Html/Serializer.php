@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace Lexbor\Html;
 
 use Lexbor\Dom\Comment;
+use Lexbor\Dom\DocumentType;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
 use Lexbor\Dom\Text;
 
 final class Serializer
 {
-    public static function serialize(Node $node): string
+    public static function serialize(Node $node, bool $fullDoctype = false): string
     {
         if ($node instanceof Text) {
             return self::serializeText($node);
@@ -19,16 +20,20 @@ final class Serializer
 
         if ($node instanceof Comment) {
             return self::serializeComment($node);
+        }
+
+        if ($node instanceof DocumentType) {
+            return self::serializeDoctype($node, $fullDoctype);
         }
 
         if ($node instanceof Element) {
-            return self::serializeElement($node);
+            return self::serializeElement($node, $fullDoctype);
         }
 
-        return self::serializeDeep($node);
+        return self::serializeDeep($node, $fullDoctype);
     }
 
-    public static function serializeDeep(Node $node): string
+    public static function serializeDeep(Node $node, bool $fullDoctype = false): string
     {
         if ($node instanceof Text) {
             return self::serializeText($node);
@@ -38,14 +43,22 @@ final class Serializer
             return self::serializeComment($node);
         }
 
+        if ($node instanceof DocumentType) {
+            return self::serializeDoctype($node, $fullDoctype);
+        }
+
+        if ($node instanceof Document) {
+            return self::serializeDocument($node, $fullDoctype);
+        }
+
         if ($node instanceof Element && $node->tagName !== 'body') {
-            return self::serializeElement($node);
+            return self::serializeElement($node, $fullDoctype);
         }
 
         $out = '';
 
         for ($child = $node->firstChild; $child !== null; $child = $child->next) {
-            $out .= ($child instanceof Element) ? self::serializeElement($child) : self::serializeDeep($child);
+            $out .= ($child instanceof Element) ? self::serializeElement($child, $fullDoctype) : self::serializeDeep($child, $fullDoctype);
         }
 
         return $out;
@@ -63,8 +76,12 @@ final class Serializer
             return self::indent($indent) . self::serializeComment($node) . "\n";
         }
 
+        if ($node instanceof DocumentType) {
+            return self::indent($indent) . self::serializeDoctype($node, false) . "\n";
+        }
+
         if ($node instanceof Element) {
-            return self::indent($indent) . self::serializeElement($node) . "\n";
+            return self::indent($indent) . self::serializeElement($node, false) . "\n";
         }
 
         $out = '';
@@ -76,7 +93,15 @@ final class Serializer
         return $out;
     }
 
-    private static function serializeElement(Element $element): string
+    private static function serializeDocument(Document $document, bool $fullDoctype): string
+    {
+        $doctype = $document->documentType();
+        $prefix = $doctype === null ? '' : self::serializeDoctype($doctype, $fullDoctype);
+
+        return $prefix . '<html><head></head>' . self::serializeElement($document->bodyElement(), $fullDoctype) . '</html>';
+    }
+
+    private static function serializeElement(Element $element, bool $fullDoctype): string
     {
         $attributes = '';
 
@@ -92,18 +117,37 @@ final class Serializer
             return sprintf('<%s%s>', $element->tagName, $attributes);
         }
 
-        return sprintf('<%s%s>%s</%s>', $element->tagName, $attributes, self::serializeDeepChildren($element), $element->tagName);
+        return sprintf('<%s%s>%s</%s>', $element->tagName, $attributes, self::serializeDeepChildren($element, $fullDoctype), $element->tagName);
     }
 
-    private static function serializeDeepChildren(Node $node): string
+    private static function serializeDeepChildren(Node $node, bool $fullDoctype = false): string
     {
         $out = '';
 
         for ($child = $node->firstChild; $child !== null; $child = $child->next) {
-            $out .= self::serialize($child);
+            $out .= self::serialize($child, $fullDoctype);
         }
 
         return $out;
+    }
+
+    private static function serializeDoctype(DocumentType $doctype, bool $fullDoctype): string
+    {
+        $out = '<!DOCTYPE ' . $doctype->name();
+
+        if ($fullDoctype) {
+            if ($doctype->publicId() !== null) {
+                $out .= ' PUBLIC "' . $doctype->publicId() . '"';
+
+                if ($doctype->systemId() !== null) {
+                    $out .= ' "' . $doctype->systemId() . '"';
+                }
+            } elseif ($doctype->systemId() !== null) {
+                $out .= ' SYSTEM "' . $doctype->systemId() . '"';
+            }
+        }
+
+        return $out . '>';
     }
 
     private static function serializeComment(Comment $comment): string
