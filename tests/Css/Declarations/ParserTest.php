@@ -2874,6 +2874,9 @@ final class ParserTest extends TestCase
         yield 'flex-flow accepts css-wide keyword' => ['flex-flow: inherit', [
             ['type' => 'property', 'name' => 'flex-flow', 'value' => 'inherit', 'important' => false],
         ]];
+        yield 'flex-flow accepts normal leading whitespace' => ['flex-flow:   row', [
+            ['type' => 'property', 'name' => 'flex-flow', 'value' => 'row', 'important' => false],
+        ]];
         yield 'flex-flow lowercases mixed-case direction keyword' => ['flex-flow: RoW', [
             ['type' => 'property', 'name' => 'flex-flow', 'value' => 'row', 'important' => false],
         ]];
@@ -2891,6 +2894,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'flex-flow trims whitespace before trailing comment' => ['flex-flow: column /**/;', [
             ['type' => 'property', 'name' => 'flex-flow', 'value' => 'column', 'important' => false],
+        ]];
+        yield 'flex-flow rejects direction with comment-separated leading whitespace like Lexbor' => ['flex-flow: /**/  row', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'row', 'important' => false],
+        ]];
+        yield 'flex-flow rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['flex-flow: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'inherit', 'important' => false],
         ]];
         yield 'flex-flow rejects duplicate directions' => ['flex-flow: row column', [
             ['type' => 'undef', 'name' => 'flex-flow', 'value' => 'row column', 'important' => false],

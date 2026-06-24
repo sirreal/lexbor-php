@@ -1326,6 +1326,7 @@ final class Parser
             'float-offset',
             'float-reference',
             'flex-basis',
+            'flex-flow',
             'flex-grow',
             'flex-shrink',
             'font-family',
@@ -1658,6 +1659,14 @@ final class Parser
      */
     private static function isValidFlexFlow(array $tokens): bool
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type !== 'ident') {
+            return false;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $components = self::splitWhitespaceSeparatedComponents($tokens);
 
         if ($components === [] || count($components) > 2) {
@@ -4008,6 +4017,14 @@ final class Parser
      */
     private static function serializeFlexFlow(array $tokens): ?string
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type !== 'ident') {
+            return null;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $components = self::splitWhitespaceSeparatedComponents($tokens);
 
         if ($components === []) {
