@@ -1306,6 +1306,7 @@ final class Parser
             'dominant-baseline',
             'font-family',
             'text-decoration-color',
+            'text-decoration',
             'text-decoration-line',
             'text-decoration-style',
             'vertical-align',
@@ -1429,6 +1430,7 @@ final class Parser
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
             'tab-size' => self::numberLengthValue($valueTokens) !== null ? 'property' : 'undef',
             'text-combine-upright' => self::textCombineUprightValue($valueTokens) !== null ? 'property' : 'undef',
+            'text-decoration' => self::textDecorationValue($valueTokens) !== null ? 'property' : 'undef',
             'text-decoration-line' => self::textDecorationLineValue($valueTokens) !== null ? 'property' : 'undef',
             'text-decoration-style' => self::textDecorationStyleValue($valueTokens) !== null ? 'property' : 'undef',
             'text-indent' => self::textIndentValue($valueTokens) !== null ? 'property' : 'undef',
@@ -2702,6 +2704,203 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
+    private static function textDecorationValue(array $tokens): ?string
+    {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type === 'ident') {
+            $value = strtolower($tokens[$offset]->value);
+
+            if (isset(self::CSS_WIDE_KEYWORDS[$value])) {
+                $offset++;
+                self::skipLexborOptionalWhitespace($tokens, $offset);
+
+                return $offset >= count($tokens) || self::remainingTokensAreIgnorable($tokens, $offset) ? $value : null;
+            }
+        }
+
+        $decoration = [
+            'line' => null,
+            'style' => null,
+            'color' => null,
+        ];
+
+        for ($componentCount = 0; $componentCount < 3; $componentCount++) {
+            if (! isset($tokens[$offset])) {
+                break;
+            }
+
+            if (! self::consumeTextDecorationComponent($tokens, $offset, $decoration)) {
+                return null;
+            }
+
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+
+            if ($offset >= count($tokens) || self::remainingTokensAreIgnorable($tokens, $offset)) {
+                break;
+            }
+        }
+
+        if ($decoration['line'] === null && $decoration['style'] === null && $decoration['color'] === null) {
+            return null;
+        }
+
+        if ($offset < count($tokens) && ! self::remainingTokensAreIgnorable($tokens, $offset)) {
+            return null;
+        }
+
+        $parts = [];
+
+        if ($decoration['line'] !== null) {
+            $parts[] = $decoration['line'];
+        }
+
+        if ($decoration['style'] !== null) {
+            $parts[] = $decoration['style'];
+        }
+
+        if ($decoration['color'] !== null) {
+            $parts[] = $decoration['color'];
+        }
+
+        return implode(' ', $parts);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @param array{line: ?string, style: ?string, color: ?string} $decoration
+     */
+    private static function consumeTextDecorationComponent(array $tokens, int &$offset, array &$decoration): bool
+    {
+        if ($decoration['line'] === null) {
+            $lineOffset = $offset;
+            $line = self::textDecorationLineComponentValue($tokens, $lineOffset);
+            if ($line === false) {
+                return false;
+            }
+
+            if (is_string($line)) {
+                $decoration['line'] = $line;
+                $offset = $lineOffset;
+                return true;
+            }
+        }
+
+        if ($decoration['style'] === null) {
+            $styleOffset = $offset;
+            $style = self::textDecorationStyleComponentValue($tokens, $styleOffset);
+            if ($style !== null) {
+                $decoration['style'] = $style;
+                $offset = $styleOffset;
+                return true;
+            }
+        }
+
+        if ($decoration['color'] !== null) {
+            return false;
+        }
+
+        $colorOffset = $offset;
+        $color = self::colorValue($tokens, $colorOffset, false);
+        if ($color === null) {
+            return false;
+        }
+
+        $decoration['color'] = $color;
+        $offset = $colorOffset;
+
+        return true;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @return string|false|null false means a matched line token was invalid, null means no line match.
+     */
+    private static function textDecorationLineComponentValue(array $tokens, int &$offset): string|false|null
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null || $token->type !== 'ident') {
+            return null;
+        }
+
+        $value = strtolower($token->value);
+
+        if ($value === 'none') {
+            $offset++;
+            return 'none';
+        }
+
+        if (! isset(self::TEXT_DECORATION_LINE_KEYWORDS[$value])) {
+            return null;
+        }
+
+        $seen = [];
+
+        while (($tokens[$offset] ?? null)?->type === 'ident') {
+            $value = strtolower($tokens[$offset]->value);
+
+            if (! isset(self::TEXT_DECORATION_LINE_KEYWORDS[$value])) {
+                break;
+            }
+
+            if (isset($seen[$value])) {
+                return false;
+            }
+
+            $seen[$value] = true;
+            $offset++;
+
+            $lookahead = $offset;
+            self::skipLexborOptionalWhitespace($tokens, $lookahead);
+
+            if (($tokens[$lookahead] ?? null)?->type !== 'ident') {
+                $offset = $lookahead;
+                break;
+            }
+
+            $nextValue = strtolower($tokens[$lookahead]->value);
+            if (! isset(self::TEXT_DECORATION_LINE_KEYWORDS[$nextValue])) {
+                $offset = $lookahead;
+                break;
+            }
+
+            $offset = $lookahead;
+        }
+
+        $parts = [];
+        foreach (['underline', 'overline', 'line-through', 'blink'] as $value) {
+            if (isset($seen[$value])) {
+                $parts[] = $value;
+            }
+        }
+
+        return $parts === [] ? null : implode(' ', $parts);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function textDecorationStyleComponentValue(array $tokens, int &$offset): ?string
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null || $token->type !== 'ident') {
+            return null;
+        }
+
+        $value = strtolower($token->value);
+        if (! isset(self::TEXT_DECORATION_STYLE_KEYWORDS[$value])) {
+            return null;
+        }
+
+        $offset++;
+
+        return $value;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
     private static function textDecorationLineValue(array $tokens): ?string
     {
         $offset = 0;
@@ -3593,6 +3792,10 @@ final class Parser
 
         if ($property === 'dominant-baseline') {
             return self::singleLexborKeywordValue($tokens, self::DOMINANT_BASELINE_KEYWORDS) ?? $fallback;
+        }
+
+        if ($property === 'text-decoration') {
+            return self::textDecorationValue($tokens) ?? $fallback;
         }
 
         if ($property === 'text-decoration-line') {

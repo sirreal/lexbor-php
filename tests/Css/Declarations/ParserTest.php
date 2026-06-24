@@ -1103,6 +1103,136 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function textDecorationShorthandProvider(): iterable
+    {
+        yield 'text-decoration accepts css-wide keyword' => ['text-decoration: inherit', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'text-decoration accepts none line value' => ['text-decoration: none', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'text-decoration accepts line keyword' => ['text-decoration: underline', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration accepts all line keywords' => ['text-decoration: blink line-through overline underline', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline overline line-through blink', 'important' => false],
+        ]];
+        yield 'text-decoration accepts style keyword' => ['text-decoration: wavy', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'wavy', 'important' => false],
+        ]];
+        yield 'text-decoration accepts named color' => ['text-decoration: red', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'red', 'important' => false],
+        ]];
+        yield 'text-decoration accepts currentcolor' => ['text-decoration: currentColor', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'currentcolor', 'important' => false],
+        ]];
+        yield 'text-decoration accepts system color' => ['text-decoration: ButtonText', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'ButtonText', 'important' => false],
+        ]];
+        yield 'text-decoration accepts hex color' => ['text-decoration: #ABC', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => '#abc', 'important' => false],
+        ]];
+        yield 'text-decoration accepts function color' => ['text-decoration: rgb(1 2 3)', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'rgb(1 2 3)', 'important' => false],
+        ]];
+        yield 'text-decoration accepts line style color' => ['text-decoration: underline solid red', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline solid red', 'important' => false],
+        ]];
+        yield 'text-decoration serializes color style line in Lexbor order' => ['text-decoration: red wavy underline', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline wavy red', 'important' => false],
+        ]];
+        yield 'text-decoration serializes style color line group in Lexbor order' => ['text-decoration: dashed #ABC overline underline', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline overline dashed #abc', 'important' => false],
+        ]];
+        yield 'text-decoration accepts none with style and color like Lexbor' => ['text-decoration: none solid red', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'none solid red', 'important' => false],
+        ]];
+        yield 'text-decoration accepts color before none' => ['text-decoration: red none', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'none red', 'important' => false],
+        ]];
+        yield 'text-decoration keeps important flag' => ['text-decoration: underline dotted blue !important', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline dotted blue', 'important' => true],
+        ]];
+        yield 'text-decoration treats comments between line keywords as separators' => ['text-decoration: underline/**/blink', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline blink', 'important' => false],
+        ]];
+        yield 'text-decoration treats comments between components as separators' => ['text-decoration: underline/**/solid/**/red', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline solid red', 'important' => false],
+        ]];
+        yield 'text-decoration accepts color function with internal spaces' => ['text-decoration: underline rgb( 1 2 3 / .5 )', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline rgb(1 2 3 / 0.5)', 'important' => false],
+        ]];
+        yield 'text-decoration accepts transparent with style' => ['text-decoration: transparent double', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'double transparent', 'important' => false],
+        ]];
+        yield 'text-decoration rejects css-wide keyword with component' => ['text-decoration: inherit underline', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'inherit underline', 'important' => false],
+        ]];
+        yield 'text-decoration rejects css-wide keyword as color component' => ['text-decoration: underline initial', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'underline initial', 'important' => false],
+        ]];
+        yield 'text-decoration rejects none followed by line keyword' => ['text-decoration: none underline', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'none underline', 'important' => false],
+        ]];
+        yield 'text-decoration rejects line keyword followed by none' => ['text-decoration: underline none', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'underline none', 'important' => false],
+        ]];
+        yield 'text-decoration rejects duplicate line keyword' => ['text-decoration: underline underline', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'underline underline', 'important' => false],
+        ]];
+        yield 'text-decoration rejects duplicate line keyword after style' => ['text-decoration: solid underline underline', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'solid underline underline', 'important' => false],
+        ]];
+        yield 'text-decoration rejects duplicate style' => ['text-decoration: solid dotted', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'solid dotted', 'important' => false],
+        ]];
+        yield 'text-decoration rejects duplicate color' => ['text-decoration: red blue', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'red blue', 'important' => false],
+        ]];
+        yield 'text-decoration rejects too many slots' => ['text-decoration: underline solid red blue', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'underline solid red blue', 'important' => false],
+        ]];
+        yield 'text-decoration rejects unknown keyword' => ['text-decoration: strikethrough', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'strikethrough', 'important' => false],
+        ]];
+        yield 'text-decoration rejects number' => ['text-decoration: 1', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => '1', 'important' => false],
+        ]];
+        yield 'text-decoration rejects unsupported color function' => ['text-decoration: color(display-p3 1 0 0)', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'color(display-p3 1 0 0)', 'important' => false],
+        ]];
+        yield 'text-decoration rejects malformed rgb color' => ['text-decoration: solid rgb(1 2% 3)', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'solid rgb(1 2% 3)', 'important' => false],
+        ]];
+        yield 'text-decoration rejects invalid hex color' => ['text-decoration: #ab', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => '#ab', 'important' => false],
+        ]];
+        yield 'text-decoration rejects comment-split line keyword' => ['text-decoration: under/**/line', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration rejects comment-split style keyword' => ['text-decoration: wa/**/vy', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'wavy', 'important' => false],
+        ]];
+        yield 'text-decoration rejects comment-split color keyword' => ['text-decoration: re/**/d', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'red', 'important' => false],
+        ]];
+        yield 'text-decoration accepts whitespace-comment-whitespace before style like Lexbor shorthand' => ['text-decoration: underline /**/ solid', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline solid', 'important' => false],
+        ]];
+        yield 'text-decoration accepts trailing whitespace-comment-whitespace like Lexbor shorthand' => ['text-decoration: underline /**/  ', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration accepts repeated trailing ignorable tokens like Lexbor shorthand' => ['text-decoration: underline /**/ /**/ ', [
+            ['type' => 'property', 'name' => 'text-decoration', 'value' => 'underline', 'important' => false],
+        ]];
+        yield 'text-decoration rejects comment-separated leading whitespace like Lexbor' => ['text-decoration: /**/  underline', [
+            ['type' => 'undef', 'name' => 'text-decoration', 'value' => 'underline', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function colorDeclarationProvider(): iterable
     {
         yield 'color accepts named color' => ['color: red', [
@@ -2950,6 +3080,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textDecorationDeclarationProvider')]
     public function testTextDecorationDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('textDecorationShorthandProvider')]
+    public function testTextDecorationShorthand(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
