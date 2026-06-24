@@ -733,6 +733,60 @@ final class ParserTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
+    public static function flexKeywordDeclarationProvider(): iterable
+    {
+        $validKeywords = [
+            'align-content' => ['flex-start', 'flex-end', 'center', 'space-between', 'space-around', 'stretch'],
+            'align-items' => ['flex-start', 'flex-end', 'center', 'baseline', 'stretch'],
+            'align-self' => ['auto', 'flex-start', 'flex-end', 'center', 'baseline', 'stretch'],
+            'flex-direction' => ['row', 'row-reverse', 'column', 'column-reverse'],
+            'flex-wrap' => ['nowrap', 'wrap', 'wrap-reverse'],
+        ];
+
+        foreach ($validKeywords as $property => $keywords) {
+            foreach ($keywords as $keyword) {
+                yield "{$property} accepts {$keyword}" => ["{$property}: {$keyword}", [
+                    ['type' => 'property', 'name' => $property, 'value' => $keyword, 'important' => false],
+                ]];
+            }
+
+            yield "{$property} accepts css-wide keyword" => ["{$property}: revert", [
+                ['type' => 'property', 'name' => $property, 'value' => 'revert', 'important' => false],
+            ]];
+        }
+
+        yield 'align-content rejects baseline' => ['align-content: baseline', [
+            ['type' => 'undef', 'name' => 'align-content', 'value' => 'baseline', 'important' => false],
+        ]];
+        yield 'align-content rejects multiple keywords' => ['align-content: center stretch', [
+            ['type' => 'undef', 'name' => 'align-content', 'value' => 'center stretch', 'important' => false],
+        ]];
+        yield 'align-items rejects space-between' => ['align-items: space-between', [
+            ['type' => 'undef', 'name' => 'align-items', 'value' => 'space-between', 'important' => false],
+        ]];
+        yield 'align-self rejects space-around' => ['align-self: space-around', [
+            ['type' => 'undef', 'name' => 'align-self', 'value' => 'space-around', 'important' => false],
+        ]];
+        yield 'flex-direction rejects wrap' => ['flex-direction: wrap', [
+            ['type' => 'undef', 'name' => 'flex-direction', 'value' => 'wrap', 'important' => false],
+        ]];
+        yield 'flex-direction rejects comment-split keyword' => ['flex-direction: row-/**/reverse', [
+            ['type' => 'undef', 'name' => 'flex-direction', 'value' => 'row-reverse', 'important' => false],
+        ]];
+        yield 'flex-wrap rejects row' => ['flex-wrap: row', [
+            ['type' => 'undef', 'name' => 'flex-wrap', 'value' => 'row', 'important' => false],
+        ]];
+        yield 'flex-wrap rejects multiple keywords' => ['flex-wrap: wrap nowrap', [
+            ['type' => 'undef', 'name' => 'flex-wrap', 'value' => 'wrap nowrap', 'important' => false],
+        ]];
+        yield 'flex-wrap trims whitespace before trailing comment' => ['flex-wrap: wrap /**/;', [
+            ['type' => 'property', 'name' => 'flex-wrap', 'value' => 'wrap', 'important' => false],
+        ]];
+    }
+
+    /**
      * @param list<array{type: string, name: string, value: string, important: bool}> $expected
      */
     #[DataProvider('upstreamSyntaxProvider')]
@@ -836,6 +890,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('textKeywordDeclarationProvider')]
     public function testTextKeywordDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('flexKeywordDeclarationProvider')]
+    public function testFlexKeywordDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }

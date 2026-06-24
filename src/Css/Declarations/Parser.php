@@ -10,11 +10,16 @@ use Lexbor\Css\Syntax\Tokenizer;
 final class Parser
 {
     private const array KNOWN_PROPERTIES = [
+        'align-content' => true,
+        'align-items' => true,
+        'align-self' => true,
         'box-sizing' => true,
         'bottom' => true,
         'clear' => true,
         'direction' => true,
         'display' => true,
+        'flex-direction' => true,
+        'flex-wrap' => true,
         'height' => true,
         'hyphens' => true,
         'inset-block-end' => true,
@@ -237,6 +242,29 @@ final class Parser
     ];
 
     private const array KEYWORD_PROPERTIES = [
+        'align-content' => [
+            'center' => true,
+            'flex-end' => true,
+            'flex-start' => true,
+            'space-around' => true,
+            'space-between' => true,
+            'stretch' => true,
+        ],
+        'align-items' => [
+            'baseline' => true,
+            'center' => true,
+            'flex-end' => true,
+            'flex-start' => true,
+            'stretch' => true,
+        ],
+        'align-self' => [
+            'auto' => true,
+            'baseline' => true,
+            'center' => true,
+            'flex-end' => true,
+            'flex-start' => true,
+            'stretch' => true,
+        ],
         'box-sizing' => [
             'border-box' => true,
             'content-box' => true,
@@ -255,6 +283,17 @@ final class Parser
         'direction' => [
             'ltr' => true,
             'rtl' => true,
+        ],
+        'flex-direction' => [
+            'column' => true,
+            'column-reverse' => true,
+            'row' => true,
+            'row-reverse' => true,
+        ],
+        'flex-wrap' => [
+            'nowrap' => true,
+            'wrap' => true,
+            'wrap-reverse' => true,
         ],
         'hyphens' => [
             'auto' => true,
