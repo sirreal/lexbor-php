@@ -17,9 +17,14 @@ final class Parser
         'background-color' => true,
         'baseline-shift' => true,
         'baseline-source' => true,
+        'border' => true,
+        'border-bottom' => true,
         'border-bottom-color' => true,
+        'border-left' => true,
         'border-left-color' => true,
+        'border-right' => true,
         'border-right-color' => true,
+        'border-top' => true,
         'border-top-color' => true,
         'box-sizing' => true,
         'bottom' => true,
@@ -121,6 +126,33 @@ final class Parser
         'border-top-color' => true,
         'color' => true,
         'text-decoration-color' => true,
+    ];
+
+    private const array BORDER_PROPERTIES = [
+        'border' => true,
+        'border-bottom' => true,
+        'border-left' => true,
+        'border-right' => true,
+        'border-top' => true,
+    ];
+
+    private const array BORDER_WIDTH_KEYWORDS = [
+        'medium' => true,
+        'thick' => true,
+        'thin' => true,
+    ];
+
+    private const array BORDER_STYLE_KEYWORDS = [
+        'dashed' => true,
+        'dotted' => true,
+        'double' => true,
+        'groove' => true,
+        'hidden' => true,
+        'inset' => true,
+        'none' => true,
+        'outset' => true,
+        'ridge' => true,
+        'solid' => true,
     ];
 
     private const array COLOR_KEYWORDS = [
@@ -1261,9 +1293,14 @@ final class Parser
             'background-color',
             'baseline-shift',
             'baseline-source',
+            'border',
+            'border-bottom',
             'border-bottom-color',
+            'border-left',
             'border-left-color',
+            'border-right',
             'border-right-color',
+            'border-top',
             'border-top-color',
             'color',
             'dominant-baseline',
@@ -1363,6 +1400,7 @@ final class Parser
             'alignment-baseline' => self::singleLexborKeywordValue($valueTokens, self::ALIGNMENT_BASELINE_KEYWORDS) !== null ? 'property' : 'undef',
             'baseline-shift' => self::baselineShiftDeclarationValue($valueTokens) !== null ? 'property' : 'undef',
             'baseline-source' => self::singleLexborKeywordValue($valueTokens, self::BASELINE_SOURCE_KEYWORDS) !== null ? 'property' : 'undef',
+            'border', 'border-bottom', 'border-left', 'border-right', 'border-top' => self::borderDeclarationValue($valueTokens) !== null ? 'property' : 'undef',
             'background-color', 'border-bottom-color', 'border-left-color', 'border-right-color', 'border-top-color', 'color', 'text-decoration-color' => self::colorDeclarationValue($valueTokens) !== null ? 'property' : 'undef',
             'dominant-baseline' => self::singleLexborKeywordValue($valueTokens, self::DOMINANT_BASELINE_KEYWORDS) !== null ? 'property' : 'undef',
             'display' => self::isValidDisplay($valueTokens) ? 'property' : 'undef',
@@ -1844,6 +1882,139 @@ final class Parser
         }
 
         return null;
+    }
+
+    /**
+     * @param list<Token> $tokens
+     */
+    private static function borderDeclarationValue(array $tokens): ?string
+    {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type === 'ident') {
+            $value = strtolower($tokens[$offset]->value);
+
+            if (isset(self::CSS_WIDE_KEYWORDS[$value])) {
+                $offset++;
+                self::skipLexborOptionalWhitespace($tokens, $offset);
+
+                return $offset >= count($tokens) || self::remainingTokensAreIgnorable($tokens, $offset) ? $value : null;
+            }
+        }
+
+        $border = [
+            'width' => null,
+            'style' => null,
+            'color' => null,
+        ];
+
+        for ($componentCount = 0; $componentCount < 3; $componentCount++) {
+            if (! isset($tokens[$offset])) {
+                break;
+            }
+
+            if (! self::consumeBorderComponent($tokens, $offset, $border)) {
+                return null;
+            }
+
+            self::skipLexborOptionalWhitespace($tokens, $offset);
+        }
+
+        if ($border['width'] === null && $border['style'] === null && $border['color'] === null) {
+            return null;
+        }
+
+        if ($offset < count($tokens) && ! self::remainingTokensAreIgnorable($tokens, $offset)) {
+            return null;
+        }
+
+        $parts = [];
+
+        if ($border['width'] !== null) {
+            $parts[] = $border['width'];
+        }
+
+        if ($border['style'] !== null) {
+            $parts[] = $border['style'];
+        }
+
+        if ($border['color'] !== null) {
+            $parts[] = $border['color'];
+        }
+
+        return implode(' ', $parts);
+    }
+
+    /**
+     * @param list<Token> $tokens
+     * @param array{width: ?string, style: ?string, color: ?string} $border
+     */
+    private static function consumeBorderComponent(array $tokens, int &$offset, array &$border): bool
+    {
+        $token = $tokens[$offset] ?? null;
+        if ($token === null) {
+            return false;
+        }
+
+        if ($token->type === 'dimension') {
+            if ($border['width'] !== null || ! self::isValidLengthDimension($token->value)) {
+                return false;
+            }
+
+            $border['width'] = self::canonicalLengthDimensionValue($token->value);
+            $offset++;
+            return true;
+        }
+
+        if ($token->type === 'number') {
+            if ($border['width'] !== null) {
+                return false;
+            }
+
+            $border['width'] = $token->value;
+            $offset++;
+            return true;
+        }
+
+        if ($token->type === 'ident') {
+            $value = strtolower($token->value);
+
+            if (isset(self::BORDER_WIDTH_KEYWORDS[$value])) {
+                if ($border['width'] !== null) {
+                    return false;
+                }
+
+                $border['width'] = $value;
+                $offset++;
+                return true;
+            }
+
+            if (isset(self::BORDER_STYLE_KEYWORDS[$value])) {
+                if ($border['style'] !== null) {
+                    return false;
+                }
+
+                $border['style'] = $value;
+                $offset++;
+                return true;
+            }
+        }
+
+        if ($border['color'] !== null) {
+            return false;
+        }
+
+        $colorOffset = $offset;
+        $color = self::colorValue($tokens, $colorOffset, false);
+        if ($color === null) {
+            return false;
+        }
+
+        $border['color'] = $color;
+        $offset = $colorOffset;
+
+        return true;
     }
 
     /**
@@ -3398,6 +3569,10 @@ final class Parser
 
         if ($property === 'hanging-punctuation') {
             return self::hangingPunctuationValue($tokens) ?? $fallback;
+        }
+
+        if (isset(self::BORDER_PROPERTIES[$property])) {
+            return self::borderDeclarationValue($tokens) ?? $fallback;
         }
 
         if (isset(self::COLOR_PROPERTIES[$property])) {

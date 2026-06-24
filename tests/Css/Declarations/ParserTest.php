@@ -1272,6 +1272,136 @@ final class ParserTest extends TestCase
     /**
      * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
      */
+    public static function borderDeclarationProvider(): iterable
+    {
+        yield 'border accepts css-wide keyword' => ['border: inherit', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'border accepts width keyword' => ['border: thin', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'thin', 'important' => false],
+        ]];
+        yield 'border accepts nonzero number width like Lexbor' => ['border: 2', [
+            ['type' => 'property', 'name' => 'border', 'value' => '2', 'important' => false],
+        ]];
+        yield 'border accepts negative number width like Lexbor' => ['border: -2', [
+            ['type' => 'property', 'name' => 'border', 'value' => '-2', 'important' => false],
+        ]];
+        yield 'border accepts length width' => ['border: 2PX', [
+            ['type' => 'property', 'name' => 'border', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'border serializes q length with Lexbor uppercase spelling' => ['border: 2q', [
+            ['type' => 'property', 'name' => 'border', 'value' => '2Q', 'important' => false],
+        ]];
+        yield 'border accepts style keyword' => ['border: solid', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'solid', 'important' => false],
+        ]];
+        yield 'border accepts none as style' => ['border: none', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'none', 'important' => false],
+        ]];
+        yield 'border accepts named color' => ['border: red', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'red', 'important' => false],
+        ]];
+        yield 'border accepts currentcolor' => ['border: currentColor', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'currentcolor', 'important' => false],
+        ]];
+        yield 'border accepts system color' => ['border: ButtonText', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'ButtonText', 'important' => false],
+        ]];
+        yield 'border accepts hex color' => ['border: #ABC', [
+            ['type' => 'property', 'name' => 'border', 'value' => '#abc', 'important' => false],
+        ]];
+        yield 'border accepts function color' => ['border: rgb(1 2 3)', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'rgb(1 2 3)', 'important' => false],
+        ]];
+        yield 'border accepts width style color' => ['border: 1px solid red', [
+            ['type' => 'property', 'name' => 'border', 'value' => '1px solid red', 'important' => false],
+        ]];
+        yield 'border serializes color style width in Lexbor order' => ['border: red solid 1px', [
+            ['type' => 'property', 'name' => 'border', 'value' => '1px solid red', 'important' => false],
+        ]];
+        yield 'border serializes style color width in Lexbor order' => ['border: dashed #ABC 2PX', [
+            ['type' => 'property', 'name' => 'border', 'value' => '2px dashed #abc', 'important' => false],
+        ]];
+        yield 'border keeps important flag' => ['border: thick dotted blue !important', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'thick dotted blue', 'important' => true],
+        ]];
+        yield 'border-top accepts width style color' => ['border-top: thin dotted green', [
+            ['type' => 'property', 'name' => 'border-top', 'value' => 'thin dotted green', 'important' => false],
+        ]];
+        yield 'border-right accepts style and color' => ['border-right: solid red', [
+            ['type' => 'property', 'name' => 'border-right', 'value' => 'solid red', 'important' => false],
+        ]];
+        yield 'border-bottom accepts color and width' => ['border-bottom: red 2px', [
+            ['type' => 'property', 'name' => 'border-bottom', 'value' => '2px red', 'important' => false],
+        ]];
+        yield 'border-left accepts color function and style' => ['border-left: rgb(1 2 3) double', [
+            ['type' => 'property', 'name' => 'border-left', 'value' => 'double rgb(1 2 3)', 'important' => false],
+        ]];
+        yield 'border treats comments between components as separators' => ['border: 1px/**/solid/**/red', [
+            ['type' => 'property', 'name' => 'border', 'value' => '1px solid red', 'important' => false],
+        ]];
+        yield 'border accepts color function with internal spaces' => ['border: solid rgb( 1 2 3 / .5 )', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'solid rgb(1 2 3 / 0.5)', 'important' => false],
+        ]];
+        yield 'border accepts transparent color with style' => ['border: transparent outset', [
+            ['type' => 'property', 'name' => 'border', 'value' => 'outset transparent', 'important' => false],
+        ]];
+        yield 'border rejects css-wide keyword with component' => ['border: inherit solid', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'inherit solid', 'important' => false],
+        ]];
+        yield 'border rejects css-wide keyword as color component' => ['border: solid inherit', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'solid inherit', 'important' => false],
+        ]];
+        yield 'border rejects duplicate width keyword' => ['border: thin thick', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'thin thick', 'important' => false],
+        ]];
+        yield 'border rejects duplicate numeric width' => ['border: 1px 2px', [
+            ['type' => 'undef', 'name' => 'border', 'value' => '1px 2px', 'important' => false],
+        ]];
+        yield 'border rejects duplicate style' => ['border: solid dotted', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'solid dotted', 'important' => false],
+        ]];
+        yield 'border rejects duplicate color' => ['border: red blue', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'red blue', 'important' => false],
+        ]];
+        yield 'border rejects too many components' => ['border: 1px solid red blue', [
+            ['type' => 'undef', 'name' => 'border', 'value' => '1px solid red blue', 'important' => false],
+        ]];
+        yield 'border rejects percentage width' => ['border: 1%', [
+            ['type' => 'undef', 'name' => 'border', 'value' => '1%', 'important' => false],
+        ]];
+        yield 'border rejects non-length dimension' => ['border: 1deg', [
+            ['type' => 'undef', 'name' => 'border', 'value' => '1deg', 'important' => false],
+        ]];
+        yield 'border rejects unknown keyword' => ['border: diagonal', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'diagonal', 'important' => false],
+        ]];
+        yield 'border rejects unsupported color function' => ['border: color(display-p3 1 0 0)', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'color(display-p3 1 0 0)', 'important' => false],
+        ]];
+        yield 'border rejects malformed rgb color' => ['border: solid rgb(1 2% 3)', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'solid rgb(1 2% 3)', 'important' => false],
+        ]];
+        yield 'border rejects invalid hex color' => ['border: #ab', [
+            ['type' => 'undef', 'name' => 'border', 'value' => '#ab', 'important' => false],
+        ]];
+        yield 'border rejects comment-split style keyword' => ['border: so/**/lid', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'solid', 'important' => false],
+        ]];
+        yield 'border rejects comment-split length' => ['border: 1/**/px', [
+            ['type' => 'undef', 'name' => 'border', 'value' => '1px', 'important' => false],
+        ]];
+        yield 'border rejects whitespace-comment-whitespace separator like Lexbor' => ['border: 1px /**/ solid', [
+            ['type' => 'undef', 'name' => 'border', 'value' => '1px  solid', 'important' => false],
+        ]];
+        yield 'border rejects comment-separated leading whitespace like Lexbor' => ['border: /**/  solid', [
+            ['type' => 'undef', 'name' => 'border', 'value' => 'solid', 'important' => false],
+        ]];
+    }
+
+    /**
+     * @return iterable<string, array{string, list<array{type: string, name: string, value: string, important: bool}>}>
+     */
     public static function verticalAlignDeclarationProvider(): iterable
     {
         yield 'vertical-align accepts baseline' => ['vertical-align: baseline', [
@@ -2829,6 +2959,15 @@ final class ParserTest extends TestCase
      */
     #[DataProvider('colorDeclarationProvider')]
     public function testColorDeclarations(string $css, array $expected): void
+    {
+        self::assertSame($expected, (new Parser())->parseList($css));
+    }
+
+    /**
+     * @param list<array{type: string, name: string, value: string, important: bool}> $expected
+     */
+    #[DataProvider('borderDeclarationProvider')]
+    public function testBorderDeclarations(string $css, array $expected): void
     {
         self::assertSame($expected, (new Parser())->parseList($css));
     }
