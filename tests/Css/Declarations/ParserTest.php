@@ -2702,8 +2702,17 @@ final class ParserTest extends TestCase
         yield 'flex-grow accepts css-wide keyword' => ['flex-grow: inherit', [
             ['type' => 'property', 'name' => 'flex-grow', 'value' => 'inherit', 'important' => false],
         ]];
+        yield 'flex-grow accepts normal leading whitespace' => ['flex-grow:   2', [
+            ['type' => 'property', 'name' => 'flex-grow', 'value' => '2', 'important' => false],
+        ]];
         yield 'flex-grow trims whitespace before trailing comment' => ['flex-grow: 2 /**/;', [
             ['type' => 'property', 'name' => 'flex-grow', 'value' => '2', 'important' => false],
+        ]];
+        yield 'flex-grow rejects number with comment-separated leading whitespace like Lexbor' => ['flex-grow: /**/  2', [
+            ['type' => 'undef', 'name' => 'flex-grow', 'value' => '2', 'important' => false],
+        ]];
+        yield 'flex-grow rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['flex-grow: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'flex-grow', 'value' => 'inherit', 'important' => false],
         ]];
         yield 'flex-grow rejects negative number' => ['flex-grow: -1', [
             ['type' => 'undef', 'name' => 'flex-grow', 'value' => '-1', 'important' => false],
@@ -2719,6 +2728,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'flex-shrink accepts css-wide keyword' => ['flex-shrink: revert', [
             ['type' => 'property', 'name' => 'flex-shrink', 'value' => 'revert', 'important' => false],
+        ]];
+        yield 'flex-shrink accepts trailing whitespace-comment-whitespace like Lexbor' => ['flex-shrink: 2 /**/  ', [
+            ['type' => 'property', 'name' => 'flex-shrink', 'value' => '2', 'important' => false],
+        ]];
+        yield 'flex-shrink rejects number with comment-separated leading whitespace like Lexbor' => ['flex-shrink: /**/  2', [
+            ['type' => 'undef', 'name' => 'flex-shrink', 'value' => '2', 'important' => false],
+        ]];
+        yield 'flex-shrink rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['flex-shrink: /**/  revert', [
+            ['type' => 'undef', 'name' => 'flex-shrink', 'value' => 'revert', 'important' => false],
         ]];
         yield 'flex-shrink rejects negative number' => ['flex-shrink: -0.5', [
             ['type' => 'undef', 'name' => 'flex-shrink', 'value' => '-0.5', 'important' => false],

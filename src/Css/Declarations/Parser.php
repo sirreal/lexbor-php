@@ -1325,6 +1325,8 @@ final class Parser
             'float-defer',
             'float-offset',
             'float-reference',
+            'flex-grow',
+            'flex-shrink',
             'font-family',
             'letter-spacing',
             'line-height',
@@ -1449,7 +1451,7 @@ final class Parser
             'hanging-punctuation' => self::hangingPunctuationValue($valueTokens) !== null ? 'property' : 'undef',
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
             'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
-            'flex-grow', 'flex-shrink' => self::isValidNonNegativeNumber($valueTokens) ? 'property' : 'undef',
+            'flex-grow', 'flex-shrink' => self::nonNegativeNumberValue($valueTokens) !== null ? 'property' : 'undef',
             'letter-spacing', 'word-spacing' => self::lengthKeywordValue($valueTokens, ['normal' => true]) !== null ? 'property' : 'undef',
             'line-height' => self::numberLengthPercentageValue($valueTokens, ['normal' => true]) !== null ? 'property' : 'undef',
             'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
@@ -1621,19 +1623,21 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
-    private static function isValidNonNegativeNumber(array $tokens): bool
+    private static function nonNegativeNumberValue(array $tokens): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
-            return false;
+            return null;
         }
 
         if ($token->type === 'ident') {
-            return isset(self::CSS_WIDE_KEYWORDS[strtolower($token->value)]);
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) ? $value : null;
         }
 
-        return $token->type === 'number' && (float) $token->value >= 0.0;
+        return $token->type === 'number' && (float) $token->value >= 0.0 ? $token->value : null;
     }
 
     /**
@@ -3897,7 +3901,7 @@ final class Parser
         }
 
         if (in_array($property, ['flex-grow', 'flex-shrink'], true)) {
-            return self::singleValueToken($tokens)?->value ?? $fallback;
+            return self::nonNegativeNumberValue($tokens) ?? $fallback;
         }
 
         if ($property === 'float') {
