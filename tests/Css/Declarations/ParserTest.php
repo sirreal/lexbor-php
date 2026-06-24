@@ -2577,6 +2577,9 @@ final class ParserTest extends TestCase
      */
     public static function textCombineUprightDeclarationProvider(): iterable
     {
+        yield 'text-combine-upright accepts normal leading whitespace' => ['text-combine-upright:   all', [
+            ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'all', 'important' => false],
+        ]];
         yield 'text-combine-upright accepts none' => ['text-combine-upright: none', [
             ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'none', 'important' => false],
         ]];
@@ -2615,6 +2618,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'text-combine-upright treats comments before integer as whitespace' => ['text-combine-upright: digits/**/4', [
             ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 4', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects keyword with comment-separated leading whitespace like Lexbor' => ['text-combine-upright: /**/  all', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'all', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['text-combine-upright: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'text-combine-upright rejects digits value with comment-separated leading whitespace like Lexbor' => ['text-combine-upright: /**/  digits 2', [
+            ['type' => 'undef', 'name' => 'text-combine-upright', 'value' => 'digits 2', 'important' => false],
         ]];
         yield 'text-combine-upright keeps important flag' => ['text-combine-upright: digits 2 !important', [
             ['type' => 'property', 'name' => 'text-combine-upright', 'value' => 'digits 2', 'important' => true],

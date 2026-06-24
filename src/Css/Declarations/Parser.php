@@ -1362,6 +1362,7 @@ final class Parser
             'padding-top',
             'right',
             'tab-size',
+            'text-combine-upright',
             'text-decoration-color',
             'text-decoration',
             'text-decoration-line',
@@ -3164,6 +3165,14 @@ final class Parser
      */
     private static function textCombineUprightValue(array $tokens): ?string
     {
+        $offset = 0;
+        self::skipLexborOptionalWhitespace($tokens, $offset);
+
+        if (($tokens[$offset] ?? null)?->type !== 'ident') {
+            return null;
+        }
+
+        $tokens = array_slice($tokens, $offset);
         $tokens = self::nonIgnorableTokens($tokens);
 
         if (count($tokens) !== 1 && count($tokens) !== 2) {
