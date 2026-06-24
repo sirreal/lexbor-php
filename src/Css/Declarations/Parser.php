@@ -1326,6 +1326,11 @@ final class Parser
             'float-offset',
             'float-reference',
             'font-family',
+            'letter-spacing',
+            'line-height',
+            'opacity',
+            'order',
+            'tab-size',
             'text-decoration-color',
             'text-decoration',
             'text-decoration-line',
@@ -1333,6 +1338,8 @@ final class Parser
             'vertical-align',
             'wrap-flow',
             'wrap-through',
+            'word-spacing',
+            'z-index',
         ], true);
         $classificationTokens = $usesLexborLeadingTokens ? [...$leadingValueTokens, ...$valueTokens] : $valueTokens;
         $type = $this->classifyDeclaration($name, $value, $classificationTokens);
@@ -1443,12 +1450,12 @@ final class Parser
             'height', 'min-height', 'min-width', 'width' => self::isValidLengthSize($value, $valueTokens, self::SIZE_KEYWORDS) ? 'property' : 'undef',
             'bottom', 'inset-block-end', 'inset-block-start', 'inset-inline-end', 'inset-inline-start', 'left', 'right', 'top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
             'flex-grow', 'flex-shrink' => self::isValidNonNegativeNumber($valueTokens) ? 'property' : 'undef',
-            'letter-spacing', 'word-spacing' => self::isValidLengthKeyword($valueTokens, ['normal' => true]) ? 'property' : 'undef',
-            'line-height' => self::isValidNumberLengthPercentage($valueTokens, ['normal' => true]) ? 'property' : 'undef',
+            'letter-spacing', 'word-spacing' => self::lengthKeywordValue($valueTokens, ['normal' => true]) !== null ? 'property' : 'undef',
+            'line-height' => self::numberLengthPercentageValue($valueTokens, ['normal' => true]) !== null ? 'property' : 'undef',
             'margin', 'margin-bottom', 'margin-left', 'margin-right', 'margin-top' => self::isValidBoxSpacing($property, $valueTokens, true) ? 'property' : 'undef',
             'max-height', 'max-width' => self::isValidLengthSize($value, $valueTokens, self::MAX_SIZE_KEYWORDS) ? 'property' : 'undef',
-            'opacity' => self::isValidNumberPercentage($valueTokens) ? 'property' : 'undef',
-            'order' => self::isValidInteger($valueTokens) ? 'property' : 'undef',
+            'opacity' => self::numberPercentageValue($valueTokens) !== null ? 'property' : 'undef',
+            'order' => self::integerValue($valueTokens) !== null ? 'property' : 'undef',
             'padding', 'padding-bottom', 'padding-left', 'padding-right', 'padding-top' => self::isValidBoxSpacing($property, $valueTokens, false) ? 'property' : 'undef',
             'tab-size' => self::numberLengthValue($valueTokens) !== null ? 'property' : 'undef',
             'text-combine-upright' => self::textCombineUprightValue($valueTokens) !== null ? 'property' : 'undef',
@@ -1460,7 +1467,7 @@ final class Parser
             'vertical-align' => self::verticalAlignValue($valueTokens) !== null ? 'property' : 'undef',
             'wrap-flow' => self::singleLexborKeywordValue($valueTokens, self::WRAP_FLOW_KEYWORDS) !== null ? 'property' : 'undef',
             'wrap-through' => self::singleLexborKeywordValue($valueTokens, self::WRAP_THROUGH_KEYWORDS) !== null ? 'property' : 'undef',
-            'z-index' => self::isValidIntegerKeyword($valueTokens, ['auto' => true]) ? 'property' : 'undef',
+            'z-index' => self::integerKeywordValue($valueTokens, ['auto' => true]) !== null ? 'property' : 'undef',
             default => isset(self::KEYWORD_PROPERTIES[$property]) && self::isValidKeywordProperty($property, $valueTokens) ? 'property' : 'undef',
         };
     }
@@ -3270,44 +3277,48 @@ final class Parser
     /**
      * @param list<Token> $tokens
      */
-    private static function isValidNumberPercentage(array $tokens): bool
+    private static function numberPercentageValue(array $tokens): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
-            return false;
+            return null;
         }
 
         if ($token->type === 'ident') {
-            return isset(self::CSS_WIDE_KEYWORDS[strtolower($token->value)]);
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) ? $value : null;
         }
 
-        return in_array($token->type, ['number', 'percentage'], true);
+        return in_array($token->type, ['number', 'percentage'], true) ? $token->value : null;
     }
 
     /**
      * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
-    private static function isValidNumberLengthPercentage(array $tokens, array $keywords): bool
+    private static function numberLengthPercentageValue(array $tokens, array $keywords): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
-            return false;
+            return null;
         }
 
         if ($token->type === 'ident') {
             $value = strtolower($token->value);
 
-            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]);
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]) ? $value : null;
         }
 
         if (in_array($token->type, ['number', 'percentage'], true)) {
-            return true;
+            return $token->value;
         }
 
-        return $token->type === 'dimension' && self::isValidLengthDimension($token->value);
+        return $token->type === 'dimension' && self::isValidLengthDimension($token->value)
+            ? self::canonicalLengthDimensionValue($token->value)
+            : null;
     }
 
     /**
@@ -3315,7 +3326,7 @@ final class Parser
      */
     private static function numberLengthValue(array $tokens): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
             return null;
@@ -3663,64 +3674,68 @@ final class Parser
      * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
-    private static function isValidLengthKeyword(array $tokens, array $keywords): bool
+    private static function lengthKeywordValue(array $tokens, array $keywords): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
-            return false;
+            return null;
         }
 
         if ($token->type === 'ident') {
             $value = strtolower($token->value);
 
-            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]);
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]) ? $value : null;
         }
 
         if ($token->type === 'number') {
-            return $token->value === '0';
+            return $token->value === '0' ? $token->value : null;
         }
 
-        return $token->type === 'dimension' && self::isValidLengthDimension($token->value);
+        return $token->type === 'dimension' && self::isValidLengthDimension($token->value)
+            ? self::canonicalLengthDimensionValue($token->value)
+            : null;
     }
 
     /**
      * @param list<Token> $tokens
      */
-    private static function isValidInteger(array $tokens): bool
+    private static function integerValue(array $tokens): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
-            return false;
+            return null;
         }
 
         if ($token->type === 'ident') {
-            return isset(self::CSS_WIDE_KEYWORDS[strtolower($token->value)]);
+            $value = strtolower($token->value);
+
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) ? $value : null;
         }
 
-        return $token->type === 'number' && self::isLongInteger($token->value);
+        return $token->type === 'number' && self::isLongInteger($token->value) ? $token->value : null;
     }
 
     /**
      * @param list<Token> $tokens
      * @param array<string, true> $keywords
      */
-    private static function isValidIntegerKeyword(array $tokens, array $keywords): bool
+    private static function integerKeywordValue(array $tokens, array $keywords): ?string
     {
-        $token = self::singleValueToken($tokens);
+        $token = self::singleLexborValueToken($tokens);
 
         if ($token === null) {
-            return false;
+            return null;
         }
 
         if ($token->type === 'ident') {
             $value = strtolower($token->value);
 
-            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]);
+            return isset(self::CSS_WIDE_KEYWORDS[$value]) || isset($keywords[$value]) ? $value : null;
         }
 
-        return $token->type === 'number' && self::isLongInteger($token->value);
+        return $token->type === 'number' && self::isLongInteger($token->value) ? $token->value : null;
     }
 
     private static function isValidLengthDimension(string $value): bool
@@ -3783,6 +3798,26 @@ final class Parser
 
         if (isset(self::KEYWORD_PROPERTIES[$property])) {
             return self::singleLexborKeywordValue($tokens, self::KEYWORD_PROPERTIES[$property]) ?? $fallback;
+        }
+
+        if ($property === 'opacity') {
+            return self::numberPercentageValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'line-height') {
+            return self::numberLengthPercentageValue($tokens, ['normal' => true]) ?? $fallback;
+        }
+
+        if ($property === 'letter-spacing' || $property === 'word-spacing') {
+            return self::lengthKeywordValue($tokens, ['normal' => true]) ?? $fallback;
+        }
+
+        if ($property === 'order') {
+            return self::integerValue($tokens) ?? $fallback;
+        }
+
+        if ($property === 'z-index') {
+            return self::integerKeywordValue($tokens, ['auto' => true]) ?? $fallback;
         }
 
         if ($property === 'tab-size') {

@@ -465,6 +465,18 @@ final class ParserTest extends TestCase
         yield 'opacity accepts css-wide keyword' => ['opacity: inherit', [
             ['type' => 'property', 'name' => 'opacity', 'value' => 'inherit', 'important' => false],
         ]];
+        yield 'opacity accepts normal leading whitespace' => ['opacity:   .5', [
+            ['type' => 'property', 'name' => 'opacity', 'value' => '0.5', 'important' => false],
+        ]];
+        yield 'opacity accepts trailing whitespace-comment-whitespace like Lexbor' => ['opacity: .5 /**/  ', [
+            ['type' => 'property', 'name' => 'opacity', 'value' => '0.5', 'important' => false],
+        ]];
+        yield 'opacity rejects number with comment-separated leading whitespace like Lexbor' => ['opacity: /**/  .5', [
+            ['type' => 'undef', 'name' => 'opacity', 'value' => '0.5', 'important' => false],
+        ]];
+        yield 'opacity rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['opacity: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'opacity', 'value' => 'inherit', 'important' => false],
+        ]];
         yield 'opacity rejects length' => ['opacity: 1px', [
             ['type' => 'undef', 'name' => 'opacity', 'value' => '1px', 'important' => false],
         ]];
@@ -476,6 +488,15 @@ final class ParserTest extends TestCase
         ]];
         yield 'order accepts normalized exponent integer' => ['order: 1e2', [
             ['type' => 'property', 'name' => 'order', 'value' => '100', 'important' => false],
+        ]];
+        yield 'order accepts css-wide keyword' => ['order: unset', [
+            ['type' => 'property', 'name' => 'order', 'value' => 'unset', 'important' => false],
+        ]];
+        yield 'order rejects integer with comment-separated leading whitespace like Lexbor' => ['order: /**/  2', [
+            ['type' => 'undef', 'name' => 'order', 'value' => '2', 'important' => false],
+        ]];
+        yield 'order rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['order: /**/  unset', [
+            ['type' => 'undef', 'name' => 'order', 'value' => 'unset', 'important' => false],
         ]];
         yield 'order rejects decimal number' => ['order: 1.5', [
             ['type' => 'undef', 'name' => 'order', 'value' => '1.5', 'important' => false],
@@ -491,6 +512,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'z-index accepts integer' => ['z-index: 10', [
             ['type' => 'property', 'name' => 'z-index', 'value' => '10', 'important' => false],
+        ]];
+        yield 'z-index rejects auto with comment-separated leading whitespace like Lexbor' => ['z-index: /**/  auto', [
+            ['type' => 'undef', 'name' => 'z-index', 'value' => 'auto', 'important' => false],
+        ]];
+        yield 'z-index rejects integer with comment-separated leading whitespace like Lexbor' => ['z-index: /**/  10', [
+            ['type' => 'undef', 'name' => 'z-index', 'value' => '10', 'important' => false],
         ]];
         yield 'z-index rejects percentage' => ['z-index: 10%', [
             ['type' => 'undef', 'name' => 'z-index', 'value' => '10%', 'important' => false],
@@ -624,6 +651,15 @@ final class ParserTest extends TestCase
         yield 'line-height accepts percentage' => ['line-height: 120%', [
             ['type' => 'property', 'name' => 'line-height', 'value' => '120%', 'important' => false],
         ]];
+        yield 'line-height accepts normal leading whitespace' => ['line-height:   normal', [
+            ['type' => 'property', 'name' => 'line-height', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'line-height rejects normal with comment-separated leading whitespace like Lexbor' => ['line-height: /**/  normal', [
+            ['type' => 'undef', 'name' => 'line-height', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'line-height rejects number with comment-separated leading whitespace like Lexbor' => ['line-height: /**/  1.2', [
+            ['type' => 'undef', 'name' => 'line-height', 'value' => '1.2', 'important' => false],
+        ]];
         yield 'line-height rejects multiple tokens' => ['line-height: 1px 2px', [
             ['type' => 'undef', 'name' => 'line-height', 'value' => '1px 2px', 'important' => false],
         ]];
@@ -644,6 +680,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'tab-size accepts css-wide keyword' => ['tab-size: inherit', [
             ['type' => 'property', 'name' => 'tab-size', 'value' => 'inherit', 'important' => false],
+        ]];
+        yield 'tab-size rejects number with comment-separated leading whitespace like Lexbor' => ['tab-size: /**/  4', [
+            ['type' => 'undef', 'name' => 'tab-size', 'value' => '4', 'important' => false],
+        ]];
+        yield 'tab-size rejects css-wide keyword with comment-separated leading whitespace like Lexbor' => ['tab-size: /**/  inherit', [
+            ['type' => 'undef', 'name' => 'tab-size', 'value' => 'inherit', 'important' => false],
         ]];
         yield 'tab-size rejects normal' => ['tab-size: normal', [
             ['type' => 'undef', 'name' => 'tab-size', 'value' => 'normal', 'important' => false],
@@ -669,6 +711,12 @@ final class ParserTest extends TestCase
         yield 'letter-spacing accepts length' => ['letter-spacing: -0.25em', [
             ['type' => 'property', 'name' => 'letter-spacing', 'value' => '-0.25em', 'important' => false],
         ]];
+        yield 'letter-spacing rejects normal with comment-separated leading whitespace like Lexbor' => ['letter-spacing: /**/  normal', [
+            ['type' => 'undef', 'name' => 'letter-spacing', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'letter-spacing rejects length with comment-separated leading whitespace like Lexbor' => ['letter-spacing: /**/  1px', [
+            ['type' => 'undef', 'name' => 'letter-spacing', 'value' => '1px', 'important' => false],
+        ]];
         yield 'letter-spacing rejects nonzero number' => ['letter-spacing: 1', [
             ['type' => 'undef', 'name' => 'letter-spacing', 'value' => '1', 'important' => false],
         ]];
@@ -677,6 +725,12 @@ final class ParserTest extends TestCase
         ]];
         yield 'word-spacing accepts length' => ['word-spacing: 2px', [
             ['type' => 'property', 'name' => 'word-spacing', 'value' => '2px', 'important' => false],
+        ]];
+        yield 'word-spacing rejects normal with comment-separated leading whitespace like Lexbor' => ['word-spacing: /**/  normal', [
+            ['type' => 'undef', 'name' => 'word-spacing', 'value' => 'normal', 'important' => false],
+        ]];
+        yield 'word-spacing rejects length with comment-separated leading whitespace like Lexbor' => ['word-spacing: /**/  2px', [
+            ['type' => 'undef', 'name' => 'word-spacing', 'value' => '2px', 'important' => false],
         ]];
         yield 'word-spacing rejects percentage' => ['word-spacing: 2%', [
             ['type' => 'undef', 'name' => 'word-spacing', 'value' => '2%', 'important' => false],
