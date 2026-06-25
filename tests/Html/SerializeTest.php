@@ -2544,6 +2544,12 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 grave accent in tag name' => ['<a`>', '<a`></a`>'];
         yield 'html5lib test3 left brace in tag name' => ['<a{>', '<a{></a{>'];
         yield 'html5lib test3 uppercase continuation folds' => ['<aZ>', '<az></az>'];
+        yield 'html5lib test3 invalid tag-open double quote is text' => ['<"', '&lt;"'];
+        yield 'html5lib test3 invalid tag-open ampersand is text' => ['<&', '&lt;&amp;'];
+        yield 'html5lib test3 invalid tag-open single quote is text' => ["<'", "&lt;'"];
+        yield 'html5lib test3 invalid tag-open dash is text' => ['<-', '&lt;-'];
+        yield 'html5lib test3 invalid tag-open period is text' => ['<.', '&lt;.'];
+        yield 'html5lib test3 EOF before end tag name is text' => ['</', '&lt;/'];
         yield 'html5lib test4 EOF in tag name state' => ['<a', ''];
         yield 'html5lib test4 slash EOF in tag name state' => ['<z/', ''];
         yield 'html5lib test4 CR EOF in tag name state' => ["<z\r", ''];
