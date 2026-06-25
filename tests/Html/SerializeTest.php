@@ -3081,6 +3081,20 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 unquoted attribute value equals after character' => ['<a a=a=>', '<a a="a="></a>'];
         yield 'html5lib test3 unquoted attribute value question mark after character' => ['<a a=a?>', '<a a="a?"></a>'];
         yield 'html5lib test3 unquoted attribute value at sign after character' => ['<a a=a@>', '<a a="a@"></a>'];
+        yield 'html5lib test3 unquoted attribute value uppercase A after character' => ['<a a=aA>', '<a a="aA"></a>'];
+        yield 'html5lib test3 unquoted attribute value uppercase B after character' => ['<a a=aB>', '<a a="aB"></a>'];
+        yield 'html5lib test3 unquoted attribute value uppercase Y after character' => ['<a a=aY>', '<a a="aY"></a>'];
+        yield 'html5lib test3 unquoted attribute value uppercase Z after character' => ['<a a=aZ>', '<a a="aZ"></a>'];
+        yield 'html5lib test3 unquoted attribute value backtick after character' => ['<a a=a`>', '<a a="a`"></a>'];
+        yield 'html5lib test3 unquoted attribute value lowercase a after character' => ['<a a=aa>', '<a a="aa"></a>'];
+        yield 'html5lib test3 unquoted attribute value lowercase b after character' => ['<a a=ab>', '<a a="ab"></a>'];
+        yield 'html5lib test3 unquoted attribute value lowercase y after character' => ['<a a=ay>', '<a a="ay"></a>'];
+        yield 'html5lib test3 unquoted attribute value lowercase z after character' => ['<a a=az>', '<a a="az"></a>'];
+        yield 'html5lib test3 unquoted attribute value open brace after character' => ['<a a=a{>', '<a a="a{"></a>'];
+        yield 'html5lib test3 unquoted attribute value non-BMP after character' => [
+            "<a a=a\u{100000}>",
+            "<a a=\"a\u{100000}\"></a>",
+        ];
         yield 'html5lib test1 less-than in unquoted attribute value' => [
             '<a a=f<>',
             '<a a="f&lt;"></a>',
