@@ -1428,6 +1428,61 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name exclamation garbage' => [
+            "<!DOCTYPEa PUBLIC''!",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name hash garbage' => [
+            "<!DOCTYPEa PUBLIC''#",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name ampersand garbage' => [
+            "<!DOCTYPEa PUBLIC''&",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name opening parenthesis garbage' => [
+            "<!DOCTYPEa PUBLIC''(",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name dash garbage' => [
+            "<!DOCTYPEa PUBLIC''-",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name slash garbage' => [
+            "<!DOCTYPEa PUBLIC''/",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name zero garbage' => [
+            "<!DOCTYPEa PUBLIC''0",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name one garbage' => [
+            "<!DOCTYPEa PUBLIC''1",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name nine garbage' => [
+            "<!DOCTYPEa PUBLIC''9",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name less-than garbage' => [
+            "<!DOCTYPEa PUBLIC''<",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name equals garbage' => [
+            "<!DOCTYPEa PUBLIC''=",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 closed empty public identifier no-whitespace name question mark garbage' => [
             "<!DOCTYPEa PUBLIC''?",
             '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
@@ -1445,6 +1500,51 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test3 closed empty public identifier no-whitespace name uppercase Y garbage' => [
             "<!DOCTYPEa PUBLIC''Y",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name uppercase A garbage' => [
+            "<!DOCTYPEa PUBLIC''A",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name uppercase Z garbage' => [
+            "<!DOCTYPEa PUBLIC''Z",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name backtick garbage' => [
+            "<!DOCTYPEa PUBLIC''`",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name lowercase a garbage' => [
+            "<!DOCTYPEa PUBLIC''a",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name lowercase b garbage' => [
+            "<!DOCTYPEa PUBLIC''b",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name lowercase y garbage' => [
+            "<!DOCTYPEa PUBLIC''y",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name lowercase z garbage' => [
+            "<!DOCTYPEa PUBLIC''z",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name opening brace garbage' => [
+            "<!DOCTYPEa PUBLIC''{",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name non-BMP garbage' => [
+            "<!DOCTYPEa PUBLIC''\u{100000}",
             '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
             true,
         ];
@@ -1513,6 +1613,61 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name exclamation garbage' => [
+            "<!DOCTYPEa SYSTEM''!",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name double quote garbage' => [
+            "<!DOCTYPEa SYSTEM''\"",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name ampersand garbage' => [
+            "<!DOCTYPEa SYSTEM''&",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name single quote garbage' => [
+            "<!DOCTYPEa SYSTEM'''",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name dash garbage' => [
+            "<!DOCTYPEa SYSTEM''-",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name slash garbage' => [
+            "<!DOCTYPEa SYSTEM''/",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name zero garbage' => [
+            "<!DOCTYPEa SYSTEM''0",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name one garbage' => [
+            "<!DOCTYPEa SYSTEM''1",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name nine garbage' => [
+            "<!DOCTYPEa SYSTEM''9",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name less-than garbage' => [
+            "<!DOCTYPEa SYSTEM''<",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name equals garbage' => [
+            "<!DOCTYPEa SYSTEM''=",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 closed empty system identifier no-whitespace name question mark garbage' => [
             "<!DOCTYPEa SYSTEM''?",
             '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
@@ -1530,6 +1685,51 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test3 closed empty system identifier no-whitespace name uppercase Y garbage' => [
             "<!DOCTYPEa SYSTEM''Y",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name uppercase A garbage' => [
+            "<!DOCTYPEa SYSTEM''A",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name uppercase Z garbage' => [
+            "<!DOCTYPEa SYSTEM''Z",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name backtick garbage' => [
+            "<!DOCTYPEa SYSTEM''`",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name lowercase a garbage' => [
+            "<!DOCTYPEa SYSTEM''a",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name lowercase b garbage' => [
+            "<!DOCTYPEa SYSTEM''b",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name lowercase y garbage' => [
+            "<!DOCTYPEa SYSTEM''y",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name lowercase z garbage' => [
+            "<!DOCTYPEa SYSTEM''z",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name opening brace garbage' => [
+            "<!DOCTYPEa SYSTEM''{",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name non-BMP garbage' => [
+            "<!DOCTYPEa SYSTEM''\u{100000}",
             '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
             true,
         ];
@@ -1560,6 +1760,26 @@ final class SerializeTest extends TestCase
         ];
         yield 'closed empty public identifier no-whitespace html name space at EOF forces quirks' => [
             "<!DOCTYPEhtml PUBLIC'' ",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name exclamation garbage forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''!",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name less-than garbage forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''<",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name uppercase A garbage forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''A",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name non-BMP garbage forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''\u{100000}",
             '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
             true,
         ];
@@ -1627,6 +1847,26 @@ final class SerializeTest extends TestCase
             "<!DOCTYPEhtml SYSTEM'' ",
             '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
             true,
+        ];
+        yield 'closed empty system identifier no-whitespace html name exclamation garbage remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM''!",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty system identifier no-whitespace html name double quote garbage remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM''\"",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty system identifier no-whitespace html name uppercase A garbage remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM''A",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty system identifier no-whitespace html name non-BMP garbage remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM''\u{100000}",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
         ];
         yield 'closed empty system identifier no-whitespace html name trailing garbage remains standards mode' => [
             "<!DOCTYPEhtml SYSTEM''?",
