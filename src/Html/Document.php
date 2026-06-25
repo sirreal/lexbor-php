@@ -518,6 +518,52 @@ final class Document extends Node
      */
     private function parseLeadingDoctype(string $html): ?array
     {
+        $abruptPublicSystemPattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+PUBLIC\s+(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')\s*(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
+REGEX;
+
+        if (preg_match($abruptPublicSystemPattern, $html, $abruptPublicSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+            $publicId = $abruptPublicSystemMatch['publicIdDouble'][0] ?? $abruptPublicSystemMatch['publicIdSingle'][0] ?? null;
+            $systemId = $abruptPublicSystemMatch['systemIdDouble'][0] ?? $abruptPublicSystemMatch['systemIdSingle'][0] ?? null;
+
+            return [
+                'name' => strtolower($abruptPublicSystemMatch['name'][0]),
+                'publicId' => $publicId === '' ? null : $publicId,
+                'systemId' => $systemId === '' ? null : $systemId,
+                'offset' => strlen($abruptPublicSystemMatch[0][0]),
+            ];
+        }
+
+        $abruptPublicPattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+PUBLIC\s+(?:"(?<publicIdDouble>[^">]*)>|'(?<publicIdSingle>[^'>]*)>)~is
+REGEX;
+
+        if (preg_match($abruptPublicPattern, $html, $abruptPublicMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+            $publicId = $abruptPublicMatch['publicIdDouble'][0] ?? $abruptPublicMatch['publicIdSingle'][0] ?? null;
+
+            return [
+                'name' => strtolower($abruptPublicMatch['name'][0]),
+                'publicId' => $publicId === '' ? null : $publicId,
+                'systemId' => null,
+                'offset' => strlen($abruptPublicMatch[0][0]),
+            ];
+        }
+
+        $abruptSystemPattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+SYSTEM\s+(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
+REGEX;
+
+        if (preg_match($abruptSystemPattern, $html, $abruptSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+            $systemId = $abruptSystemMatch['systemIdDouble'][0] ?? $abruptSystemMatch['systemIdSingle'][0] ?? null;
+
+            return [
+                'name' => strtolower($abruptSystemMatch['name'][0]),
+                'publicId' => null,
+                'systemId' => $systemId === '' ? null : $systemId,
+                'offset' => strlen($abruptSystemMatch[0][0]),
+            ];
+        }
+
         $pattern = <<<'REGEX'
 ~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)(?:
     \s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>.*?)\k<publicQuote>(?:\s+(?<publicSystemQuote>["'])(?<publicSystemId>.*?)\k<publicSystemQuote>)?

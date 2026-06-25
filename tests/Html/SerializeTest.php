@@ -258,6 +258,41 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html><html><head></head><body>text</body></html>',
             false,
         ];
+        yield 'html5lib test2 abrupt double-quoted public identifier' => [
+            '<!DOCTYPE html PUBLIC ">x',
+            '<!DOCTYPE html><html><head></head><body>x</body></html>',
+            false,
+        ];
+        yield 'html5lib test2 abrupt single-quoted public identifier' => [
+            '<!DOCTYPE html PUBLIC \'>x',
+            '<!DOCTYPE html><html><head></head><body>x</body></html>',
+            false,
+        ];
+        yield 'html5lib test2 abrupt double-quoted system identifier' => [
+            '<!DOCTYPE html PUBLIC "foo" ">x',
+            '<!DOCTYPE html PUBLIC "foo"><html><head></head><body>x</body></html>',
+            false,
+        ];
+        yield 'html5lib test2 abrupt single-quoted system identifier' => [
+            '<!DOCTYPE html PUBLIC \'foo\' \'>x',
+            '<!DOCTYPE html PUBLIC "foo"><html><head></head><body>x</body></html>',
+            false,
+        ];
+        yield 'abrupt public system identifier without whitespace preserves body quotes' => [
+            '<!DOCTYPE html PUBLIC "foo"">x">y',
+            '<!DOCTYPE html PUBLIC "foo"><html><head></head><body>x"&gt;y</body></html>',
+            false,
+        ];
+        yield 'abrupt direct public identifier preserves later body quotes' => [
+            '<!DOCTYPE html PUBLIC ">x "">y',
+            '<!DOCTYPE html><html><head></head><body>x ""&gt;y</body></html>',
+            false,
+        ];
+        yield 'abrupt direct system identifier preserves body quotes' => [
+            '<!DOCTYPE html SYSTEM ">x">y',
+            '<!DOCTYPE html><html><head></head><body>x"&gt;y</body></html>',
+            false,
+        ];
     }
 
     /**
