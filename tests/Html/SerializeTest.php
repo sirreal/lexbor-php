@@ -2500,6 +2500,19 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 processing instruction less-than' => ['<?<', '<!--?<-->'];
         yield 'html5lib test3 processing instruction equals' => ['<?=', '<!--?=-->'];
         yield 'html5lib test3 processing instruction terminator' => ['<?>', '<!--?-->'];
+        yield 'html5lib test3 processing instruction question mark' => ['<??', '<!--??-->'];
+        yield 'html5lib test3 processing instruction at sign' => ['<?@', '<!--?@-->'];
+        yield 'html5lib test3 processing instruction uppercase A' => ['<?A', '<!--?A-->'];
+        yield 'html5lib test3 processing instruction uppercase B' => ['<?B', '<!--?B-->'];
+        yield 'html5lib test3 processing instruction uppercase Y' => ['<?Y', '<!--?Y-->'];
+        yield 'html5lib test3 processing instruction uppercase Z' => ['<?Z', '<!--?Z-->'];
+        yield 'html5lib test3 processing instruction backtick' => ['<?`', '<!--?`-->'];
+        yield 'html5lib test3 processing instruction lowercase a' => ['<?a', '<!--?a-->'];
+        yield 'html5lib test3 processing instruction lowercase b' => ['<?b', '<!--?b-->'];
+        yield 'html5lib test3 processing instruction lowercase y' => ['<?y', '<!--?y-->'];
+        yield 'html5lib test3 processing instruction lowercase z' => ['<?z', '<!--?z-->'];
+        yield 'html5lib test3 processing instruction opening brace' => ['<?{', '<!--?{-->'];
+        yield 'html5lib test3 processing instruction non-BMP' => ["<?\u{100000}", "<!--?\u{100000}-->"];
         foreach ([
             'uppercase Y' => ['<!Y', '<!--Y-->'],
             'uppercase Z' => ['<!Z', '<!--Z-->'],
