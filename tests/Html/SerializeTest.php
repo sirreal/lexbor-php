@@ -2519,6 +2519,46 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib numericEntities $label" => $case;
         }
+        foreach ([
+            'surrogate U+D800 replacement' => ['&#xd800;', '�'],
+            'surrogate U+DFFF replacement' => ['&#xdfff;', '�'],
+            'noncharacter U+FDD0' => ['&#xfdd0;', "\u{FDD0}"],
+            'noncharacter U+FDD1' => ['&#xfdd1;', "\u{FDD1}"],
+            'noncharacter U+FDD2' => ['&#xfdd2;', "\u{FDD2}"],
+            'noncharacter U+FDD3' => ['&#xfdd3;', "\u{FDD3}"],
+            'noncharacter U+FDD4' => ['&#xfdd4;', "\u{FDD4}"],
+            'noncharacter U+FDD5' => ['&#xfdd5;', "\u{FDD5}"],
+            'noncharacter U+FDD6' => ['&#xfdd6;', "\u{FDD6}"],
+            'noncharacter U+FDD7' => ['&#xfdd7;', "\u{FDD7}"],
+            'noncharacter U+FDD8' => ['&#xfdd8;', "\u{FDD8}"],
+            'noncharacter U+FDD9' => ['&#xfdd9;', "\u{FDD9}"],
+            'noncharacter U+FDDA' => ['&#xfdda;', "\u{FDDA}"],
+            'noncharacter U+FDDB' => ['&#xfddb;', "\u{FDDB}"],
+            'noncharacter U+FDDC' => ['&#xfddc;', "\u{FDDC}"],
+            'noncharacter U+FDDD' => ['&#xfddd;', "\u{FDDD}"],
+            'noncharacter U+FDDE' => ['&#xfdde;', "\u{FDDE}"],
+            'noncharacter U+FDDF' => ['&#xfddf;', "\u{FDDF}"],
+            'noncharacter U+FDE0' => ['&#xfde0;', "\u{FDE0}"],
+            'noncharacter U+FDE1' => ['&#xfde1;', "\u{FDE1}"],
+            'noncharacter U+FDE2' => ['&#xfde2;', "\u{FDE2}"],
+            'noncharacter U+FDE3' => ['&#xfde3;', "\u{FDE3}"],
+            'noncharacter U+FDE4' => ['&#xfde4;', "\u{FDE4}"],
+            'noncharacter U+FDE5' => ['&#xfde5;', "\u{FDE5}"],
+            'noncharacter U+FDE6' => ['&#xfde6;', "\u{FDE6}"],
+            'noncharacter U+FDE7' => ['&#xfde7;', "\u{FDE7}"],
+            'noncharacter U+FDE8' => ['&#xfde8;', "\u{FDE8}"],
+            'noncharacter U+FDE9' => ['&#xfde9;', "\u{FDE9}"],
+            'noncharacter U+FDEA' => ['&#xfdea;', "\u{FDEA}"],
+            'noncharacter U+FDEB' => ['&#xfdeb;', "\u{FDEB}"],
+            'noncharacter U+FDEC' => ['&#xfdec;', "\u{FDEC}"],
+            'noncharacter U+FDED' => ['&#xfded;', "\u{FDED}"],
+            'noncharacter U+FDEE' => ['&#xfdee;', "\u{FDEE}"],
+            'noncharacter U+FDEF' => ['&#xfdef;', "\u{FDEF}"],
+            'noncharacter U+FFFE' => ['&#xfffe;', "\u{FFFE}"],
+            'noncharacter U+FFFF' => ['&#xffff;', "\u{FFFF}"],
+        ] as $label => $case) {
+            yield "html5lib numericEntities $label" => $case;
+        }
         yield 'char_ref.ton #39 decimal Cyrillic reference' => ['&#1024', 'Ѐ'];
         yield 'char_ref.ton #40 invalid decimal reference remains literal' => ['&#j', '&amp;#j'];
         yield 'char_ref.ton #41 invalid decimal reference before text remains literal' => ['&#jgf', '&amp;#jgf'];
