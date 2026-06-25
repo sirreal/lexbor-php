@@ -464,6 +464,10 @@ final class SerializeTest extends TestCase
             "<div disabled\0/>",
             "<div disabled\u{FFFD}=\"\"></div>",
         ];
+        yield 'html5lib test1 less-than in unquoted attribute value' => [
+            '<a a=f<>',
+            '<a a="f&lt;"></a>',
+        ];
     }
 
     /**

@@ -775,7 +775,7 @@ REGEX;
     private function parseAttributes(string $source): array
     {
         $attributes = [];
-        $pattern = '#([\x00A-Za-z_:][\x00A-Za-z0-9_:.~-]*)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+)))?#';
+        $pattern = '#([\x00A-Za-z_:][\x00A-Za-z0-9_:.~-]*)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+)))?#';
 
         if (preg_match_all($pattern, $source, $matches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) !== false) {
             foreach ($matches as $match) {
