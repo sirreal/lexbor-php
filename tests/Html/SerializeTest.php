@@ -2587,6 +2587,13 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 invalid tag-open less-than is text' => ['<<', '&lt;&lt;'];
         yield 'html5lib test3 invalid tag-open equals is text' => ['<=', '&lt;='];
         yield 'html5lib test3 invalid tag-open terminator is text' => ['<>', '&lt;&gt;'];
+        yield 'html5lib test3 invalid tag-open at sign is text' => ['<@', '&lt;@'];
+        yield 'html5lib test3 standalone uppercase A start tag folds' => ['<A>', '<a></a>'];
+        yield 'html5lib test3 standalone uppercase B start tag folds' => ['<B>', '<b></b>'];
+        yield 'html5lib test3 standalone uppercase Y start tag folds' => ['<Y>', '<y></y>'];
+        yield 'html5lib test3 standalone uppercase Z start tag folds' => ['<Z>', '<z></z>'];
+        yield 'html5lib test3 invalid tag-open left bracket is text' => ['<[', '&lt;['];
+        yield 'html5lib test3 invalid tag-open backtick is text' => ['<`', '&lt;`'];
         yield 'html5lib test3 EOF before end tag name is text' => ['</', '&lt;/'];
         yield 'html5lib test4 EOF in tag name state' => ['<a', ''];
         yield 'html5lib test4 slash EOF in tag name state' => ['<z/', ''];
