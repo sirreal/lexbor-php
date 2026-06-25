@@ -523,6 +523,18 @@ final class SerializeTest extends TestCase
             "<div \0>",
             "<div \u{FFFD}=\"\"></div>",
         ];
+        yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
+            "<a a=a\0>",
+            "<a a=\"a\u{FFFD}\"></a>",
+        ];
+        yield 'html5lib test3 NUL in double-quoted attribute value is replaced' => [
+            "<a a=\"\0\">",
+            "<a a=\"\u{FFFD}\"></a>",
+        ];
+        yield 'html5lib test3 NUL in single-quoted attribute value is replaced' => [
+            "<a a='\0'>",
+            "<a a=\"\u{FFFD}\"></a>",
+        ];
         yield 'trailing NUL survives self-closing slash removal' => [
             "<div disabled\0/>",
             "<div disabled\u{FFFD}=\"\"></div>",

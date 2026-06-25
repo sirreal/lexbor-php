@@ -993,7 +993,7 @@ REGEX;
                 $seen[$seenKey] = true;
                 $attributes[] = [
                     'name' => $normalizedName,
-                    'value' => $this->decodeCharacterReferences($value, true),
+                    'value' => str_replace("\0", "\u{FFFD}", $this->decodeCharacterReferences($value, true)),
                 ];
             }
 
