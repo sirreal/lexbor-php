@@ -1249,6 +1249,34 @@ REGEX;
                 ];
             }
 
+            $noWhitespaceMissingPublicIdentifierPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:>|$|[^"' \t\n\f\r>][^>]*(?:>|$))~is
+REGEX;
+
+            if (preg_match($noWhitespaceMissingPublicIdentifierPattern, $html, $noWhitespaceMissingPublicIdentifierMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => self::normalizeDoctypeToken($noWhitespaceMissingPublicIdentifierMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($noWhitespaceMissingPublicIdentifierMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
+            $noWhitespaceMissingSystemIdentifierPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+SYSTEM[ \t\n\f\r]*(?:>|$|[^"' \t\n\f\r>][^>]*(?:>|$))~is
+REGEX;
+
+            if (preg_match($noWhitespaceMissingSystemIdentifierPattern, $html, $noWhitespaceMissingSystemIdentifierMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => self::normalizeDoctypeToken($noWhitespaceMissingSystemIdentifierMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($noWhitespaceMissingSystemIdentifierMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
             $noWhitespaceInvalidAfterNamePattern = '~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"\']+)[^>]*(?:>|$)~i';
             if (preg_match($noWhitespaceInvalidAfterNamePattern, $html, $noWhitespaceInvalidAfterNameMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [

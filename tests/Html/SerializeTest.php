@@ -678,6 +678,116 @@ final class SerializeTest extends TestCase
             "<!DOCTYPE a PUBLIC \"\u{100000}\"><html><head></head><body></body></html>",
             true,
         ];
+        yield 'html5lib test3 missing public identifier quote opening parenthesis without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC(',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote dash without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC-',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote slash without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC/',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote zero without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC0',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote one without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC1',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote nine without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC9',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote less-than without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC<',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote equals without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC=',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier before terminator without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC>',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote question mark without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC?',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote at sign without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC@',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote uppercase A without keyword whitespace' => [
+            '<!DOCTYPEa PUBLICA',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote uppercase B without keyword whitespace' => [
+            '<!DOCTYPEa PUBLICB',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote uppercase Y without keyword whitespace' => [
+            '<!DOCTYPEa PUBLICY',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote uppercase Z without keyword whitespace' => [
+            '<!DOCTYPEa PUBLICZ',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote backtick without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC`',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote lowercase a without keyword whitespace' => [
+            '<!DOCTYPEa PUBLICa',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote lowercase b without keyword whitespace' => [
+            '<!DOCTYPEa PUBLICb',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote lowercase y without keyword whitespace' => [
+            '<!DOCTYPEa PUBLICy',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote lowercase z without keyword whitespace' => [
+            '<!DOCTYPEa PUBLICz',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote opening brace without keyword whitespace' => [
+            '<!DOCTYPEa PUBLIC{',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing public identifier quote non-BMP without keyword whitespace' => [
+            "<!DOCTYPEa PUBLIC\u{100000}",
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 single-quoted public identifier tab without keyword whitespace' => [
             "<!DOCTYPE a PUBLIC'\t",
             "<!DOCTYPE a PUBLIC \"\t\"><html><head></head><body></body></html>",
@@ -1141,6 +1251,116 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 single-quoted system identifier non-BMP without preceding whitespace' => [
             "<!DOCTYPEa SYSTEM'\u{100000}",
             "<!DOCTYPE a SYSTEM \"\u{100000}\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote opening parenthesis without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM(',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote dash without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM-',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote slash without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM/',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote zero without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM0',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote one without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM1',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote nine without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM9',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote less-than without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM<',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote equals without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM=',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier before terminator without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM>',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote question mark without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM?',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote at sign without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM@',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote uppercase A without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEMA',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote uppercase B without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEMB',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote uppercase Y without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEMY',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote uppercase Z without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEMZ',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote backtick without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM`',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote lowercase a without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEMa',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote lowercase b without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEMb',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote lowercase y without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEMy',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote lowercase z without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEMz',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote opening brace without keyword whitespace' => [
+            '<!DOCTYPEa SYSTEM{',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system identifier quote non-BMP without keyword whitespace' => [
+            "<!DOCTYPEa SYSTEM\u{100000}",
+            '<!DOCTYPE a><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 single-quoted system identifier tab without keyword whitespace' => [
@@ -1971,6 +2191,26 @@ final class SerializeTest extends TestCase
         yield 'single-quoted system identifier no-whitespace html name abrupt boundary forces quirks' => [
             "<!DOCTYPEhtml SYSTEM'>x",
             '<!DOCTYPE html SYSTEM ""><html><head></head><body>x</body></html>',
+            true,
+        ];
+        yield 'missing public identifier no-whitespace html name default character forces quirks' => [
+            '<!DOCTYPEhtml PUBLIC(',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'missing public identifier no-whitespace html name terminator forces quirks' => [
+            '<!DOCTYPEhtml PUBLIC>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'missing system identifier no-whitespace html name default character forces quirks' => [
+            '<!DOCTYPEhtml SYSTEM(',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'missing system identifier no-whitespace html name terminator forces quirks' => [
+            '<!DOCTYPEhtml SYSTEM>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 missing system quote after closed public identifier' => [
