@@ -436,6 +436,9 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 grave accent in tag name' => ['<a`>', '<a`></a`>'];
         yield 'html5lib test3 left brace in tag name' => ['<a{>', '<a{></a{>'];
         yield 'html5lib test3 uppercase continuation folds' => ['<aZ>', '<az></az>'];
+        yield 'html5lib test4 EOF in tag name state' => ['<a', ''];
+        yield 'html5lib test4 slash EOF in tag name state' => ['<z/', ''];
+        yield 'html5lib test4 CR EOF in tag name state' => ["<z\r", ''];
     }
 
     /**
@@ -547,6 +550,14 @@ final class SerializeTest extends TestCase
             '<a a=a/>',
             '<a a="a/"></a>',
         ];
+        yield 'html5lib test4 EOF in before attribute name state' => ['<a ', ''];
+        yield 'html5lib test4 EOF in attribute name state' => ['<a a', ''];
+        yield 'html5lib test4 EOF in after attribute name state' => ['<a a ', ''];
+        yield 'html5lib test4 EOF in before attribute value state' => ['<a a =', ''];
+        yield 'html5lib test4 EOF in double-quoted attribute value state' => ['<a a ="a', ''];
+        yield 'html5lib test4 EOF in single-quoted attribute value state' => ["<a a ='a", ''];
+        yield 'html5lib test4 EOF in unquoted attribute value state' => ['<a a =a', ''];
+        yield 'html5lib test4 EOF in after attribute value state' => ["<a a ='a'", ''];
         yield 'html5lib test2 double-quote after attribute name' => [
             '<h a ">',
             '<h a="" &quot;=""></h>',

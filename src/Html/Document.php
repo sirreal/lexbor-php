@@ -220,7 +220,6 @@ final class Document extends Node
             $tagName = self::normalizeTagTokenName($match['tag'][0]);
             $startTagEnd = self::consumeStartTag($html, $tagStart + strlen($match[0][0]));
             if ($startTagEnd === null) {
-                $this->appendText($parent, substr($html, $tagStart));
                 return;
             }
 
