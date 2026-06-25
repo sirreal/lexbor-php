@@ -194,6 +194,15 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
+    public static function tokenizerCommentProvider(): iterable
+    {
+        yield 'comment.ton #1 space comment' => ['<div><!-- --></div>', '<div><!-- --></div>'];
+        yield 'comment.ton #2 repeated hyphen comment' => ['<div><!-------></div>', '<div><!-------></div>'];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function tokenizerTagNameProvider(): iterable
     {
         yield 'tag_name.ton #1 NUL in middle of tag name' => ["<sEf\0sTf>", "<sef\u{FFFD}stf></sef\u{FFFD}stf>"];
@@ -414,6 +423,15 @@ final class SerializeTest extends TestCase
 
     #[DataProvider('tokenizerCharacterReferenceProvider')]
     public function testTokenizerCharacterReferenceRegressions(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('tokenizerCommentProvider')]
+    public function testTokenizerCommentRegressions(string $html, string $expected): void
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
