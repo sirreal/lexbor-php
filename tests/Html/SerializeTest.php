@@ -333,6 +333,74 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html><html><head></head><body>text</body></html>',
             false,
         ];
+        foreach ([
+            'uppercase Y' => '<!DOCTYPEa Y',
+            'uppercase Z' => '<!DOCTYPEa Z',
+            'backtick' => '<!DOCTYPEa `',
+            'lowercase a' => '<!DOCTYPEa a',
+            'lowercase a NUL' => "<!DOCTYPEa a\0",
+            'lowercase a tab' => "<!DOCTYPEa a\t",
+            'lowercase a line feed' => "<!DOCTYPEa a\n",
+            'lowercase a vertical tab' => "<!DOCTYPEa a\v",
+            'lowercase a form feed' => "<!DOCTYPEa a\f",
+            'lowercase a space' => '<!DOCTYPEa a ',
+            'lowercase a exclamation' => '<!DOCTYPEa a!',
+            'lowercase a quote' => '<!DOCTYPEa a"',
+            'lowercase a ampersand' => '<!DOCTYPEa a&',
+            'lowercase a apostrophe' => "<!DOCTYPEa a'",
+            'lowercase a dash' => '<!DOCTYPEa a-',
+            'lowercase a slash' => '<!DOCTYPEa a/',
+            'lowercase a zero' => '<!DOCTYPEa a0',
+            'lowercase a one' => '<!DOCTYPEa a1',
+            'lowercase a nine' => '<!DOCTYPEa a9',
+            'lowercase a less-than' => '<!DOCTYPEa a<',
+            'lowercase a equals' => '<!DOCTYPEa a=',
+            'lowercase a terminator' => '<!DOCTYPEa a>',
+            'lowercase a question mark' => '<!DOCTYPEa a?',
+            'lowercase a at sign' => '<!DOCTYPEa a@',
+            'lowercase a uppercase A' => '<!DOCTYPEa aA',
+            'lowercase a uppercase B' => '<!DOCTYPEa aB',
+            'lowercase a uppercase Y' => '<!DOCTYPEa aY',
+            'lowercase a uppercase Z' => '<!DOCTYPEa aZ',
+            'lowercase a backtick' => '<!DOCTYPEa a`',
+            'double lowercase a' => '<!DOCTYPEa aa',
+            'lowercase a lowercase b' => '<!DOCTYPEa ab',
+            'lowercase a lowercase y' => '<!DOCTYPEa ay',
+            'lowercase a lowercase z' => '<!DOCTYPEa az',
+            'lowercase a opening brace' => '<!DOCTYPEa a{',
+            'lowercase a non-BMP' => "<!DOCTYPEa a\u{100000}",
+            'lowercase b' => '<!DOCTYPEa b',
+            'lowercase y' => '<!DOCTYPEa y',
+            'lowercase z' => '<!DOCTYPEa z',
+            'opening brace' => '<!DOCTYPEa {',
+            'non-BMP' => "<!DOCTYPEa \u{100000}",
+        ] as $label => $html) {
+            yield "html5lib test3 invalid sequence after no-whitespace doctype name $label" => [
+                $html,
+                '<!DOCTYPE a><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+        yield 'invalid sequence after no-whitespace html name at EOF remains standards mode' => [
+            '<!DOCTYPEhtml a',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'invalid sequence after no-whitespace html name terminator remains standards mode' => [
+            '<!DOCTYPEhtml a>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'invalid sequence after no-whitespace html name vertical tab remains standards mode' => [
+            "<!DOCTYPEhtml a\v",
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'invalid sequence after no-whitespace html name non-BMP remains standards mode' => [
+            "<!DOCTYPEhtml \u{100000}",
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
         yield 'NUL in parsed public identifier is replaced' => [
             "<!DOCTYPE html PUBLIC \"a\0\">",
             "<!DOCTYPE html PUBLIC \"a\u{FFFD}\"><html><head></head><body></body></html>",
