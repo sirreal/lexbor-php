@@ -524,6 +524,14 @@ final class SerializeTest extends TestCase
             '<a a=f<>',
             '<a a="f&lt;"></a>',
         ];
+        yield 'html5lib test2 double-quote after attribute name' => [
+            '<h a ">',
+            '<h a="" &quot;=""></h>',
+        ];
+        yield 'html5lib test2 single-quote after attribute name' => [
+            "<h a '>",
+            '<h a="" &#039;=""></h>',
+        ];
     }
 
     /**
