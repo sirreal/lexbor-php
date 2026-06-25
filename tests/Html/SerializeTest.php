@@ -358,6 +358,26 @@ final class SerializeTest extends TestCase
             "<!DOCTYPE a PUBLIC \"\u{FFFD}\"><html><head></head><body></body></html>",
             true,
         ];
+        yield 'html5lib test3 public identifier tab without keyword whitespace' => [
+            "<!DOCTYPE a PUBLIC\"\t",
+            "<!DOCTYPE a PUBLIC \"\t\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 public identifier line feed without keyword whitespace' => [
+            "<!DOCTYPE a PUBLIC\"\n",
+            "<!DOCTYPE a PUBLIC \"\n\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 public identifier form feed without keyword whitespace' => [
+            "<!DOCTYPE a PUBLIC\"\f",
+            "<!DOCTYPE a PUBLIC \"\f\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 public identifier punctuation without keyword whitespace' => [
+            '<!DOCTYPE a PUBLIC"!',
+            '<!DOCTYPE a PUBLIC "!"><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 public identifier vertical tab without preceding whitespace' => [
             "<!DOCTYPEa PUBLIC\"\v",
             "<!DOCTYPE a PUBLIC \"\v\"><html><head></head><body></body></html>",
@@ -391,6 +411,26 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 system identifier NUL without preceding whitespace' => [
             "<!DOCTYPE a SYSTEM\"\0",
             "<!DOCTYPE a SYSTEM \"\u{FFFD}\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 system identifier tab without keyword whitespace' => [
+            "<!DOCTYPE a SYSTEM\"\t",
+            "<!DOCTYPE a SYSTEM \"\t\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 system identifier line feed without keyword whitespace' => [
+            "<!DOCTYPE a SYSTEM\"\n",
+            "<!DOCTYPE a SYSTEM \"\n\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 system identifier form feed without keyword whitespace' => [
+            "<!DOCTYPE a SYSTEM\"\f",
+            "<!DOCTYPE a SYSTEM \"\f\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 system identifier punctuation without keyword whitespace' => [
+            '<!DOCTYPE a SYSTEM"!',
+            '<!DOCTYPE a SYSTEM "!"><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 system identifier vertical tab without preceding whitespace' => [
