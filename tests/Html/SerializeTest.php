@@ -2775,6 +2775,27 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 self-closing slash single quote' => ["<a/'>", '<a &#039;=""></a>'];
         yield 'html5lib test3 self-closing slash dash' => ['<a/->', '<a -=""></a>'];
         yield 'html5lib test3 repeated self-closing slash' => ['<a//>', '<a></a>'];
+        yield 'html5lib test3 self-closing slash zero' => ['<a/0>', '<a 0=""></a>'];
+        yield 'html5lib test3 self-closing slash one' => ['<a/1>', '<a 1=""></a>'];
+        yield 'html5lib test3 self-closing slash nine' => ['<a/9>', '<a 9=""></a>'];
+        yield 'html5lib test3 self-closing slash less-than' => ['<a/<>', '<a &lt;=""></a>'];
+        yield 'html5lib test3 self-closing slash equals' => ['<a/=>', '<a ==""></a>'];
+        yield 'html5lib test3 self-closing slash question mark' => ['<a/?>', '<a ?=""></a>'];
+        yield 'html5lib test3 self-closing slash at sign' => ['<a/@>', '<a @=""></a>'];
+        yield 'html5lib test3 self-closing slash uppercase A' => ['<a/A>', '<a a=""></a>'];
+        yield 'html5lib test3 self-closing slash uppercase B' => ['<a/B>', '<a b=""></a>'];
+        yield 'html5lib test3 self-closing slash uppercase Y' => ['<a/Y>', '<a y=""></a>'];
+        yield 'html5lib test3 self-closing slash uppercase Z' => ['<a/Z>', '<a z=""></a>'];
+        yield 'html5lib test3 self-closing slash backtick' => ['<a/`>', '<a `=""></a>'];
+        yield 'html5lib test3 self-closing slash lowercase a' => ['<a/a>', '<a a=""></a>'];
+        yield 'html5lib test3 self-closing slash lowercase b' => ['<a/b>', '<a b=""></a>'];
+        yield 'html5lib test3 self-closing slash lowercase y' => ['<a/y>', '<a y=""></a>'];
+        yield 'html5lib test3 self-closing slash lowercase z' => ['<a/z>', '<a z=""></a>'];
+        yield 'html5lib test3 self-closing slash left brace' => ['<a/{>', '<a {=""></a>'];
+        yield 'html5lib test3 self-closing slash non-BMP' => [
+            "<a/\u{100000}>",
+            "<a \u{100000}=\"\"></a>",
+        ];
         yield 'html5lib test3 before attribute name zero' => ['<a 0>', '<a 0=""></a>'];
         yield 'html5lib test3 before attribute name one' => ['<a 1>', '<a 1=""></a>'];
         yield 'html5lib test3 before attribute name nine' => ['<a 9>', '<a 9=""></a>'];
