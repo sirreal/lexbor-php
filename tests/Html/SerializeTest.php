@@ -3067,6 +3067,20 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test3 unquoted attribute value space boundary after character' => ['<a a=a >', '<a a="a"></a>'];
         yield 'html5lib test3 unquoted attribute value exclamation after character' => ['<a a=a!>', '<a a="a!"></a>'];
+        yield 'html5lib test3 unquoted attribute value double quote after character' => ['<a a=a">', '<a a="a&quot;"></a>'];
+        yield 'html5lib test3 unquoted attribute value hash after character' => ['<a a=a#>', '<a a="a#"></a>'];
+        yield 'html5lib test3 unquoted attribute value percent after character' => ['<a a=a%>', '<a a="a%"></a>'];
+        yield 'html5lib test3 unquoted attribute value ampersand after character' => ['<a a=a&>', '<a a="a&amp;"></a>'];
+        yield 'html5lib test3 unquoted attribute value single quote after character' => ["<a a=a'>", '<a a="a\'"></a>'];
+        yield 'html5lib test3 unquoted attribute value opening parenthesis after character' => ['<a a=a(>', '<a a="a("></a>'];
+        yield 'html5lib test3 unquoted attribute value dash after character' => ['<a a=a->', '<a a="a-"></a>'];
+        yield 'html5lib test3 unquoted attribute value zero after character' => ['<a a=a0>', '<a a="a0"></a>'];
+        yield 'html5lib test3 unquoted attribute value one after character' => ['<a a=a1>', '<a a="a1"></a>'];
+        yield 'html5lib test3 unquoted attribute value nine after character' => ['<a a=a9>', '<a a="a9"></a>'];
+        yield 'html5lib test3 unquoted attribute value less-than after character' => ['<a a=a<>', '<a a="a&lt;"></a>'];
+        yield 'html5lib test3 unquoted attribute value equals after character' => ['<a a=a=>', '<a a="a="></a>'];
+        yield 'html5lib test3 unquoted attribute value question mark after character' => ['<a a=a?>', '<a a="a?"></a>'];
+        yield 'html5lib test3 unquoted attribute value at sign after character' => ['<a a=a@>', '<a a="a@"></a>'];
         yield 'html5lib test1 less-than in unquoted attribute value' => [
             '<a a=f<>',
             '<a a="f&lt;"></a>',
