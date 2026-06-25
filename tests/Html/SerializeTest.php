@@ -2488,6 +2488,18 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 processing instruction form feed' => ["<?\f", "<!--?\f-->"];
         yield 'html5lib test3 processing instruction space' => ['<? ', '<!--? -->'];
         yield 'html5lib test3 processing instruction space NUL' => ["<? \0", "<!--? \u{FFFD}-->"];
+        yield 'html5lib test3 processing instruction exclamation' => ['<?!', '<!--?!-->'];
+        yield 'html5lib test3 processing instruction double quote' => ['<?"', '<!--?"-->'];
+        yield 'html5lib test3 processing instruction ampersand' => ['<?&', '<!--?&-->'];
+        yield 'html5lib test3 processing instruction single quote' => ["<?'", "<!--?'-->"];
+        yield 'html5lib test3 processing instruction dash' => ['<?-', '<!--?--->'];
+        yield 'html5lib test3 processing instruction slash' => ['<?/', '<!--?/-->'];
+        yield 'html5lib test3 processing instruction zero' => ['<?0', '<!--?0-->'];
+        yield 'html5lib test3 processing instruction one' => ['<?1', '<!--?1-->'];
+        yield 'html5lib test3 processing instruction nine' => ['<?9', '<!--?9-->'];
+        yield 'html5lib test3 processing instruction less-than' => ['<?<', '<!--?<-->'];
+        yield 'html5lib test3 processing instruction equals' => ['<?=', '<!--?=-->'];
+        yield 'html5lib test3 processing instruction terminator' => ['<?>', '<!--?-->'];
         foreach ([
             'uppercase Y' => ['<!Y', '<!--Y-->'],
             'uppercase Z' => ['<!Z', '<!--Z-->'],
