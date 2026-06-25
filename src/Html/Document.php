@@ -999,7 +999,7 @@ REGEX;
                 ];
             }
 
-            $eofNoWhitespaceNamePattern = '~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"\']+)[ \t\n\f\r]*$~i';
+            $eofNoWhitespaceNamePattern = '~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>]+)[ \t\n\f\r]*$~i';
             if (preg_match($eofNoWhitespaceNamePattern, $html, $eofNoWhitespaceNameMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
                     'name' => self::normalizeDoctypeToken($eofNoWhitespaceNameMatch['name'][0]),
