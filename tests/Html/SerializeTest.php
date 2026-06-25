@@ -2989,6 +2989,20 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 after single-quoted value equals' => ["<a a=''=>", '<a a="" ==""></a>'];
         yield 'html5lib test3 after single-quoted value question mark' => ["<a a=''?>", '<a a="" ?=""></a>'];
         yield 'html5lib test3 after single-quoted value at sign' => ["<a a=''@>", '<a a="" @=""></a>'];
+        yield 'html5lib test3 after single-quoted value uppercase A duplicate' => ["<a a=''A>", '<a a=""></a>'];
+        yield 'html5lib test3 after single-quoted value uppercase B' => ["<a a=''B>", '<a a="" b=""></a>'];
+        yield 'html5lib test3 after single-quoted value uppercase Y' => ["<a a=''Y>", '<a a="" y=""></a>'];
+        yield 'html5lib test3 after single-quoted value uppercase Z' => ["<a a=''Z>", '<a a="" z=""></a>'];
+        yield 'html5lib test3 after single-quoted value backtick' => ["<a a=''`>", '<a a="" `=""></a>'];
+        yield 'html5lib test3 after single-quoted value lowercase a duplicate' => ["<a a=''a>", '<a a=""></a>'];
+        yield 'html5lib test3 after single-quoted value lowercase b' => ["<a a=''b>", '<a a="" b=""></a>'];
+        yield 'html5lib test3 after single-quoted value lowercase y' => ["<a a=''y>", '<a a="" y=""></a>'];
+        yield 'html5lib test3 after single-quoted value lowercase z' => ["<a a=''z>", '<a a="" z=""></a>'];
+        yield 'html5lib test3 after single-quoted value open brace' => ["<a a=''{>", '<a a="" {=""></a>'];
+        yield 'html5lib test3 after single-quoted value non-BMP' => [
+            "<a a=''\u{100000}>",
+            "<a a=\"\" \u{100000}=\"\"></a>",
+        ];
         yield 'trailing NUL survives self-closing slash removal' => [
             "<div disabled\0/>",
             "<div disabled\u{FFFD}=\"\"></div>",
