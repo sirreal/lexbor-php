@@ -456,7 +456,7 @@ class Node
             $clone = new Element($this->tagName, tagId: $this->tagId, ownerDocument: $ownerDocument, namespace: $this->namespace);
 
             foreach ($this->attributes as $name => $value) {
-                $clone->setAttribute($name, $value);
+                $clone->setAttribute((string) $name, $value);
             }
 
             return $clone;

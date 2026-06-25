@@ -81,7 +81,7 @@ final class Element extends Node
     public function clearAttributes(): void
     {
         foreach (array_keys($this->attributes) as $name) {
-            $this->removeAttribute($name);
+            $this->removeAttribute((string) $name);
         }
     }
 

@@ -44,8 +44,8 @@ final class Document extends Node
 
         $bodyFragment = $this->bodyFragment($html);
         if ($bodyFragment !== null) {
-            foreach ($this->parseAttributes($bodyFragment['attributes']) as $name => $value) {
-                $this->body->setAttribute($name, $value);
+            foreach ($this->parseAttributes($bodyFragment['attributes']) as $attribute) {
+                $this->body->setAttribute($attribute['name'], $attribute['value']);
             }
 
             $html = $bodyFragment['content'];
@@ -167,7 +167,7 @@ final class Document extends Node
     private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void
     {
         $stack = [$root];
-        $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z](?:[A-Za-z0-9:-]|\x00|<)*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\'|"(?=>)|\'(?=>))*))>~si';
+        $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z](?:[A-Za-z0-9:-]|\x00|<)*)~si';
         $offset = 0;
 
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
@@ -218,6 +218,13 @@ final class Document extends Node
             }
 
             $tagName = self::normalizeTagTokenName($match['tag'][0]);
+            $startTagEnd = self::consumeStartTag($html, $tagStart + strlen($match[0][0]));
+            if ($startTagEnd === null) {
+                $this->appendText($parent, substr($html, $tagStart));
+                return;
+            }
+
+            [$attributeSource, $tagEnd] = $startTagEnd;
 
             if ($match['closing'][0] === '/') {
                 $this->closeElement($stack, $tagName);
@@ -225,7 +232,7 @@ final class Document extends Node
                 continue;
             }
 
-            $attributeSource = self::rtrimHtmlWhitespace($match['attributes'][0] ?? '');
+            $attributeSource = self::rtrimHtmlWhitespace($attributeSource);
             $selfClosing = str_ends_with($attributeSource, '/');
             if ($selfClosing) {
                 $attributeSource = self::rtrimHtmlWhitespace(substr($attributeSource, 0, -1));
@@ -233,8 +240,8 @@ final class Document extends Node
 
             $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             $element = $this->createElement($tagName, $this->namespaceForElement($namespaceParent, $tagName));
-            foreach ($this->parseAttributes($attributeSource) as $name => $value) {
-                $element->setAttribute($name, $value);
+            foreach ($this->parseAttributes($attributeSource) as $attribute) {
+                $element->setAttribute($attribute['name'], $attribute['value']);
             }
 
             $stack[count($stack) - 1]->appendChild($element);
@@ -255,6 +262,124 @@ final class Document extends Node
         if ($offset < strlen($html)) {
             $this->appendText($stack[count($stack) - 1], substr($html, $offset));
         }
+    }
+
+    /**
+     * @return array{string, int}|null
+     */
+    private static function consumeStartTag(string $html, int $offset): ?array
+    {
+        $attributeStart = $offset;
+        $length = strlen($html);
+        $state = 'before_attribute_name';
+
+        while ($offset < $length) {
+            $character = $html[$offset];
+
+            switch ($state) {
+                case 'before_attribute_name':
+                    if ($character === '>') {
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                    }
+
+                    if ($character === '/') {
+                        break;
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        break;
+                    }
+
+                    $state = 'attribute_name';
+                    break;
+
+                case 'attribute_name':
+                    if ($character === '>') {
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character) || $character === '/') {
+                        $state = 'after_attribute_name';
+                    } elseif ($character === '=') {
+                        $state = 'before_attribute_value';
+                    }
+                    break;
+
+                case 'after_attribute_name':
+                    if ($character === '>') {
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        break;
+                    }
+
+                    if ($character === '/') {
+                        $state = 'before_attribute_name';
+                    } elseif ($character === '=') {
+                        $state = 'before_attribute_value';
+                    } else {
+                        $state = 'attribute_name';
+                    }
+                    break;
+
+                case 'before_attribute_value':
+                    if ($character === '>') {
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        break;
+                    }
+
+                    if ($character === '"') {
+                        $state = 'double_quoted_attribute_value';
+                    } elseif ($character === "'") {
+                        $state = 'single_quoted_attribute_value';
+                    } else {
+                        $state = 'unquoted_attribute_value';
+                    }
+                    break;
+
+                case 'double_quoted_attribute_value':
+                    if ($character === '"') {
+                        $state = 'after_quoted_attribute_value';
+                    }
+                    break;
+
+                case 'single_quoted_attribute_value':
+                    if ($character === "'") {
+                        $state = 'after_quoted_attribute_value';
+                    }
+                    break;
+
+                case 'after_quoted_attribute_value':
+                    if ($character === '>') {
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        $state = 'before_attribute_name';
+                    } else {
+                        $state = 'attribute_name';
+                    }
+                    break;
+
+                default:
+                    if ($character === '>') {
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        $state = 'before_attribute_name';
+                    }
+                    break;
+            }
+
+            $offset++;
+        }
+
+        return null;
     }
 
     private function appendComment(Node $parent, string $data): void
@@ -462,24 +587,29 @@ final class Document extends Node
      */
     private function bodyFragment(string $html): ?array
     {
-        $pattern = '~<\s*body(?=[\t\n\f\r />])((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>~si';
+        $pattern = '~<\s*body(?=[\t\n\f\r />])~si';
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE) !== 1) {
             return null;
         }
 
-        $start = $match[0][1] + strlen($match[0][0]);
+        $bodyTag = self::consumeStartTag($html, $match[0][1] + strlen($match[0][0]));
+        if ($bodyTag === null) {
+            return null;
+        }
+
+        [$attributes, $start] = $bodyTag;
         $closePattern = '~<\s*/\s*body\s*>~i';
 
         if (preg_match($closePattern, $html, $close, PREG_OFFSET_CAPTURE, $start) !== 1) {
             return [
-                'attributes' => $match[1][0],
+                'attributes' => $attributes,
                 'content' => substr($html, $start),
             ];
         }
 
         return [
-            'attributes' => $match[1][0],
+            'attributes' => $attributes,
             'content' => substr($html, $start, $close[0][1] - $start),
         ];
     }
@@ -827,21 +957,177 @@ REGEX;
     }
 
     /**
-     * @return array<string, string>
+     * @return list<array{name: string, value: string}>
      */
     private function parseAttributes(string $source): array
     {
         $attributes = [];
-        $pattern = '#([\x00A-Za-z_:"\'][\x00A-Za-z0-9_:.~\-"\'"]*)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+)))?#';
+        $seen = [];
+        $length = strlen($source);
+        $offset = 0;
+        $name = '';
+        $value = '';
+        $state = 'before_attribute_name';
 
-        if (preg_match_all($pattern, $source, $matches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) !== false) {
-            foreach ($matches as $match) {
-                $name = self::normalizeAttributeTokenName($match[1]);
-
-                if (!array_key_exists($name, $attributes)) {
-                    $attributes[$name] = $this->decodeCharacterReferences($match[2] ?? $match[3] ?? $match[4] ?? '', true);
-                }
+        $commit = function () use (&$attributes, &$seen, &$name, &$value): void {
+            if ($name === '') {
+                return;
             }
+
+            $normalizedName = self::normalizeAttributeTokenName($name);
+            $seenKey = "\0" . $normalizedName;
+            if (!array_key_exists($seenKey, $seen)) {
+                $seen[$seenKey] = true;
+                $attributes[] = [
+                    'name' => $normalizedName,
+                    'value' => $this->decodeCharacterReferences($value, true),
+                ];
+            }
+
+            $name = '';
+            $value = '';
+        };
+
+        while ($offset <= $length) {
+            $character = $offset < $length ? $source[$offset] : null;
+
+            switch ($state) {
+                case 'before_attribute_name':
+                    if ($character === null) {
+                        break 2;
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character) || $character === '/') {
+                        break;
+                    }
+
+                    $name = $character;
+                    $value = '';
+                    $state = 'attribute_name';
+                    break;
+
+                case 'attribute_name':
+                    if ($character === null) {
+                        $commit();
+                        break 2;
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character) || $character === '/') {
+                        $state = 'after_attribute_name';
+                    } elseif ($character === '=') {
+                        $state = 'before_attribute_value';
+                    } else {
+                        $name .= $character;
+                    }
+                    break;
+
+                case 'after_attribute_name':
+                    if ($character === null) {
+                        $commit();
+                        break 2;
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        break;
+                    }
+
+                    if ($character === '=') {
+                        $state = 'before_attribute_value';
+                    } else {
+                        $commit();
+                        if ($character !== '/') {
+                            $name = $character;
+                            $value = '';
+                            $state = 'attribute_name';
+                        } else {
+                            $state = 'before_attribute_name';
+                        }
+                    }
+                    break;
+
+                case 'before_attribute_value':
+                    if ($character === null) {
+                        $commit();
+                        break 2;
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        break;
+                    }
+
+                    if ($character === '"') {
+                        $state = 'double_quoted_attribute_value';
+                    } elseif ($character === "'") {
+                        $state = 'single_quoted_attribute_value';
+                    } else {
+                        $value .= $character;
+                        $state = 'unquoted_attribute_value';
+                    }
+                    break;
+
+                case 'double_quoted_attribute_value':
+                    if ($character === null) {
+                        $commit();
+                        break 2;
+                    }
+
+                    if ($character === '"') {
+                        $state = 'after_quoted_attribute_value';
+                    } else {
+                        $value .= $character;
+                    }
+                    break;
+
+                case 'single_quoted_attribute_value':
+                    if ($character === null) {
+                        $commit();
+                        break 2;
+                    }
+
+                    if ($character === "'") {
+                        $state = 'after_quoted_attribute_value';
+                    } else {
+                        $value .= $character;
+                    }
+                    break;
+
+                case 'after_quoted_attribute_value':
+                    if ($character === null) {
+                        $commit();
+                        break 2;
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        $commit();
+                        $state = 'before_attribute_name';
+                    } else {
+                        $commit();
+                        if ($character !== '/') {
+                            $name = $character;
+                            $value = '';
+                            $state = 'attribute_name';
+                        } else {
+                            $state = 'before_attribute_name';
+                        }
+                    }
+                    break;
+
+                default:
+                    if ($character === null) {
+                        $commit();
+                        break 2;
+                    }
+
+                    if (str_contains(" \t\n\r\f", $character)) {
+                        $commit();
+                        $state = 'before_attribute_name';
+                    } else {
+                        $value .= $character;
+                    }
+                    break;
+            }
+
+            $offset++;
         }
 
         return $attributes;

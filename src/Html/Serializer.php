@@ -108,7 +108,7 @@ final class Serializer
         foreach ($element->attributes as $name => $value) {
             $attributes .= sprintf(
                 ' %s="%s"',
-                htmlspecialchars($name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
+                htmlspecialchars((string) $name, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
                 self::escapeAttributeValue($value),
             );
         }

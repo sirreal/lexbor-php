@@ -532,6 +532,78 @@ final class SerializeTest extends TestCase
             "<h a '>",
             '<h a="" &#039;=""></h>',
         ];
+        yield 'html5lib test4 attribute name starting with double quote' => [
+            '<foo "=\'bar\'>',
+            '<foo &quot;="bar"></foo>',
+        ];
+        yield 'html5lib test4 attribute name starting with single quote' => [
+            "<foo '='bar'>",
+            '<foo &#039;="bar"></foo>',
+        ];
+        yield 'html5lib test4 attribute name containing double quote' => [
+            '<foo a"b=\'bar\'>',
+            '<foo a&quot;b="bar"></foo>',
+        ];
+        yield 'html5lib test4 attribute name containing single quote' => [
+            "<foo a'b='bar'>",
+            '<foo a&#039;b="bar"></foo>',
+        ];
+        yield 'html5lib test4 unquoted attribute value containing single quote' => [
+            "<foo a=b'c>",
+            '<foo a="b\'c"></foo>',
+        ];
+        yield 'html5lib test4 unquoted attribute value containing double quote' => [
+            '<foo a=b"c>',
+            '<foo a="b&quot;c"></foo>',
+        ];
+        yield 'html5lib test4 equals attribute' => [
+            '<z =>',
+            '<z ==""></z>',
+        ];
+        yield 'html5lib test4 double equals attribute' => [
+            '<z ==>',
+            '<z ==""></z>',
+        ];
+        yield 'html5lib test4 triple equals attribute' => [
+            '<z ===>',
+            '<z =="="></z>',
+        ];
+        yield 'html5lib test4 quadruple equals attribute' => [
+            '<z ====>',
+            '<z =="=="></z>',
+        ];
+        yield 'html5lib test4 numeric and less-than attribute names' => [
+            '<z/0  <>',
+            '<z 0="" &lt;=""></z>',
+        ];
+        yield 'quote in unquoted attribute value does not consume following tag' => [
+            '<foo a=b"c><bar title="x">z</bar>',
+            '<foo a="b&quot;c"><bar title="x">z</bar></foo>',
+        ];
+        yield 'quote in attribute name does not consume following tag' => [
+            '<foo a"b><bar title="x">z</bar>',
+            '<foo a&quot;b=""><bar title="x">z</bar></foo>',
+        ];
+        yield 'bare equals attribute name does not consume following tag' => [
+            '<foo ="x><bar title="y">z</bar>',
+            '<foo =&quot;x=""><bar title="y">z</bar></foo>',
+        ];
+        yield 'numeric attribute name remains string' => [
+            '<div 0=x>',
+            '<div 0="x"></div>',
+        ];
+        yield 'slash separates alphabetic attribute names' => [
+            '<z a/b>',
+            '<z a="" b=""></z>',
+        ];
+        yield 'slash separates numeric attribute names' => [
+            '<z 0/1>',
+            '<z 0="" 1=""></z>',
+        ];
+        yield 'quote in body attribute value does not consume following tag' => [
+            '<body a=b"c><bar title="">z</bar></body>',
+            '<bar title="">z</bar>',
+        ];
     }
 
     /**
