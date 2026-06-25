@@ -250,6 +250,24 @@ final class SerializeTest extends TestCase
      */
     public static function tokenizerCharacterReferenceProvider(): iterable
     {
+        yield 'char_ref.ton #1 decimal reference before text' => ['abc&#1234cde', 'abcӒcde'];
+        yield 'char_ref.ton #2 named reference with semicolon' => ['&AElig;', 'Æ'];
+        yield 'char_ref.ton #3 legacy named reference without semicolon' => ['&AElig', 'Æ'];
+        yield 'char_ref.ton #4 unknown named reference remains literal' => ['&AEli', '&amp;AEli'];
+        yield 'char_ref.ton #5 adjacent named references' => ['&AElig;&Afr;', 'Æ𝔄'];
+        yield 'char_ref.ton #6 failed legacy prefix before named reference' => ['&AElit&Afr;', '&amp;AElit𝔄'];
+        yield 'char_ref.ton #7 named references separated by space' => ['&AElig; &Afr;', 'Æ 𝔄'];
+        yield 'char_ref.ton #8 legacy named reference before space and semicolon' => ['&AElig ; &Afr;', 'Æ ; 𝔄'];
+        yield 'char_ref.ton #9 legacy named reference before letters' => ['&AEligqwe', 'Æqwe'];
+        yield 'char_ref.ton #10 legacy named reference before digits' => ['&AElig123', 'Æ123'];
+        yield 'char_ref.ton #11 text before legacy named reference' => ['AElig&AEligAElig', 'AEligÆAElig'];
+        yield 'char_ref.ton #12 down arrow reference' => ['&DownArrow;', '↓'];
+        yield 'char_ref.ton #13 double down arrow reference' => ['&Downarrow;', '⇓'];
+        yield 'char_ref.ton #14 down arrow bar reference' => ['&DownArrowBar;', '⤓'];
+        yield 'char_ref.ton #15 named reference broken by space remains literal' => ['&DownArrow Bar;', '&amp;DownArrow Bar;'];
+        yield 'char_ref.ton #16 multi-codepoint named reference' => ['&nLt;', '≪⃒'];
+        yield 'char_ref.ton #17 multi-codepoint named reference before text' => ['&nLt;a', '≪⃒a'];
+        yield 'char_ref.ton #18 text before multi-codepoint named reference' => ['b&nLt;a', 'b≪⃒a'];
         yield 'uppercase ampersand alias with semicolon' => ['<p>&AMP;</p>', '<p>&amp;</p>'];
         yield 'uppercase less-than alias with semicolon' => ['<p>&LT;</p>', '<p>&lt;</p>'];
         yield 'multi-codepoint named reference' => ['<p>&NotEqualTilde;</p>', '<p>≂̸</p>'];
