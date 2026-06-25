@@ -2560,6 +2560,7 @@ final class SerializeTest extends TestCase
      */
     public static function html5libTokenizerEmptyEndTagProvider(): iterable
     {
+        yield 'html5lib test3 standalone empty end tag' => ['</>', ''];
         yield 'html5lib test2 empty end tag before characters' => ['a</>bc', 'abc'];
         yield 'html5lib test2 empty end tag before start tag' => ['a</><b>c', 'a<b>c</b>'];
         yield 'html5lib test2 empty end tag before comment' => ['a</><!--b-->c', 'a<!--b-->c'];
@@ -2593,6 +2594,10 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 invalid end tag equals at EOF' => ['</=', '<!--=-->'];
         yield 'html5lib test3 invalid end tag question mark at EOF' => ['</?', '<!--?-->'];
         yield 'html5lib test3 invalid end tag at sign at EOF' => ['</@', '<!--@-->'];
+        yield 'html5lib test3 invalid end tag left bracket at EOF' => ['</[', '<!--[-->'];
+        yield 'html5lib test3 invalid end tag backtick at EOF' => ['</`', '<!--`-->'];
+        yield 'html5lib test3 invalid end tag opening brace at EOF' => ['</{', '<!--{-->'];
+        yield 'html5lib test3 invalid end tag non-BMP at EOF' => ["</\u{100000}", "<!--\u{100000}-->"];
     }
 
     /**
