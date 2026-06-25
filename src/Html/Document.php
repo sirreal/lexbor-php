@@ -198,10 +198,10 @@ final class Document extends Node
                 continue;
             }
 
-            $attributeSource = rtrim($match['attributes'][0] ?? '');
+            $attributeSource = self::rtrimHtmlWhitespace($match['attributes'][0] ?? '');
             $selfClosing = str_ends_with($attributeSource, '/');
             if ($selfClosing) {
-                $attributeSource = rtrim(substr($attributeSource, 0, -1));
+                $attributeSource = self::rtrimHtmlWhitespace(substr($attributeSource, 0, -1));
             }
 
             $parent = $stack[count($stack) - 1];
@@ -574,11 +574,11 @@ REGEX;
     private function parseAttributes(string $source): array
     {
         $attributes = [];
-        $pattern = '#([A-Za-z_:][A-Za-z0-9_:.~-]*)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+)))?#';
+        $pattern = '#([\x00A-Za-z_:][\x00A-Za-z0-9_:.~-]*)(?:\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\'=<>`]+)))?#';
 
         if (preg_match_all($pattern, $source, $matches, PREG_SET_ORDER | PREG_UNMATCHED_AS_NULL) !== false) {
             foreach ($matches as $match) {
-                $name = strtolower($match[1]);
+                $name = self::normalizeAttributeTokenName($match[1]);
 
                 if (!array_key_exists($name, $attributes)) {
                     $attributes[$name] = $this->decodeCharacterReferences($match[2] ?? $match[3] ?? $match[4] ?? '', true);
@@ -587,6 +587,16 @@ REGEX;
         }
 
         return $attributes;
+    }
+
+    private static function normalizeAttributeTokenName(string $name): string
+    {
+        return str_replace("\0", "\u{FFFD}", strtolower($name));
+    }
+
+    private static function rtrimHtmlWhitespace(string $data): string
+    {
+        return rtrim($data, " \t\n\r\f");
     }
 
     private function decodeCharacterReferences(string $data, bool $attribute = false): string

@@ -208,6 +208,77 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
+    public static function tokenizerTagAttributeProvider(): iterable
+    {
+        yield 'tag_attr.ton #1 attribute name is lowercased' => [
+            '<div SuperNaME=SuPerValue>',
+            '<div supername="SuPerValue"></div>',
+        ];
+        yield 'tag_attr.ton #2 NUL in attribute name is replaced' => [
+            "<div \0SuperNaME=SuPerValue>",
+            "<div \u{FFFD}supername=\"SuPerValue\"></div>",
+        ];
+        yield 'tag_attr.ton #3 named attribute reference with semicolon' => [
+            "<div n='&DownArrowBar;'>",
+            '<div n="⤓"></div>',
+        ];
+        yield 'tag_attr.ton #4 attribute ambiguous ampersand before equals' => [
+            "<div n='&acirc='>",
+            '<div n="&amp;acirc="></div>',
+        ];
+        yield 'tag_attr.ton #5 unknown reference remains literal' => [
+            "<div n='&acircr'>",
+            '<div n="&amp;acircr"></div>',
+        ];
+        yield 'tag_attr.ton #6 legacy reference without semicolon' => [
+            "<div n='&acirc'>",
+            '<div n="â"></div>',
+        ];
+        yield 'tag_attr.ton #7 unknown query ampersand remains literal' => [
+            "<div n='/ololo/?arg=1&redirect=123'>",
+            '<div n="/ololo/?arg=1&amp;redirect=123"></div>',
+        ];
+        yield 'tag_attr.ton #8 legacy query reference without semicolon' => [
+            "<div n='/ololo/?arg=1&acirc'>",
+            '<div n="/ololo/?arg=1â"></div>',
+        ];
+        yield 'tag_attr.ton #9 short unknown reference acir remains literal' => [
+            "<div n='&acir'>",
+            '<div n="&amp;acir"></div>',
+        ];
+        yield 'tag_attr.ton #10 short unknown reference aci remains literal' => [
+            "<div n='&aci'>",
+            '<div n="&amp;aci"></div>',
+        ];
+        yield 'tag_attr.ton #11 short unknown reference ac remains literal' => [
+            "<div n='&ac'>",
+            '<div n="&amp;ac"></div>',
+        ];
+        yield 'tag_attr.ton #12 short unknown reference a remains literal' => [
+            "<div n='&a'>",
+            '<div n="&amp;a"></div>',
+        ];
+        yield 'tag_attr.ton #13 bare ampersand remains literal' => [
+            "<div n='&'>",
+            '<div n="&amp;"></div>',
+        ];
+        yield 'trailing NUL in boolean attribute name is replaced' => [
+            "<div disabled\0>",
+            "<div disabled\u{FFFD}=\"\"></div>",
+        ];
+        yield 'single NUL boolean attribute name is preserved' => [
+            "<div \0>",
+            "<div \u{FFFD}=\"\"></div>",
+        ];
+        yield 'trailing NUL survives self-closing slash removal' => [
+            "<div disabled\0/>",
+            "<div disabled\u{FFFD}=\"\"></div>",
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function upstreamSerializeExtElementProvider(): iterable
     {
         yield 'element.ton #1 div' => ['<div></div>', '<div></div>'];
@@ -352,6 +423,15 @@ final class SerializeTest extends TestCase
 
     #[DataProvider('tokenizerTagNameProvider')]
     public function testTokenizerTagNameRegressions(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('tokenizerTagAttributeProvider')]
+    public function testTokenizerTagAttributeRegressions(string $html, string $expected): void
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
