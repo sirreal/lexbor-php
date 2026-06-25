@@ -2486,6 +2486,39 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib numericEntities $label" => $case;
         }
+        foreach ([
+            'control U+0000 replacement' => ['&#x0000;', '�'],
+            'control U+0001' => ['&#x0001;', "\u{0001}"],
+            'control U+0002' => ['&#x0002;', "\u{0002}"],
+            'control U+0003' => ['&#x0003;', "\u{0003}"],
+            'control U+0004' => ['&#x0004;', "\u{0004}"],
+            'control U+0005' => ['&#x0005;', "\u{0005}"],
+            'control U+0006' => ['&#x0006;', "\u{0006}"],
+            'control U+0007' => ['&#x0007;', "\u{0007}"],
+            'control U+0008' => ['&#x0008;', "\u{0008}"],
+            'control U+000B' => ['&#x000b;', "\u{000B}"],
+            'control U+000E' => ['&#x000e;', "\u{000E}"],
+            'control U+000F' => ['&#x000f;', "\u{000F}"],
+            'control U+0010' => ['&#x0010;', "\u{0010}"],
+            'control U+0011' => ['&#x0011;', "\u{0011}"],
+            'control U+0012' => ['&#x0012;', "\u{0012}"],
+            'control U+0013' => ['&#x0013;', "\u{0013}"],
+            'control U+0014' => ['&#x0014;', "\u{0014}"],
+            'control U+0015' => ['&#x0015;', "\u{0015}"],
+            'control U+0016' => ['&#x0016;', "\u{0016}"],
+            'control U+0017' => ['&#x0017;', "\u{0017}"],
+            'control U+0018' => ['&#x0018;', "\u{0018}"],
+            'control U+0019' => ['&#x0019;', "\u{0019}"],
+            'control U+001A' => ['&#x001a;', "\u{001A}"],
+            'control U+001B' => ['&#x001b;', "\u{001B}"],
+            'control U+001C' => ['&#x001c;', "\u{001C}"],
+            'control U+001D' => ['&#x001d;', "\u{001D}"],
+            'control U+001E' => ['&#x001e;', "\u{001E}"],
+            'control U+001F' => ['&#x001f;', "\u{001F}"],
+            'control U+007F' => ['&#x007f;', "\u{007F}"],
+        ] as $label => $case) {
+            yield "html5lib numericEntities $label" => $case;
+        }
         yield 'char_ref.ton #39 decimal Cyrillic reference' => ['&#1024', 'Ѐ'];
         yield 'char_ref.ton #40 invalid decimal reference remains literal' => ['&#j', '&amp;#j'];
         yield 'char_ref.ton #41 invalid decimal reference before text remains literal' => ['&#jgf', '&amp;#jgf'];
