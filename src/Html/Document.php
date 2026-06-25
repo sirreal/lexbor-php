@@ -42,6 +42,7 @@ final class Document extends Node
 
         $this->body->clearAttributes();
 
+        $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
         $bodyFragment = $this->bodyFragment($html);
         if ($bodyFragment !== null) {
             foreach ($this->parseAttributes($bodyFragment['attributes']) as $attribute) {
@@ -49,8 +50,6 @@ final class Document extends Node
             }
 
             $html = $bodyFragment['content'];
-        } else {
-            $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
         }
 
         $this->parseFragmentInto($this->body, $html);
@@ -667,7 +666,7 @@ final class Document extends Node
     }
 
     /**
-     * @return array{name: string, publicId: string|null, systemId: string|null, offset: int}|null
+     * @return array{name: string, publicId: string|null, systemId: string|null, offset: int, forceQuirks?: bool}|null
      */
     private function parseLeadingDoctype(string $html): ?array
     {
@@ -719,8 +718,8 @@ REGEX;
 
         $pattern = <<<'REGEX'
 ~^\s*<!doctype\s+(?<name>[^\s>"']+)(?:
-    \s+PUBLIC\s*(?<publicQuote>["'])(?<publicId>.*?)\k<publicQuote>(?:\s+(?<publicSystemQuote>["'])(?<publicSystemId>.*?)\k<publicSystemQuote>)?
-  | \s+SYSTEM\s*(?<systemQuote>["'])(?<systemId>.*?)\k<systemQuote>
+    \s+PUBLIC\s*(?:"(?<publicIdDouble>[^"]*)"|'(?<publicIdSingle>[^']*)')(?:\s+(?:"(?<publicSystemIdDouble>[^"]*)"|'(?<publicSystemIdSingle>[^']*)'))?
+  | \s+SYSTEM\s*(?:"(?<systemIdDouble>[^"]*)"|'(?<systemIdSingle>[^']*)')
 )?\s*>~isx
 REGEX;
 
@@ -754,6 +753,23 @@ REGEX;
                     'publicId' => self::normalizeDoctypeIdentifier($publicId),
                     'systemId' => self::normalizeDoctypeIdentifier($systemId),
                     'offset' => strlen($eofPublicSystemMatch[0][0]),
+                ];
+            }
+
+            $trailingPublicSystemGarbagePattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s*(?:"(?<publicIdDouble>[^"]*)"|'(?<publicIdSingle>[^']*)')\s*(?:"(?<systemIdDouble>[^"]*)"|'(?<systemIdSingle>[^']*)')\s*[^>\s][^>]*(?:>|$)~is
+REGEX;
+
+            if (preg_match($trailingPublicSystemGarbagePattern, $html, $trailingPublicSystemGarbageMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $trailingPublicSystemGarbageMatch['publicIdDouble'][0] ?? $trailingPublicSystemGarbageMatch['publicIdSingle'][0] ?? null;
+                $systemId = $trailingPublicSystemGarbageMatch['systemIdDouble'][0] ?? $trailingPublicSystemGarbageMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($trailingPublicSystemGarbageMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($trailingPublicSystemGarbageMatch[0][0]),
+                    'forceQuirks' => true,
                 ];
             }
 
@@ -814,6 +830,22 @@ REGEX;
                     'publicId' => null,
                     'systemId' => self::normalizeDoctypeIdentifier($systemId),
                     'offset' => strlen($eofClosedSystemMatch[0][0]),
+                ];
+            }
+
+            $trailingSystemGarbagePattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+SYSTEM\s*(?:"(?<systemIdDouble>[^"]*)"|'(?<systemIdSingle>[^']*)')\s*[^>\s][^>]*(?:>|$)~is
+REGEX;
+
+            if (preg_match($trailingSystemGarbagePattern, $html, $trailingSystemGarbageMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $systemId = $trailingSystemGarbageMatch['systemIdDouble'][0] ?? $trailingSystemGarbageMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($trailingSystemGarbageMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($trailingSystemGarbageMatch[0][0]),
+                    'forceQuirks' => true,
                 ];
             }
 
@@ -911,8 +943,8 @@ REGEX;
             ];
         }
 
-        $publicId = $match['publicId'][0] ?? null;
-        $systemId = $match['publicSystemId'][0] ?? $match['systemId'][0] ?? null;
+        $publicId = $match['publicIdDouble'][0] ?? $match['publicIdSingle'][0] ?? null;
+        $systemId = $match['publicSystemIdDouble'][0] ?? $match['publicSystemIdSingle'][0] ?? $match['systemIdDouble'][0] ?? $match['systemIdSingle'][0] ?? null;
 
         return [
             'name' => self::normalizeDoctypeToken($match['name'][0]),
@@ -937,11 +969,19 @@ REGEX;
     }
 
     /**
-     * @param array{name: string, publicId: string|null, systemId: string|null, offset: int}|null $doctype
+     * @param array{name: string, publicId: string|null, systemId: string|null, offset: int, forceQuirks?: bool}|null $doctype
      */
     private static function doctypeRequiresQuirks(?array $doctype): bool
     {
-        if ($doctype === null || $doctype['name'] !== 'html') {
+        if ($doctype === null) {
+            return true;
+        }
+
+        if ($doctype['forceQuirks'] ?? false) {
+            return true;
+        }
+
+        if ($doctype['name'] !== 'html') {
             return true;
         }
 

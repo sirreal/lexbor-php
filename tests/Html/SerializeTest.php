@@ -348,6 +348,46 @@ final class SerializeTest extends TestCase
             "<!DOCTYPE a PUBLIC \"p\" \"s\u{FFFD}\"><html><head></head><body></body></html>",
             true,
         ];
+        yield 'html5lib test3 system identifier trailing NUL forces quirks' => [
+            "<!DOCTYPE html SYSTEM \"s\"\0",
+            '<!DOCTYPE html SYSTEM "s"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier trailing garbage preserves body' => [
+            '<!DOCTYPE html SYSTEM "s"x>body',
+            '<!DOCTYPE html SYSTEM "s"><html><head></head><body>body</body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier same-quote trailing garbage preserves body' => [
+            '<!DOCTYPE html SYSTEM "s"">body',
+            '<!DOCTYPE html SYSTEM "s"><html><head></head><body>body</body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public system identifier trailing NUL forces quirks' => [
+            "<!DOCTYPE html PUBLIC \"p\" \"s\"\0",
+            '<!DOCTYPE html PUBLIC "p" "s"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public system identifier trailing garbage preserves body' => [
+            '<!DOCTYPE html PUBLIC "p" "s"x>body',
+            '<!DOCTYPE html PUBLIC "p" "s"><html><head></head><body>body</body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public system identifier same-quote trailing garbage preserves body' => [
+            '<!DOCTYPE html PUBLIC "p" "s"">body',
+            '<!DOCTYPE html PUBLIC "p" "s"><html><head></head><body>body</body></html>',
+            true,
+        ];
+        yield 'trailing system identifier garbage does not leak fake body attributes' => [
+            '<!DOCTYPE html SYSTEM "s"x<body class=a>body</body>',
+            '<!DOCTYPE html SYSTEM "s"><html><head></head><body>body</body></html>',
+            true,
+        ];
+        yield 'trailing public system identifier garbage does not leak fake body attributes' => [
+            '<!DOCTYPE html PUBLIC "p" "s"x<body class=a>body</body>',
+            '<!DOCTYPE html PUBLIC "p" "s"><html><head></head><body>body</body></html>',
+            true,
+        ];
         yield 'closed public system identifiers without preceding whitespace at EOF' => [
             '<!DOCTYPE a PUBLIC"p" "s"',
             '<!DOCTYPE a PUBLIC "p" "s"><html><head></head><body></body></html>',
