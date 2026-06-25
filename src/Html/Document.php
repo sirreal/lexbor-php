@@ -384,14 +384,24 @@ final class Document extends Node
     private function parseLeadingDoctype(string $html): ?array
     {
         $pattern = <<<'REGEX'
-~^\s*<!doctype\s+(?<name>[^\s>"']+)(?:
+~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)(?:
     \s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>.*?)\k<publicQuote>(?:\s+(?<publicSystemQuote>["'])(?<publicSystemId>.*?)\k<publicSystemQuote>)?
   | \s+SYSTEM\s+(?<systemQuote>["'])(?<systemId>.*?)\k<systemQuote>
 )?\s*>~isx
 REGEX;
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) !== 1) {
-            return null;
+            $eofNamePattern = '~^\s*<!doctype\s+(?<name>[^\x00\s>"\']+)\s*$~i';
+            if (preg_match($eofNamePattern, $html, $eofMatch, PREG_OFFSET_CAPTURE) !== 1) {
+                return null;
+            }
+
+            return [
+                'name' => strtolower($eofMatch['name'][0]),
+                'publicId' => null,
+                'systemId' => null,
+                'offset' => strlen($eofMatch[0][0]),
+            ];
         }
 
         $publicId = $match['publicId'][0] ?? null;

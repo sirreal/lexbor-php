@@ -169,6 +169,23 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string, bool}>
+     */
+    public static function tokenizerDoctypeProvider(): iterable
+    {
+        yield 'doctype.ton #10 EOF after non-html name' => [
+            '<!DOCTYPE htm',
+            '<!DOCTYPE htm><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'doctype.ton #11 non-html name' => [
+            '<!DOCTYPE htm>',
+            '<!DOCTYPE htm><html><head></head><body></body></html>',
+            true,
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, string}>
      */
     public static function tokenizerCharacterReferenceProvider(): iterable
@@ -419,6 +436,16 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html><html><head></head><body></body></html>',
             Serializer::serializeDeep($document, fullDoctype: true),
         );
+    }
+
+    #[DataProvider('tokenizerDoctypeProvider')]
+    public function testTokenizerDoctypeRegressions(string $html, string $expected, bool $quirksMode): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expected, Serializer::serializeDeep($document, fullDoctype: true));
     }
 
     #[DataProvider('tokenizerCharacterReferenceProvider')]
