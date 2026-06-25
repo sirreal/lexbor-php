@@ -2561,6 +2561,14 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib entities $label" => $case;
         }
+        foreach ([
+            'decimal numeric reference before lowercase a' => ['&#97a', 'aa'],
+            'decimal numeric reference before uppercase A' => ['&#97A', 'aA'],
+            'decimal numeric reference before lowercase f' => ['&#97f', 'af'],
+            'decimal numeric reference before uppercase F' => ['&#97F', 'aF'],
+        ] as $label => $case) {
+            yield "html5lib entities $label" => $case;
+        }
         yield 'char_ref.ton #55 invalid hexadecimal reference remains literal' => ['&#xj', '&amp;#xj'];
         yield 'char_ref.ton #56 invalid hexadecimal reference before text remains literal' => ['&#xjgf', '&amp;#xjgf'];
         yield 'char_ref.ton #19 failed short named reference acir remains literal' => ['&acir', '&amp;acir'];
@@ -2611,6 +2619,11 @@ final class SerializeTest extends TestCase
         yield 'html5lib entities semicolonless not body reference before name tail' => [
             '&noti;',
             '¬i;',
+        ];
+        $longUndefinedNamedEntity = '&a' . str_repeat('m', 946) . 'p;';
+        yield 'html5lib entities very long undefined named entity remains literal' => [
+            $longUndefinedNamedEntity,
+            '&amp;' . substr($longUndefinedNamedEntity, 1),
         ];
         yield 'html5lib test3 data state equals text' => ['=', '='];
         yield 'html5lib test3 data state greater-than text' => ['>', '&gt;'];
