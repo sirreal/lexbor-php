@@ -1383,6 +1383,51 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name NUL garbage' => [
+            "<!DOCTYPEa PUBLIC''\0",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name backspace garbage' => [
+            "<!DOCTYPEa PUBLIC''\x08",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name tab at EOF' => [
+            "<!DOCTYPEa PUBLIC''\t",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name line feed at EOF' => [
+            "<!DOCTYPEa PUBLIC''\n",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name vertical tab garbage' => [
+            "<!DOCTYPEa PUBLIC''\v",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name form feed at EOF' => [
+            "<!DOCTYPEa PUBLIC''\f",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name carriage return at EOF' => [
+            "<!DOCTYPEa PUBLIC''\r",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name unit separator garbage' => [
+            "<!DOCTYPEa PUBLIC''\x1F",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name space at EOF' => [
+            "<!DOCTYPEa PUBLIC'' ",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 closed empty public identifier no-whitespace name question mark garbage' => [
             "<!DOCTYPEa PUBLIC''?",
             '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
@@ -1423,6 +1468,51 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name NUL garbage' => [
+            "<!DOCTYPEa SYSTEM''\0",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name backspace garbage' => [
+            "<!DOCTYPEa SYSTEM''\x08",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name tab at EOF' => [
+            "<!DOCTYPEa SYSTEM''\t",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name line feed at EOF' => [
+            "<!DOCTYPEa SYSTEM''\n",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name vertical tab garbage' => [
+            "<!DOCTYPEa SYSTEM''\v",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name form feed at EOF' => [
+            "<!DOCTYPEa SYSTEM''\f",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name carriage return at EOF' => [
+            "<!DOCTYPEa SYSTEM''\r",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name unit separator garbage' => [
+            "<!DOCTYPEa SYSTEM''\x1F",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name space at EOF' => [
+            "<!DOCTYPEa SYSTEM'' ",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 closed empty system identifier no-whitespace name question mark garbage' => [
             "<!DOCTYPEa SYSTEM''?",
             '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
@@ -1450,6 +1540,26 @@ final class SerializeTest extends TestCase
         ];
         yield 'closed empty public identifier no-whitespace html name at EOF forces quirks' => [
             "<!DOCTYPEhtml PUBLIC''",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name NUL garbage forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''\0",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name tab at EOF forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''\t",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name vertical tab garbage forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''\v",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name space at EOF forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC'' ",
             '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
             true,
         ];
@@ -1495,6 +1605,26 @@ final class SerializeTest extends TestCase
         ];
         yield 'closed empty system identifier no-whitespace html name at EOF forces quirks' => [
             "<!DOCTYPEhtml SYSTEM''",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty system identifier no-whitespace html name NUL garbage remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM''\0",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty system identifier no-whitespace html name tab at EOF forces quirks' => [
+            "<!DOCTYPEhtml SYSTEM''\t",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty system identifier no-whitespace html name vertical tab garbage remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM''\v",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty system identifier no-whitespace html name space at EOF forces quirks' => [
+            "<!DOCTYPEhtml SYSTEM'' ",
             '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
             true,
         ];
