@@ -378,6 +378,76 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html PUBLIC "p" "s"><html><head></head><body>body</body></html>',
             true,
         ];
+        yield 'html5lib test3 system identifier vertical tab trailing garbage forces quirks' => [
+            "<!DOCTYPE html SYSTEM \"s\"\v",
+            '<!DOCTYPE html SYSTEM "s"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public system identifier vertical tab trailing garbage forces quirks' => [
+            "<!DOCTYPE html PUBLIC \"p\" \"s\"\v",
+            '<!DOCTYPE html PUBLIC "p" "s"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 empty system identifier vertical tab trailing garbage forces quirks' => [
+            "<!DOCTYPE html SYSTEM''\v",
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 empty public system identifier vertical tab trailing garbage forces quirks' => [
+            "<!DOCTYPE html PUBLIC''''\v",
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'system identifier trailing tab remains standards mode' => [
+            "<!DOCTYPE html SYSTEM \"s\"\t",
+            '<!DOCTYPE html SYSTEM "s"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'public system identifier trailing tab remains standards mode' => [
+            "<!DOCTYPE html PUBLIC \"p\" \"s\"\t",
+            '<!DOCTYPE html PUBLIC "p" "s"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'vertical tab after system keyword enters bogus doctype' => [
+            "<!DOCTYPE html SYSTEM\v\"s\"\v",
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'vertical tab after public keyword enters bogus doctype' => [
+            "<!DOCTYPE html PUBLIC\v\"p\"\v",
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'vertical tab before public system identifier enters bogus doctype' => [
+            "<!DOCTYPE html PUBLIC \"p\"\v\"s\"\v",
+            '<!DOCTYPE html PUBLIC "p"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'spaced vertical tab after system keyword enters bogus doctype' => [
+            "<!DOCTYPE html SYSTEM \v\"s\">body",
+            '<!DOCTYPE html><html><head></head><body>body</body></html>',
+            false,
+        ];
+        yield 'spaced vertical tab after public keyword enters bogus doctype' => [
+            "<!DOCTYPE html PUBLIC \v\"p\">body",
+            '<!DOCTYPE html><html><head></head><body>body</body></html>',
+            false,
+        ];
+        yield 'spaced vertical tab before public system identifier enters bogus doctype' => [
+            "<!DOCTYPE html PUBLIC \"p\" \v\"s\">body",
+            '<!DOCTYPE html PUBLIC "p"><html><head></head><body>body</body></html>',
+            false,
+        ];
+        yield 'vertical tab guard does not cross abrupt public identifier boundary' => [
+            "<!DOCTYPE html PUBLIC \">x\"\v>y",
+            '<!DOCTYPE html><html><head></head><body>x"&gt;y</body></html>',
+            false,
+        ];
+        yield 'vertical tab guard does not cross abrupt single-quoted public identifier boundary' => [
+            "<!DOCTYPE html PUBLIC '>x'\v>y",
+            "<!DOCTYPE html><html><head></head><body>x'&gt;y</body></html>",
+            false,
+        ];
         yield 'trailing system identifier garbage does not leak fake body attributes' => [
             '<!DOCTYPE html SYSTEM "s"x<body class=a>body</body>',
             '<!DOCTYPE html SYSTEM "s"><html><head></head><body>body</body></html>',

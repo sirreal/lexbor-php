@@ -670,6 +670,34 @@ final class Document extends Node
      */
     private function parseLeadingDoctype(string $html): ?array
     {
+        $verticalTabAfterDoctypeKeywordPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+(?:PUBLIC|SYSTEM)[ \t\n\f\r]*\x0B[^>]*(?:>|$)~is
+REGEX;
+
+        if (preg_match($verticalTabAfterDoctypeKeywordPattern, $html, $verticalTabAfterDoctypeKeywordMatch, PREG_OFFSET_CAPTURE) === 1) {
+            return [
+                'name' => self::normalizeDoctypeToken($verticalTabAfterDoctypeKeywordMatch['name'][0]),
+                'publicId' => null,
+                'systemId' => null,
+                'offset' => strlen($verticalTabAfterDoctypeKeywordMatch[0][0]),
+            ];
+        }
+
+        $verticalTabAfterPublicIdentifierPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*\x0B[^>]*(?:>|$)~is
+REGEX;
+
+        if (preg_match($verticalTabAfterPublicIdentifierPattern, $html, $verticalTabAfterPublicIdentifierMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+            $publicId = $verticalTabAfterPublicIdentifierMatch['publicIdDouble'][0] ?? $verticalTabAfterPublicIdentifierMatch['publicIdSingle'][0] ?? null;
+
+            return [
+                'name' => self::normalizeDoctypeToken($verticalTabAfterPublicIdentifierMatch['name'][0]),
+                'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                'systemId' => null,
+                'offset' => strlen($verticalTabAfterPublicIdentifierMatch[0][0]),
+            ];
+        }
+
         $abruptPublicSystemPattern = <<<'REGEX'
 ~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')\s*(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
 REGEX;
@@ -716,7 +744,40 @@ REGEX;
             ];
         }
 
-$emptyIdentifierNoWhitespacePattern = <<<'REGEX'
+        $verticalTabPublicSystemGarbagePattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)"|'(?<systemIdSingle>[^'>]*)')[ \t\n\f\r]*\x0B[^>]*(?:>|$)~is
+REGEX;
+
+        if (preg_match($verticalTabPublicSystemGarbagePattern, $html, $verticalTabPublicSystemGarbageMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+            $publicId = $verticalTabPublicSystemGarbageMatch['publicIdDouble'][0] ?? $verticalTabPublicSystemGarbageMatch['publicIdSingle'][0] ?? null;
+            $systemId = $verticalTabPublicSystemGarbageMatch['systemIdDouble'][0] ?? $verticalTabPublicSystemGarbageMatch['systemIdSingle'][0] ?? null;
+
+            return [
+                'name' => self::normalizeDoctypeToken($verticalTabPublicSystemGarbageMatch['name'][0]),
+                'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                'offset' => strlen($verticalTabPublicSystemGarbageMatch[0][0]),
+                'forceQuirks' => true,
+            ];
+        }
+
+        $verticalTabSystemGarbagePattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+SYSTEM[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)"|'(?<systemIdSingle>[^'>]*)')[ \t\n\f\r]*\x0B[^>]*(?:>|$)~is
+REGEX;
+
+        if (preg_match($verticalTabSystemGarbagePattern, $html, $verticalTabSystemGarbageMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+            $systemId = $verticalTabSystemGarbageMatch['systemIdDouble'][0] ?? $verticalTabSystemGarbageMatch['systemIdSingle'][0] ?? null;
+
+            return [
+                'name' => self::normalizeDoctypeToken($verticalTabSystemGarbageMatch['name'][0]),
+                'publicId' => null,
+                'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                'offset' => strlen($verticalTabSystemGarbageMatch[0][0]),
+                'forceQuirks' => true,
+            ];
+        }
+
+        $emptyIdentifierNoWhitespacePattern = <<<'REGEX'
 ~^\s*<!doctype\s+(?<name>[^\s>"']+)(?:
     \s+PUBLIC(?:""|'')
   | \s+SYSTEM(?:""|'')
