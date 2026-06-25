@@ -2576,13 +2576,28 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 dash in tag name' => ['<a->', '<a-></a->'];
         yield 'html5lib test3 period in tag name' => ['<a.>', '<a.></a.>'];
         yield 'html5lib test3 self-closing slash after tag name' => ['<a/>', '<a></a>'];
+        yield 'html5lib test3 zero in tag name' => ['<a0>', '<a0></a0>'];
+        yield 'html5lib test3 one in tag name' => ['<a1>', '<a1></a1>'];
+        yield 'html5lib test3 nine in tag name' => ['<a9>', '<a9></a9>'];
+        yield 'html5lib test3 terminal less-than in tag name' => ['<a<>', '<a<></a<>'];
         yield 'html5lib test3 equals in tag name' => ['<a=>', '<a=></a=>'];
         yield 'html5lib test3 question mark in tag name' => ['<a?>', '<a?></a?>'];
         yield 'html5lib test3 at sign in tag name' => ['<a@>', '<a@></a@>'];
         yield 'html5lib test3 left bracket in tag name' => ['<a[>', '<a[></a[>'];
         yield 'html5lib test3 grave accent in tag name' => ['<a`>', '<a`></a`>'];
         yield 'html5lib test3 left brace in tag name' => ['<a{>', '<a{></a{>'];
+        yield 'html5lib test3 uppercase A continuation folds' => ['<aA>', '<aa></aa>'];
+        yield 'html5lib test3 uppercase B continuation folds' => ['<aB>', '<ab></ab>'];
+        yield 'html5lib test3 uppercase Y continuation folds' => ['<aY>', '<ay></ay>'];
         yield 'html5lib test3 uppercase continuation folds' => ['<aZ>', '<az></az>'];
+        yield 'html5lib test3 lowercase a continuation' => ['<aa>', '<aa></aa>'];
+        yield 'html5lib test3 lowercase b continuation' => ['<ab>', '<ab></ab>'];
+        yield 'html5lib test3 lowercase y continuation' => ['<ay>', '<ay></ay>'];
+        yield 'html5lib test3 lowercase z continuation' => ['<az>', '<az></az>'];
+        yield 'html5lib test3 non-BMP tag name continuation' => [
+            "<a\u{100000}>",
+            "<a\u{100000}></a\u{100000}>",
+        ];
         yield 'html5lib test3 invalid tag-open double quote is text' => ['<"', '&lt;"'];
         yield 'html5lib test3 invalid tag-open ampersand is text' => ['<&', '&lt;&amp;'];
         yield 'html5lib test3 invalid tag-open single quote is text' => ["<'", "&lt;'"];
