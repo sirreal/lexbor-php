@@ -2763,6 +2763,28 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 before attribute name uppercase Z' => ['<a Z>', '<a z=""></a>'];
         yield 'html5lib test3 before attribute name left bracket' => ['<a [>', '<a [=""></a>'];
         yield 'html5lib test3 before attribute name backtick' => ['<a `>', '<a `=""></a>'];
+        yield 'html5lib test3 attribute name lowercase a' => ['<a a>', '<a a=""></a>'];
+        yield 'html5lib test3 attribute name NUL replacement' => [
+            "<a a\0>",
+            "<a a\u{FFFD}=\"\"></a>",
+        ];
+        yield 'html5lib test3 attribute name backspace retained' => [
+            "<a a\x08>",
+            "<a a\x08=\"\"></a>",
+        ];
+        yield 'html5lib test3 attribute name tab boundary' => ["<a a\t>", '<a a=""></a>'];
+        yield 'html5lib test3 attribute name line feed boundary' => ["<a a\n>", '<a a=""></a>'];
+        yield 'html5lib test3 attribute name vertical tab retained' => [
+            "<a a\v>",
+            "<a a\v=\"\"></a>",
+        ];
+        yield 'html5lib test3 attribute name form feed boundary' => ["<a a\f>", '<a a=""></a>'];
+        yield 'html5lib test3 attribute name carriage return boundary' => ["<a a\r>", '<a a=""></a>'];
+        yield 'html5lib test3 attribute name unit separator retained' => [
+            "<a a\x1F>",
+            "<a a\x1F=\"\"></a>",
+        ];
+        yield 'html5lib test3 after attribute name space boundary' => ['<a a >', '<a a=""></a>'];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
