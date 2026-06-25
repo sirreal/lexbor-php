@@ -2929,6 +2929,31 @@ final class SerializeTest extends TestCase
             "<a a='\0'>",
             "<a a=\"\u{FFFD}\"></a>",
         ];
+        yield 'html5lib test3 unquoted attribute value hash' => ['<a a=#>', '<a a="#"></a>'];
+        yield 'html5lib test3 unquoted attribute value percent' => ['<a a=%>', '<a a="%"></a>'];
+        yield 'html5lib test3 unquoted attribute value ampersand' => ['<a a=&>', '<a a="&amp;"></a>'];
+        yield 'html5lib test3 single-quoted attribute value empty' => ["<a a=''>", '<a a=""></a>'];
+        yield 'html5lib test3 single-quoted attribute value tab retained' => [
+            "<a a='\t'>",
+            "<a a=\"\t\"></a>",
+        ];
+        yield 'html5lib test3 single-quoted attribute value line feed retained' => [
+            "<a a='\n'>",
+            "<a a=\"\n\"></a>",
+        ];
+        yield 'html5lib test3 single-quoted attribute value vertical tab retained' => [
+            "<a a='\v'>",
+            "<a a=\"\v\"></a>",
+        ];
+        yield 'html5lib test3 single-quoted attribute value form feed retained' => [
+            "<a a='\f'>",
+            "<a a=\"\f\"></a>",
+        ];
+        yield 'html5lib test3 single-quoted attribute value space retained' => ["<a a=' '>", '<a a=" "></a>'];
+        yield 'html5lib test3 single-quoted attribute value exclamation' => ["<a a='!'>", '<a a="!"></a>'];
+        yield 'html5lib test3 single-quoted attribute value double quote' => ['<a a=\'"\'>', '<a a="&quot;"></a>'];
+        yield 'html5lib test3 single-quoted attribute value percent' => ["<a a='%'>", '<a a="%"></a>'];
+        yield 'html5lib test3 single-quoted attribute value ampersand' => ["<a a='&'>", '<a a="&amp;"></a>'];
         yield 'trailing NUL survives self-closing slash removal' => [
             "<div disabled\0/>",
             "<div disabled\u{FFFD}=\"\"></div>",
