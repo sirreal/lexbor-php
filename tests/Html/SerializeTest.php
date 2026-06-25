@@ -2828,6 +2828,15 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 after attribute name uppercase Z' => ['<a a Z>', '<a a="" z=""></a>'];
         yield 'html5lib test3 after attribute name left bracket' => ['<a a [>', '<a a="" [=""></a>'];
         yield 'html5lib test3 after attribute name backtick' => ['<a a `>', '<a a="" `=""></a>'];
+        yield 'html5lib test3 after attribute name lowercase a duplicate' => ['<a a a>', '<a a=""></a>'];
+        yield 'html5lib test3 after attribute name lowercase b' => ['<a a b>', '<a a="" b=""></a>'];
+        yield 'html5lib test3 after attribute name lowercase y' => ['<a a y>', '<a a="" y=""></a>'];
+        yield 'html5lib test3 after attribute name lowercase z' => ['<a a z>', '<a a="" z=""></a>'];
+        yield 'html5lib test3 after attribute name left brace' => ['<a a {>', '<a a="" {=""></a>'];
+        yield 'html5lib test3 after attribute name non-BMP' => [
+            "<a a \u{100000}>",
+            "<a a=\"\" \u{100000}=\"\"></a>",
+        ];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
