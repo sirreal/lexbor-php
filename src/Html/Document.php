@@ -1009,6 +1009,182 @@ REGEX;
                 ];
             }
 
+            $closedNoWhitespacePublicSystemPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)"|'(?<systemIdSingle>[^'>]*)')[ \t\n\f\r]*>~is
+REGEX;
+
+            if (preg_match($closedNoWhitespacePublicSystemPattern, $html, $closedNoWhitespacePublicSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $closedNoWhitespacePublicSystemMatch['publicIdDouble'][0] ?? $closedNoWhitespacePublicSystemMatch['publicIdSingle'][0] ?? null;
+                $systemId = $closedNoWhitespacePublicSystemMatch['systemIdDouble'][0] ?? $closedNoWhitespacePublicSystemMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($closedNoWhitespacePublicSystemMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($closedNoWhitespacePublicSystemMatch[0][0]),
+                ];
+            }
+
+            $abruptNoWhitespacePublicSystemPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
+REGEX;
+
+            if (preg_match($abruptNoWhitespacePublicSystemPattern, $html, $abruptNoWhitespacePublicSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $abruptNoWhitespacePublicSystemMatch['publicIdDouble'][0] ?? $abruptNoWhitespacePublicSystemMatch['publicIdSingle'][0] ?? null;
+                $systemId = $abruptNoWhitespacePublicSystemMatch['systemIdDouble'][0] ?? $abruptNoWhitespacePublicSystemMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($abruptNoWhitespacePublicSystemMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($abruptNoWhitespacePublicSystemMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
+            $eofClosedNoWhitespacePublicSystemPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)"|'(?<systemIdSingle>[^'>]*)')[ \t\n\f\r]*$~is
+REGEX;
+
+            if (preg_match($eofClosedNoWhitespacePublicSystemPattern, $html, $eofClosedNoWhitespacePublicSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $eofClosedNoWhitespacePublicSystemMatch['publicIdDouble'][0] ?? $eofClosedNoWhitespacePublicSystemMatch['publicIdSingle'][0] ?? null;
+                $systemId = $eofClosedNoWhitespacePublicSystemMatch['systemIdDouble'][0] ?? $eofClosedNoWhitespacePublicSystemMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($eofClosedNoWhitespacePublicSystemMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($eofClosedNoWhitespacePublicSystemMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
+            $eofNoWhitespacePublicSystemPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)|'(?<systemIdSingle>[^'>]*))[ \t\n\f\r]*$~is
+REGEX;
+
+            if (preg_match($eofNoWhitespacePublicSystemPattern, $html, $eofNoWhitespacePublicSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $eofNoWhitespacePublicSystemMatch['publicIdDouble'][0] ?? $eofNoWhitespacePublicSystemMatch['publicIdSingle'][0] ?? null;
+                $systemId = $eofNoWhitespacePublicSystemMatch['systemIdDouble'][0] ?? $eofNoWhitespacePublicSystemMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($eofNoWhitespacePublicSystemMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($eofNoWhitespacePublicSystemMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
+            $trailingClosedNoWhitespacePublicSystemGarbagePattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)"|'(?<systemIdSingle>[^'>]*)')[ \t\n\f\r]*[^> \t\n\f\r][^>]*(?:>|$)~is
+REGEX;
+
+            if (preg_match($trailingClosedNoWhitespacePublicSystemGarbagePattern, $html, $trailingClosedNoWhitespacePublicSystemGarbageMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $trailingClosedNoWhitespacePublicSystemGarbageMatch['publicIdDouble'][0] ?? $trailingClosedNoWhitespacePublicSystemGarbageMatch['publicIdSingle'][0] ?? null;
+                $systemId = $trailingClosedNoWhitespacePublicSystemGarbageMatch['systemIdDouble'][0] ?? $trailingClosedNoWhitespacePublicSystemGarbageMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($trailingClosedNoWhitespacePublicSystemGarbageMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($trailingClosedNoWhitespacePublicSystemGarbageMatch[0][0]),
+                ];
+            }
+
+            $closedNoWhitespacePublicPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*>~is
+REGEX;
+
+            if (preg_match($closedNoWhitespacePublicPattern, $html, $closedNoWhitespacePublicMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $closedNoWhitespacePublicMatch['publicIdDouble'][0] ?? $closedNoWhitespacePublicMatch['publicIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($closedNoWhitespacePublicMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => null,
+                    'offset' => strlen($closedNoWhitespacePublicMatch[0][0]),
+                ];
+            }
+
+            $closedNoWhitespaceSystemPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+SYSTEM[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)"|'(?<systemIdSingle>[^'>]*)')[ \t\n\f\r]*>~is
+REGEX;
+
+            if (preg_match($closedNoWhitespaceSystemPattern, $html, $closedNoWhitespaceSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $systemId = $closedNoWhitespaceSystemMatch['systemIdDouble'][0] ?? $closedNoWhitespaceSystemMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($closedNoWhitespaceSystemMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($closedNoWhitespaceSystemMatch[0][0]),
+                ];
+            }
+
+            $eofClosedNoWhitespacePublicPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*$~is
+REGEX;
+
+            if (preg_match($eofClosedNoWhitespacePublicPattern, $html, $eofClosedNoWhitespacePublicMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $eofClosedNoWhitespacePublicMatch['publicIdDouble'][0] ?? $eofClosedNoWhitespacePublicMatch['publicIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($eofClosedNoWhitespacePublicMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => null,
+                    'offset' => strlen($eofClosedNoWhitespacePublicMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
+            $trailingClosedNoWhitespacePublicGarbagePattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')[ \t\n\f\r]*[^"' \t\n\f\r>][^>]*(?:>|$)~is
+REGEX;
+
+            if (preg_match($trailingClosedNoWhitespacePublicGarbagePattern, $html, $trailingClosedNoWhitespacePublicGarbageMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $trailingClosedNoWhitespacePublicGarbageMatch['publicIdDouble'][0] ?? $trailingClosedNoWhitespacePublicGarbageMatch['publicIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($trailingClosedNoWhitespacePublicGarbageMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => null,
+                    'offset' => strlen($trailingClosedNoWhitespacePublicGarbageMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
+            $eofClosedNoWhitespaceSystemPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+SYSTEM[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)"|'(?<systemIdSingle>[^'>]*)')[ \t\n\f\r]*$~is
+REGEX;
+
+            if (preg_match($eofClosedNoWhitespaceSystemPattern, $html, $eofClosedNoWhitespaceSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $systemId = $eofClosedNoWhitespaceSystemMatch['systemIdDouble'][0] ?? $eofClosedNoWhitespaceSystemMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($eofClosedNoWhitespaceSystemMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($eofClosedNoWhitespaceSystemMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
+            $trailingClosedNoWhitespaceSystemGarbagePattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+SYSTEM[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)"|'(?<systemIdSingle>[^'>]*)')[ \t\n\f\r]*[^> \t\n\f\r][^>]*(?:>|$)~is
+REGEX;
+
+            if (preg_match($trailingClosedNoWhitespaceSystemGarbagePattern, $html, $trailingClosedNoWhitespaceSystemGarbageMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $systemId = $trailingClosedNoWhitespaceSystemGarbageMatch['systemIdDouble'][0] ?? $trailingClosedNoWhitespaceSystemGarbageMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($trailingClosedNoWhitespaceSystemGarbageMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($trailingClosedNoWhitespaceSystemGarbageMatch[0][0]),
+                ];
+            }
+
             $eofNoWhitespacePublicPattern = <<<'REGEX'
 ~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)|'(?<publicIdSingle>[^'>]*))[ \t\n\f\r]*$~is
 REGEX;

@@ -1378,6 +1378,151 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
             false,
         ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name at EOF' => [
+            "<!DOCTYPEa PUBLIC''",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name question mark garbage' => [
+            "<!DOCTYPEa PUBLIC''?",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name at sign garbage' => [
+            "<!DOCTYPEa PUBLIC''@",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name uppercase B garbage' => [
+            "<!DOCTYPEa PUBLIC''B",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name uppercase Y garbage' => [
+            "<!DOCTYPEa PUBLIC''Y",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public identifier no-whitespace name terminator' => [
+            "<!DOCTYPEa PUBLIC''>",
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public system identifiers no-whitespace name double quote at EOF' => [
+            "<!DOCTYPEa PUBLIC''\"",
+            '<!DOCTYPE a PUBLIC "" ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty public system identifiers no-whitespace name single quote at EOF' => [
+            "<!DOCTYPEa PUBLIC'''",
+            '<!DOCTYPE a PUBLIC "" ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name at EOF' => [
+            "<!DOCTYPEa SYSTEM''",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name question mark garbage' => [
+            "<!DOCTYPEa SYSTEM''?",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name at sign garbage' => [
+            "<!DOCTYPEa SYSTEM''@",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name uppercase B garbage' => [
+            "<!DOCTYPEa SYSTEM''B",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name uppercase Y garbage' => [
+            "<!DOCTYPEa SYSTEM''Y",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 closed empty system identifier no-whitespace name terminator' => [
+            "<!DOCTYPEa SYSTEM''>",
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name at EOF forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name trailing garbage forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''?",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public identifier no-whitespace html name terminator remains standards mode' => [
+            "<!DOCTYPEhtml PUBLIC''>",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty public identifier no-whitespace html name whitespace terminator remains standards mode' => [
+            "<!DOCTYPEhtml PUBLIC'' >",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty public system identifiers no-whitespace html name double quote at EOF forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC''\"",
+            '<!DOCTYPE html PUBLIC "" ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public system identifiers no-whitespace html name single quote at EOF forces quirks' => [
+            "<!DOCTYPEhtml PUBLIC'''",
+            '<!DOCTYPE html PUBLIC "" ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty public system identifiers no-whitespace html name terminator remains standards mode' => [
+            "<!DOCTYPEhtml PUBLIC''''>",
+            '<!DOCTYPE html PUBLIC "" ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty public system identifiers no-whitespace html name trailing garbage remains standards mode' => [
+            "<!DOCTYPEhtml PUBLIC''''?",
+            '<!DOCTYPE html PUBLIC "" ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty public system identifiers no-whitespace html name abrupt boundary preserves body text' => [
+            "<!DOCTYPEhtml PUBLIC''\">x",
+            '<!DOCTYPE html PUBLIC "" ""><html><head></head><body>x</body></html>',
+            true,
+        ];
+        yield 'closed empty system identifier no-whitespace html name at EOF forces quirks' => [
+            "<!DOCTYPEhtml SYSTEM''",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'closed empty system identifier no-whitespace html name trailing garbage remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM''?",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty system identifier no-whitespace html name terminator remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM''>",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'closed empty system identifier no-whitespace html name whitespace terminator remains standards mode' => [
+            "<!DOCTYPEhtml SYSTEM'' >",
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'no-whitespace closed branch does not swallow abrupt public identifier boundary' => [
+            "<!DOCTYPEa PUBLIC'x>y'",
+            '<!DOCTYPE a PUBLIC "x"><html><head></head><body>y\'</body></html>',
+            true,
+        ];
+        yield 'no-whitespace closed branch does not swallow abrupt system identifier boundary' => [
+            "<!DOCTYPEa SYSTEM'x>y'",
+            '<!DOCTYPE a SYSTEM "x"><html><head></head><body>y\'</body></html>',
+            true,
+        ];
         yield 'html5lib test3 missing system quote after closed public identifier' => [
             '<!DOCTYPE a PUBLIC"x"!',
             '<!DOCTYPE a PUBLIC "x"><html><head></head><body></body></html>',
