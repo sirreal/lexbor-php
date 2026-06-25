@@ -2677,6 +2677,33 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib numericEntities $label" => $case;
         }
+        foreach ([
+            'valid ASCII lowercase h' => ['&#x0068;', 'h'],
+            'valid ASCII lowercase i' => ['&#x0069;', 'i'],
+            'valid ASCII lowercase j' => ['&#x006a;', 'j'],
+            'valid ASCII lowercase k' => ['&#x006b;', 'k'],
+            'valid ASCII lowercase l' => ['&#x006c;', 'l'],
+            'valid ASCII lowercase m' => ['&#x006d;', 'm'],
+            'valid ASCII lowercase n' => ['&#x006e;', 'n'],
+            'valid ASCII lowercase o' => ['&#x006f;', 'o'],
+            'valid ASCII lowercase p' => ['&#x0070;', 'p'],
+            'valid ASCII lowercase q' => ['&#x0071;', 'q'],
+            'valid ASCII lowercase r' => ['&#x0072;', 'r'],
+            'valid ASCII lowercase s' => ['&#x0073;', 's'],
+            'valid ASCII lowercase t' => ['&#x0074;', 't'],
+            'valid ASCII lowercase u' => ['&#x0075;', 'u'],
+            'valid ASCII lowercase v' => ['&#x0076;', 'v'],
+            'valid ASCII lowercase w' => ['&#x0077;', 'w'],
+            'valid ASCII lowercase x' => ['&#x0078;', 'x'],
+            'valid ASCII lowercase y' => ['&#x0079;', 'y'],
+            'valid ASCII lowercase z' => ['&#x007a;', 'z'],
+            'valid ASCII left curly bracket' => ['&#x007b;', '{'],
+            'valid ASCII vertical line' => ['&#x007c;', '|'],
+            'valid ASCII right curly bracket' => ['&#x007d;', '}'],
+            'valid ASCII tilde' => ['&#x007e;', '~'],
+        ] as $label => $case) {
+            yield "html5lib numericEntities $label" => $case;
+        }
         yield 'char_ref.ton #39 decimal Cyrillic reference' => ['&#1024', 'Ѐ'];
         yield 'char_ref.ton #40 invalid decimal reference remains literal' => ['&#j', '&amp;#j'];
         yield 'char_ref.ton #41 invalid decimal reference before text remains literal' => ['&#jgf', '&amp;#jgf'];
