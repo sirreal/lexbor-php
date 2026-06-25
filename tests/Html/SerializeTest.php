@@ -2975,6 +2975,13 @@ final class SerializeTest extends TestCase
             "<a a=\"\" \x1F=\"\"></a>",
         ];
         yield 'html5lib test3 after single-quoted value space boundary' => ["<a a='' >", '<a a=""></a>'];
+        yield 'html5lib test3 after single-quoted value exclamation' => ["<a a=''!>", '<a a="" !=""></a>'];
+        yield 'html5lib test3 after single-quoted value double quote' => ["<a a=''\">", '<a a="" &quot;=""></a>'];
+        yield 'html5lib test3 after single-quoted value ampersand' => ["<a a=''&>", '<a a="" &amp;=""></a>'];
+        yield 'html5lib test3 after single-quoted value single quote' => ["<a a='''>", '<a a="" &#039;=""></a>'];
+        yield 'html5lib test3 after single-quoted value dash' => ["<a a=''->", '<a a="" -=""></a>'];
+        yield 'html5lib test3 after single-quoted value period' => ["<a a=''.>", '<a a="" .=""></a>'];
+        yield 'html5lib test3 after single-quoted value self-closing slash' => ["<a a=''/>", '<a a=""></a>'];
         yield 'trailing NUL survives self-closing slash removal' => [
             "<div disabled\0/>",
             "<div disabled\u{FFFD}=\"\"></div>",
