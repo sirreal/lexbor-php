@@ -3032,6 +3032,17 @@ final class SerializeTest extends TestCase
             "<div disabled\0/>",
             "<div disabled\u{FFFD}=\"\"></div>",
         ];
+        yield 'html5lib test3 unquoted attribute value opening parenthesis' => ['<a a=(>', '<a a="("></a>'];
+        yield 'html5lib test3 unquoted attribute value dash' => ['<a a=->', '<a a="-"></a>'];
+        yield 'html5lib test3 unquoted attribute value slash' => ['<a a=/>', '<a a="/"></a>'];
+        yield 'html5lib test3 unquoted attribute value zero' => ['<a a=0>', '<a a="0"></a>'];
+        yield 'html5lib test3 unquoted attribute value one' => ['<a a=1>', '<a a="1"></a>'];
+        yield 'html5lib test3 unquoted attribute value nine' => ['<a a=9>', '<a a="9"></a>'];
+        yield 'html5lib test3 unquoted attribute value less-than' => ['<a a=<>', '<a a="&lt;"></a>'];
+        yield 'html5lib test3 unquoted attribute value equals' => ['<a a==>', '<a a="="></a>'];
+        yield 'html5lib test3 unquoted attribute value empty' => ['<a a=>', '<a a=""></a>'];
+        yield 'html5lib test3 unquoted attribute value question mark' => ['<a a=?>', '<a a="?"></a>'];
+        yield 'html5lib test3 unquoted attribute value at sign' => ['<a a=@>', '<a a="@"></a>'];
         yield 'html5lib test1 less-than in unquoted attribute value' => [
             '<a a=f<>',
             '<a a="f&lt;"></a>',
