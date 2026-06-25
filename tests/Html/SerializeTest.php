@@ -3049,6 +3049,14 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 unquoted attribute value uppercase Z' => ['<a a=Z>', '<a a="Z"></a>'];
         yield 'html5lib test3 unquoted attribute value backtick' => ['<a a=`>', '<a a="`"></a>'];
         yield 'html5lib test3 unquoted attribute value lowercase a' => ['<a a=a>', '<a a="a"></a>'];
+        yield 'html5lib test3 unquoted attribute value lowercase b' => ['<a a=b>', '<a a="b"></a>'];
+        yield 'html5lib test3 unquoted attribute value lowercase y' => ['<a a=y>', '<a a="y"></a>'];
+        yield 'html5lib test3 unquoted attribute value lowercase z' => ['<a a=z>', '<a a="z"></a>'];
+        yield 'html5lib test3 unquoted attribute value open brace' => ['<a a={>', '<a a="{"></a>'];
+        yield 'html5lib test3 unquoted attribute value non-BMP' => [
+            "<a a=\u{100000}>",
+            "<a a=\"\u{100000}\"></a>",
+        ];
         yield 'html5lib test3 unquoted attribute value backspace retained after character' => [
             "<a a=a\x08>",
             "<a a=\"a\x08\"></a>",
