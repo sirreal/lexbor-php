@@ -173,6 +173,36 @@ final class SerializeTest extends TestCase
      */
     public static function tokenizerDoctypeProvider(): iterable
     {
+        yield 'doctype.ton #4 html name' => [
+            '<!DOCTYPE html>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #5 public identifier with double quotes' => [
+            '<!DOCTYPE html PUBLIC "test public">',
+            '<!DOCTYPE html PUBLIC "test public"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #6 public identifier with single quotes' => [
+            "<!DOCTYPE html PUBLIC 'test public'>",
+            '<!DOCTYPE html PUBLIC "test public"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #7 public and system identifiers' => [
+            '<!DOCTYPE html PUBLIC "test public" "system identifier">',
+            '<!DOCTYPE html PUBLIC "test public" "system identifier"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #8 system identifier with double quotes' => [
+            '<!DOCTYPE html SYSTEM "test system">',
+            '<!DOCTYPE html SYSTEM "test system"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #9 system identifier with single quotes' => [
+            "<!DOCTYPE html SYSTEM 'test system'>",
+            '<!DOCTYPE html SYSTEM "test system"><html><head></head><body></body></html>',
+            false,
+        ];
         yield 'doctype.ton #10 EOF after non-html name' => [
             '<!DOCTYPE htm',
             '<!DOCTYPE htm><html><head></head><body></body></html>',
