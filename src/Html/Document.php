@@ -716,6 +716,23 @@ REGEX;
             ];
         }
 
+$emptyIdentifierNoWhitespacePattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\s>"']+)(?:
+    \s+PUBLIC(?:""|'')
+  | \s+SYSTEM(?:""|'')
+)>~isx
+REGEX;
+
+        if (preg_match($emptyIdentifierNoWhitespacePattern, $html, $emptyIdentifierNoWhitespaceMatch, PREG_OFFSET_CAPTURE) === 1) {
+            return [
+                'name' => self::normalizeDoctypeToken($emptyIdentifierNoWhitespaceMatch['name'][0]),
+                'publicId' => null,
+                'systemId' => null,
+                'offset' => strlen($emptyIdentifierNoWhitespaceMatch[0][0]),
+                'forceQuirks' => true,
+            ];
+        }
+
         $pattern = <<<'REGEX'
 ~^\s*<!doctype\s+(?<name>[^\s>"']+)(?:
     \s+PUBLIC\s*(?:"(?<publicIdDouble>[^"]*)"|'(?<publicIdSingle>[^']*)')(?:\s+(?:"(?<publicSystemIdDouble>[^"]*)"|'(?<publicSystemIdSingle>[^']*)'))?

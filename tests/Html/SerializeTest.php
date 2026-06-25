@@ -398,6 +398,36 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 empty public identifier without keyword whitespace forces quirks' => [
+            '<!DOCTYPE html PUBLIC\'\'>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 empty system identifier without keyword whitespace forces quirks' => [
+            '<!DOCTYPE html SYSTEM\'\'>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'spaced empty public identifier remains standards mode' => [
+            '<!DOCTYPE html PUBLIC \'\'>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'spaced empty system identifier remains standards mode' => [
+            '<!DOCTYPE html SYSTEM \'\'>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'empty public identifier with trailing whitespace remains standards mode' => [
+            '<!DOCTYPE html PUBLIC"" >',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'empty system identifier with trailing whitespace remains standards mode' => [
+            '<!DOCTYPE html SYSTEM"" >',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
         yield 'html5lib test3 missing system quote after closed public identifier' => [
             '<!DOCTYPE a PUBLIC"x"!',
             '<!DOCTYPE a PUBLIC "x"><html><head></head><body></body></html>',
