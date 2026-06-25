@@ -3043,6 +3043,12 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 unquoted attribute value empty' => ['<a a=>', '<a a=""></a>'];
         yield 'html5lib test3 unquoted attribute value question mark' => ['<a a=?>', '<a a="?"></a>'];
         yield 'html5lib test3 unquoted attribute value at sign' => ['<a a=@>', '<a a="@"></a>'];
+        yield 'html5lib test3 unquoted attribute value uppercase A' => ['<a a=A>', '<a a="A"></a>'];
+        yield 'html5lib test3 unquoted attribute value uppercase B' => ['<a a=B>', '<a a="B"></a>'];
+        yield 'html5lib test3 unquoted attribute value uppercase Y' => ['<a a=Y>', '<a a="Y"></a>'];
+        yield 'html5lib test3 unquoted attribute value uppercase Z' => ['<a a=Z>', '<a a="Z"></a>'];
+        yield 'html5lib test3 unquoted attribute value backtick' => ['<a a=`>', '<a a="`"></a>'];
+        yield 'html5lib test3 unquoted attribute value lowercase a' => ['<a a=a>', '<a a="a"></a>'];
         yield 'html5lib test1 less-than in unquoted attribute value' => [
             '<a a=f<>',
             '<a a="f&lt;"></a>',
