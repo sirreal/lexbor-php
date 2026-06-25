@@ -2573,6 +2573,26 @@ final class SerializeTest extends TestCase
     {
         yield 'html5lib test2 illegal end tag name' => ['</1>', '<!--1-->'];
         yield 'invalid end tag with whitespace is bogus comment' => ['a</ >bc', 'a<!-- -->bc'];
+        yield 'html5lib test3 invalid end tag NUL at EOF' => ["</\0", "<!--\u{FFFD}-->"];
+        yield 'html5lib test3 invalid end tag tab at EOF' => ["</\t", "<!--\t-->"];
+        yield 'html5lib test3 invalid end tag line feed at EOF' => ["</\n", "<!--\n-->"];
+        yield 'html5lib test3 invalid end tag vertical tab at EOF' => ["</\v", "<!--\v-->"];
+        yield 'html5lib test3 invalid end tag form feed at EOF' => ["</\f", "<!--\f-->"];
+        yield 'html5lib test3 invalid end tag space at EOF' => ['</ ', '<!-- -->'];
+        yield 'html5lib test3 invalid end tag space NUL at EOF' => ["</ \0", "<!-- \u{FFFD}-->"];
+        yield 'html5lib test3 invalid end tag exclamation at EOF' => ['</!', '<!--!-->'];
+        yield 'html5lib test3 invalid end tag double quote at EOF' => ['</"', '<!--"-->'];
+        yield 'html5lib test3 invalid end tag ampersand at EOF' => ['</&', '<!--&-->'];
+        yield 'html5lib test3 invalid end tag single quote at EOF' => ["</'", "<!--'-->"];
+        yield 'html5lib test3 invalid end tag dash at EOF' => ['</-', '<!----->'];
+        yield 'html5lib test3 invalid end tag slash at EOF' => ['<//', '<!--/-->'];
+        yield 'html5lib test3 invalid end tag zero at EOF' => ['</0', '<!--0-->'];
+        yield 'html5lib test3 invalid end tag one at EOF' => ['</1', '<!--1-->'];
+        yield 'html5lib test3 invalid end tag nine at EOF' => ['</9', '<!--9-->'];
+        yield 'html5lib test3 invalid end tag less-than at EOF' => ['</<', '<!--<-->'];
+        yield 'html5lib test3 invalid end tag equals at EOF' => ['</=', '<!--=-->'];
+        yield 'html5lib test3 invalid end tag question mark at EOF' => ['</?', '<!--?-->'];
+        yield 'html5lib test3 invalid end tag at sign at EOF' => ['</@', '<!--@-->'];
     }
 
     /**
