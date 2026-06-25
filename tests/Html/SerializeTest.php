@@ -2757,6 +2757,24 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 before attribute name dash' => ['<a ->', '<a -=""></a>'];
         yield 'html5lib test3 before attribute name period' => ['<a .>', '<a .=""></a>'];
         yield 'html5lib test3 before attribute name self-closing slash' => ['<a />', '<a></a>'];
+        yield 'html5lib test3 self-closing slash NUL replacement' => [
+            "<a/\0>",
+            "<a \u{FFFD}=\"\"></a>",
+        ];
+        yield 'html5lib test3 self-closing slash tab boundary' => ["<a/\t>", '<a></a>'];
+        yield 'html5lib test3 self-closing slash line feed boundary' => ["<a/\n>", '<a></a>'];
+        yield 'html5lib test3 self-closing slash vertical tab retained' => [
+            "<a/\v>",
+            "<a \v=\"\"></a>",
+        ];
+        yield 'html5lib test3 self-closing slash form feed boundary' => ["<a/\f>", '<a></a>'];
+        yield 'html5lib test3 self-closing slash space boundary' => ['<a/ >', '<a></a>'];
+        yield 'html5lib test3 self-closing slash exclamation' => ['<a/!>', '<a !=""></a>'];
+        yield 'html5lib test3 self-closing slash double quote' => ['<a/">', '<a &quot;=""></a>'];
+        yield 'html5lib test3 self-closing slash ampersand' => ['<a/&>', '<a &amp;=""></a>'];
+        yield 'html5lib test3 self-closing slash single quote' => ["<a/'>", '<a &#039;=""></a>'];
+        yield 'html5lib test3 self-closing slash dash' => ['<a/->', '<a -=""></a>'];
+        yield 'html5lib test3 repeated self-closing slash' => ['<a//>', '<a></a>'];
         yield 'html5lib test3 before attribute name zero' => ['<a 0>', '<a 0=""></a>'];
         yield 'html5lib test3 before attribute name one' => ['<a 1>', '<a 1=""></a>'];
         yield 'html5lib test3 before attribute name nine' => ['<a 9>', '<a 9=""></a>'];
