@@ -2549,6 +2549,12 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 invalid tag-open single quote is text' => ["<'", "&lt;'"];
         yield 'html5lib test3 invalid tag-open dash is text' => ['<-', '&lt;-'];
         yield 'html5lib test3 invalid tag-open period is text' => ['<.', '&lt;.'];
+        yield 'html5lib test3 invalid tag-open zero is text' => ['<0', '&lt;0'];
+        yield 'html5lib test3 invalid tag-open one is text' => ['<1', '&lt;1'];
+        yield 'html5lib test3 invalid tag-open nine is text' => ['<9', '&lt;9'];
+        yield 'html5lib test3 invalid tag-open less-than is text' => ['<<', '&lt;&lt;'];
+        yield 'html5lib test3 invalid tag-open equals is text' => ['<=', '&lt;='];
+        yield 'html5lib test3 invalid tag-open terminator is text' => ['<>', '&lt;&gt;'];
         yield 'html5lib test3 EOF before end tag name is text' => ['</', '&lt;/'];
         yield 'html5lib test4 EOF in tag name state' => ['<a', ''];
         yield 'html5lib test4 slash EOF in tag name state' => ['<z/', ''];
