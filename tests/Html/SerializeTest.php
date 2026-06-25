@@ -458,6 +458,26 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a PUBLIC "Y"><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 public identifier uppercase Z without keyword whitespace' => [
+            '<!DOCTYPE a PUBLIC"Z',
+            '<!DOCTYPE a PUBLIC "Z"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public identifier backtick without keyword whitespace' => [
+            '<!DOCTYPE a PUBLIC"`',
+            '<!DOCTYPE a PUBLIC "`"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public identifier lowercase b without keyword whitespace' => [
+            '<!DOCTYPE a PUBLIC"b',
+            '<!DOCTYPE a PUBLIC "b"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public identifier lowercase y without keyword whitespace' => [
+            '<!DOCTYPE a PUBLIC"y',
+            '<!DOCTYPE a PUBLIC "y"><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 public identifier vertical tab without preceding whitespace' => [
             "<!DOCTYPEa PUBLIC\"\v",
             "<!DOCTYPE a PUBLIC \"\v\"><html><head></head><body></body></html>",
@@ -566,6 +586,26 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 single-quoted public identifier uppercase Y without keyword whitespace' => [
             "<!DOCTYPE a PUBLIC'Y",
             '<!DOCTYPE a PUBLIC "Y"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 single-quoted public identifier uppercase Z without keyword whitespace' => [
+            "<!DOCTYPE a PUBLIC'Z",
+            '<!DOCTYPE a PUBLIC "Z"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 single-quoted public identifier backtick without keyword whitespace' => [
+            "<!DOCTYPE a PUBLIC'`",
+            '<!DOCTYPE a PUBLIC "`"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 single-quoted public identifier lowercase b without keyword whitespace' => [
+            "<!DOCTYPE a PUBLIC'b",
+            '<!DOCTYPE a PUBLIC "b"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 single-quoted public identifier lowercase y without keyword whitespace' => [
+            "<!DOCTYPE a PUBLIC'y",
+            '<!DOCTYPE a PUBLIC "y"><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 closed public identifier without preceding whitespace at EOF' => [
@@ -693,6 +733,26 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a SYSTEM "Y"><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 system identifier uppercase Z without keyword whitespace' => [
+            '<!DOCTYPE a SYSTEM"Z',
+            '<!DOCTYPE a SYSTEM "Z"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier backtick without keyword whitespace' => [
+            '<!DOCTYPE a SYSTEM"`',
+            '<!DOCTYPE a SYSTEM "`"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier lowercase b without keyword whitespace' => [
+            '<!DOCTYPE a SYSTEM"b',
+            '<!DOCTYPE a SYSTEM "b"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier lowercase y without keyword whitespace' => [
+            '<!DOCTYPE a SYSTEM"y',
+            '<!DOCTYPE a SYSTEM "y"><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 system identifier vertical tab without preceding whitespace' => [
             "<!DOCTYPEa SYSTEM\"\v",
             "<!DOCTYPE a SYSTEM \"\v\"><html><head></head><body></body></html>",
@@ -801,6 +861,26 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 single-quoted system identifier uppercase Y without keyword whitespace' => [
             "<!DOCTYPE a SYSTEM'Y",
             '<!DOCTYPE a SYSTEM "Y"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 single-quoted system identifier uppercase Z without keyword whitespace' => [
+            "<!DOCTYPE a SYSTEM'Z",
+            '<!DOCTYPE a SYSTEM "Z"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 single-quoted system identifier backtick without keyword whitespace' => [
+            "<!DOCTYPE a SYSTEM'`",
+            '<!DOCTYPE a SYSTEM "`"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 single-quoted system identifier lowercase b without keyword whitespace' => [
+            "<!DOCTYPE a SYSTEM'b",
+            '<!DOCTYPE a SYSTEM "b"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 single-quoted system identifier lowercase y without keyword whitespace' => [
+            "<!DOCTYPE a SYSTEM'y",
+            '<!DOCTYPE a SYSTEM "y"><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 closed system identifier without preceding whitespace at EOF' => [
