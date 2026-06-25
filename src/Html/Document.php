@@ -672,7 +672,7 @@ final class Document extends Node
     private function parseLeadingDoctype(string $html): ?array
     {
         $abruptPublicSystemPattern = <<<'REGEX'
-~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+PUBLIC\s+(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')\s*(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s+(?:"(?<publicIdDouble>[^">]*)"|'(?<publicIdSingle>[^'>]*)')\s*(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
 REGEX;
 
         if (preg_match($abruptPublicSystemPattern, $html, $abruptPublicSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
@@ -680,45 +680,45 @@ REGEX;
             $systemId = $abruptPublicSystemMatch['systemIdDouble'][0] ?? $abruptPublicSystemMatch['systemIdSingle'][0] ?? null;
 
             return [
-                'name' => strtolower($abruptPublicSystemMatch['name'][0]),
-                'publicId' => $publicId === '' ? null : $publicId,
-                'systemId' => $systemId === '' ? null : $systemId,
+                'name' => self::normalizeDoctypeToken($abruptPublicSystemMatch['name'][0]),
+                'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                'systemId' => self::normalizeDoctypeIdentifier($systemId),
                 'offset' => strlen($abruptPublicSystemMatch[0][0]),
             ];
         }
 
         $abruptPublicPattern = <<<'REGEX'
-~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+PUBLIC\s+(?:"(?<publicIdDouble>[^">]*)>|'(?<publicIdSingle>[^'>]*)>)~is
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s+(?:"(?<publicIdDouble>[^">]*)>|'(?<publicIdSingle>[^'>]*)>)~is
 REGEX;
 
         if (preg_match($abruptPublicPattern, $html, $abruptPublicMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
             $publicId = $abruptPublicMatch['publicIdDouble'][0] ?? $abruptPublicMatch['publicIdSingle'][0] ?? null;
 
             return [
-                'name' => strtolower($abruptPublicMatch['name'][0]),
-                'publicId' => $publicId === '' ? null : $publicId,
+                'name' => self::normalizeDoctypeToken($abruptPublicMatch['name'][0]),
+                'publicId' => self::normalizeDoctypeIdentifier($publicId),
                 'systemId' => null,
                 'offset' => strlen($abruptPublicMatch[0][0]),
             ];
         }
 
         $abruptSystemPattern = <<<'REGEX'
-~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+SYSTEM\s+(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+SYSTEM\s+(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
 REGEX;
 
         if (preg_match($abruptSystemPattern, $html, $abruptSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
             $systemId = $abruptSystemMatch['systemIdDouble'][0] ?? $abruptSystemMatch['systemIdSingle'][0] ?? null;
 
             return [
-                'name' => strtolower($abruptSystemMatch['name'][0]),
+                'name' => self::normalizeDoctypeToken($abruptSystemMatch['name'][0]),
                 'publicId' => null,
-                'systemId' => $systemId === '' ? null : $systemId,
+                'systemId' => self::normalizeDoctypeIdentifier($systemId),
                 'offset' => strlen($abruptSystemMatch[0][0]),
             ];
         }
 
         $pattern = <<<'REGEX'
-~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)(?:
+~^\s*<!doctype\s+(?<name>[^\s>"']+)(?:
     \s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>.*?)\k<publicQuote>(?:\s+(?<publicSystemQuote>["'])(?<publicSystemId>.*?)\k<publicSystemQuote>)?
   | \s+SYSTEM\s+(?<systemQuote>["'])(?<systemId>.*?)\k<systemQuote>
 )?\s*>~isx
@@ -726,68 +726,68 @@ REGEX;
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) !== 1) {
             $eofPublicSystemPattern = <<<'REGEX'
-~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>.*?)\k<publicQuote>\s*(?<systemQuote>["'])(?<systemId>[^"']*)\s*$~is
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>.*?)\k<publicQuote>\s*(?<systemQuote>["'])(?<systemId>[^"']*)\s*$~is
 REGEX;
 
             if (preg_match($eofPublicSystemPattern, $html, $eofPublicSystemMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
-                    'name' => strtolower($eofPublicSystemMatch['name'][0]),
-                    'publicId' => $eofPublicSystemMatch['publicId'][0] === '' ? null : $eofPublicSystemMatch['publicId'][0],
-                    'systemId' => $eofPublicSystemMatch['systemId'][0] === '' ? null : $eofPublicSystemMatch['systemId'][0],
+                    'name' => self::normalizeDoctypeToken($eofPublicSystemMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($eofPublicSystemMatch['publicId'][0]),
+                    'systemId' => self::normalizeDoctypeIdentifier($eofPublicSystemMatch['systemId'][0]),
                     'offset' => strlen($eofPublicSystemMatch[0][0]),
                 ];
             }
 
             $eofPublicPattern = <<<'REGEX'
-~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>[^"']*)\s*$~is
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>[^"']*)\s*$~is
 REGEX;
 
             if (preg_match($eofPublicPattern, $html, $eofPublicMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
-                    'name' => strtolower($eofPublicMatch['name'][0]),
-                    'publicId' => $eofPublicMatch['publicId'][0] === '' ? null : $eofPublicMatch['publicId'][0],
+                    'name' => self::normalizeDoctypeToken($eofPublicMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($eofPublicMatch['publicId'][0]),
                     'systemId' => null,
                     'offset' => strlen($eofPublicMatch[0][0]),
                 ];
             }
 
-            $eofPublicKeywordPattern = '~^\s*<!doctype\s+(?<name>[^\x00\s>"\']+)\s+PUBLIC\s*$~i';
+            $eofPublicKeywordPattern = '~^\s*<!doctype\s+(?<name>[^\s>"\']+)\s+PUBLIC\s*$~i';
             if (preg_match($eofPublicKeywordPattern, $html, $eofPublicKeywordMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
-                    'name' => strtolower($eofPublicKeywordMatch['name'][0]),
+                    'name' => self::normalizeDoctypeToken($eofPublicKeywordMatch['name'][0]),
                     'publicId' => null,
                     'systemId' => null,
                     'offset' => strlen($eofPublicKeywordMatch[0][0]),
                 ];
             }
 
-            $noWhitespaceNamePattern = '~^\s*<!doctype(?<name>[^\x00\s>"\']+)\s*>~i';
+            $noWhitespaceNamePattern = '~^\s*<!doctype(?<name>[^\s>"\']+)\s*>~i';
             if (preg_match($noWhitespaceNamePattern, $html, $noWhitespaceNameMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
-                    'name' => strtolower($noWhitespaceNameMatch['name'][0]),
+                    'name' => self::normalizeDoctypeToken($noWhitespaceNameMatch['name'][0]),
                     'publicId' => null,
                     'systemId' => null,
                     'offset' => strlen($noWhitespaceNameMatch[0][0]),
                 ];
             }
 
-            $invalidAfterNamePattern = '~^\s*<!doctype\s+(?<name>[^\x00\s>"\']+)[^>]*>~i';
+            $invalidAfterNamePattern = '~^\s*<!doctype\s+(?<name>[^\s>"\']+)[^>]*>~i';
             if (preg_match($invalidAfterNamePattern, $html, $invalidAfterNameMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
-                    'name' => strtolower($invalidAfterNameMatch['name'][0]),
+                    'name' => self::normalizeDoctypeToken($invalidAfterNameMatch['name'][0]),
                     'publicId' => null,
                     'systemId' => null,
                     'offset' => strlen($invalidAfterNameMatch[0][0]),
                 ];
             }
 
-            $eofNamePattern = '~^\s*<!doctype\s+(?<name>[^\x00\s>"\']+)\s*$~i';
+            $eofNamePattern = '~^\s*<!doctype\s+(?<name>[^\s>"\']+)\s*$~i';
             if (preg_match($eofNamePattern, $html, $eofMatch, PREG_OFFSET_CAPTURE) !== 1) {
                 return null;
             }
 
             return [
-                'name' => strtolower($eofMatch['name'][0]),
+                'name' => self::normalizeDoctypeToken($eofMatch['name'][0]),
                 'publicId' => null,
                 'systemId' => null,
                 'offset' => strlen($eofMatch[0][0]),
@@ -798,11 +798,25 @@ REGEX;
         $systemId = $match['publicSystemId'][0] ?? $match['systemId'][0] ?? null;
 
         return [
-            'name' => strtolower($match['name'][0]),
-            'publicId' => $publicId === '' ? null : $publicId,
-            'systemId' => $systemId === '' ? null : $systemId,
+            'name' => self::normalizeDoctypeToken($match['name'][0]),
+            'publicId' => self::normalizeDoctypeIdentifier($publicId),
+            'systemId' => self::normalizeDoctypeIdentifier($systemId),
             'offset' => strlen($match[0][0]),
         ];
+    }
+
+    private static function normalizeDoctypeToken(string $token): string
+    {
+        return str_replace("\0", "\u{FFFD}", strtolower($token));
+    }
+
+    private static function normalizeDoctypeIdentifier(?string $identifier): ?string
+    {
+        if ($identifier === null || $identifier === '') {
+            return null;
+        }
+
+        return str_replace("\0", "\u{FFFD}", $identifier);
     }
 
     /**

@@ -253,9 +253,39 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE foo><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 NUL after doctype keyword' => [
+            "<!DOCTYPE \0>",
+            "<!DOCTYPE \u{FFFD}><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 NUL in doctype name at EOF' => [
+            "<!DOCTYPE a\0",
+            "<!DOCTYPE a\u{FFFD}><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 NUL in doctype name without whitespace' => [
+            "<!DOCTYPEa\0>",
+            "<!DOCTYPE a\u{FFFD}><html><head></head><body></body></html>",
+            true,
+        ];
         yield 'html5lib test4 invalid sequence after doctype name' => [
             '<!DOCTYPE html x>text',
             '<!DOCTYPE html><html><head></head><body>text</body></html>',
+            false,
+        ];
+        yield 'NUL in parsed public identifier is replaced' => [
+            "<!DOCTYPE html PUBLIC \"a\0\">",
+            "<!DOCTYPE html PUBLIC \"a\u{FFFD}\"><html><head></head><body></body></html>",
+            false,
+        ];
+        yield 'NUL in parsed system identifier is replaced' => [
+            "<!DOCTYPE html SYSTEM \"a\0\">",
+            "<!DOCTYPE html SYSTEM \"a\u{FFFD}\"><html><head></head><body></body></html>",
+            false,
+        ];
+        yield 'NUL in parsed public system identifier is replaced' => [
+            "<!DOCTYPE html PUBLIC \"p\" \"s\0\">",
+            "<!DOCTYPE html PUBLIC \"p\" \"s\u{FFFD}\"><html><head></head><body></body></html>",
             false,
         ];
         yield 'html5lib test2 abrupt double-quoted public identifier' => [
