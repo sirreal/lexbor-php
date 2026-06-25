@@ -757,6 +757,21 @@ REGEX;
                 ];
             }
 
+            $missingSystemQuoteAfterPublicPattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s*(?:"(?<publicIdDouble>[^"]*)"|'(?<publicIdSingle>[^']*)')\s*[^"'\s>][^>]*(?:>|$)~is
+REGEX;
+
+            if (preg_match($missingSystemQuoteAfterPublicPattern, $html, $missingSystemQuoteAfterPublicMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $missingSystemQuoteAfterPublicMatch['publicIdDouble'][0] ?? $missingSystemQuoteAfterPublicMatch['publicIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($missingSystemQuoteAfterPublicMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => null,
+                    'offset' => strlen($missingSystemQuoteAfterPublicMatch[0][0]),
+                ];
+            }
+
             $eofClosedPublicPattern = <<<'REGEX'
 ~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s*(?:"(?<publicIdDouble>[^"]*)"|'(?<publicIdSingle>[^']*)')\s*$~is
 REGEX;
@@ -817,6 +832,32 @@ REGEX;
                 ];
             }
 
+            $missingPublicQuotePattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+PUBLIC\s*[^"'\s>][^>]*(?:>|$)~is
+REGEX;
+
+            if (preg_match($missingPublicQuotePattern, $html, $missingPublicQuoteMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => self::normalizeDoctypeToken($missingPublicQuoteMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($missingPublicQuoteMatch[0][0]),
+                ];
+            }
+
+            $missingSystemQuotePattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\s>"']+)\s+SYSTEM\s*[^"'\s>][^>]*(?:>|$)~is
+REGEX;
+
+            if (preg_match($missingSystemQuotePattern, $html, $missingSystemQuoteMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => self::normalizeDoctypeToken($missingSystemQuoteMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($missingSystemQuoteMatch[0][0]),
+                ];
+            }
+
             $eofPublicKeywordPattern = '~^\s*<!doctype\s+(?<name>[^\s>"\']+)\s+PUBLIC\s*$~i';
             if (preg_match($eofPublicKeywordPattern, $html, $eofPublicKeywordMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
@@ -824,6 +865,16 @@ REGEX;
                     'publicId' => null,
                     'systemId' => null,
                     'offset' => strlen($eofPublicKeywordMatch[0][0]),
+                ];
+            }
+
+            $eofSystemKeywordPattern = '~^\s*<!doctype\s+(?<name>[^\s>"\']+)\s+SYSTEM\s*$~i';
+            if (preg_match($eofSystemKeywordPattern, $html, $eofSystemKeywordMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => self::normalizeDoctypeToken($eofSystemKeywordMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($eofSystemKeywordMatch[0][0]),
                 ];
             }
 

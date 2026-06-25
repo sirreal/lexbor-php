@@ -303,6 +303,16 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a PUBLIC "x"><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 public identifier missing quote NUL at EOF' => [
+            "<!DOCTYPE a PUBLIC\0",
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public identifier missing quote punctuation at EOF' => [
+            '<!DOCTYPE a PUBLIC!',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 system identifier quote without preceding whitespace at EOF' => [
             '<!DOCTYPE a SYSTEM"',
             '<!DOCTYPE a><html><head></head><body></body></html>',
@@ -318,6 +328,21 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE a SYSTEM "x"><html><head></head><body></body></html>',
             true,
         ];
+        yield 'html5lib test3 system keyword EOF after whitespace' => [
+            '<!DOCTYPE a SYSTEM ',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier missing quote NUL after whitespace' => [
+            "<!DOCTYPE a SYSTEM \0",
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier missing quote punctuation at EOF' => [
+            '<!DOCTYPE a SYSTEM!',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test3 public system identifier EOF with system NUL' => [
             "<!DOCTYPE a PUBLIC\"p\" \"s\0",
             "<!DOCTYPE a PUBLIC \"p\" \"s\u{FFFD}\"><html><head></head><body></body></html>",
@@ -330,6 +355,16 @@ final class SerializeTest extends TestCase
         ];
         yield 'empty closed public system identifiers without preceding whitespace at EOF' => [
             '<!DOCTYPE a PUBLIC"" ""',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system quote after closed public identifier' => [
+            '<!DOCTYPE a PUBLIC"x"!',
+            '<!DOCTYPE a PUBLIC "x"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 missing system quote after empty public identifier' => [
+            "<!DOCTYPE a PUBLIC\"\"\0",
             '<!DOCTYPE a><html><head></head><body></body></html>',
             true,
         ];
