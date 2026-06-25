@@ -57,14 +57,14 @@ final class DocumentTypeTest extends TestCase
         self::assertNull($document->createDocumentType("bad\0name"));
     }
 
-    public function testEmptyPublicAndSystemIdsAreNull(): void
+    public function testEmptyPublicAndSystemIdsArePreserved(): void
     {
         $document = new Document();
         $doctype = $document->createDocumentType('html', '', '');
 
         self::assertInstanceOf(DocumentType::class, $doctype);
-        self::assertNull($doctype->publicId());
-        self::assertNull($doctype->systemId());
+        self::assertSame('', $doctype->publicId());
+        self::assertSame('', $doctype->systemId());
     }
 
     public function testNameIsLowercased(): void

@@ -93,8 +93,8 @@ final class Document extends Node
 
         return new DocumentType(
             strtolower($name),
-            $publicId === '' ? null : $publicId,
-            $systemId === '' ? null : $systemId,
+            $publicId,
+            $systemId,
             $this,
             Tag::EM_DOCTYPE,
         );
@@ -779,16 +779,17 @@ REGEX;
 
         $emptyIdentifierNoWhitespacePattern = <<<'REGEX'
 ~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"']+)(?:
-    [ \t\n\f\r]+PUBLIC(?:""|'')
-  | [ \t\n\f\r]+SYSTEM(?:""|'')
+    [ \t\n\f\r]+(?<keyword>PUBLIC|SYSTEM)(?:""|'')
 )>~isx
 REGEX;
 
         if (preg_match($emptyIdentifierNoWhitespacePattern, $html, $emptyIdentifierNoWhitespaceMatch, PREG_OFFSET_CAPTURE) === 1) {
+            $keyword = strtoupper($emptyIdentifierNoWhitespaceMatch['keyword'][0]);
+
             return [
                 'name' => self::normalizeDoctypeToken($emptyIdentifierNoWhitespaceMatch['name'][0]),
-                'publicId' => null,
-                'systemId' => null,
+                'publicId' => $keyword === 'PUBLIC' ? '' : null,
+                'systemId' => $keyword === 'SYSTEM' ? '' : null,
                 'offset' => strlen($emptyIdentifierNoWhitespaceMatch[0][0]),
                 'forceQuirks' => true,
             ];
@@ -1038,6 +1039,36 @@ REGEX;
                 ];
             }
 
+            $abruptNoWhitespacePublicPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)>|'(?<publicIdSingle>[^'>]*)>)~is
+REGEX;
+
+            if (preg_match($abruptNoWhitespacePublicPattern, $html, $abruptNoWhitespacePublicMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $abruptNoWhitespacePublicMatch['publicIdDouble'][0] ?? $abruptNoWhitespacePublicMatch['publicIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($abruptNoWhitespacePublicMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => null,
+                    'offset' => strlen($abruptNoWhitespacePublicMatch[0][0]),
+                ];
+            }
+
+            $abruptNoWhitespaceSystemPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+SYSTEM[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)>|'(?<systemIdSingle>[^'>]*)>)~is
+REGEX;
+
+            if (preg_match($abruptNoWhitespaceSystemPattern, $html, $abruptNoWhitespaceSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $systemId = $abruptNoWhitespaceSystemMatch['systemIdDouble'][0] ?? $abruptNoWhitespaceSystemMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($abruptNoWhitespaceSystemMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($abruptNoWhitespaceSystemMatch[0][0]),
+                ];
+            }
+
             $noWhitespaceInvalidAfterNamePattern = '~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"\']+)[^>]*(?:>|$)~i';
             if (preg_match($noWhitespaceInvalidAfterNamePattern, $html, $noWhitespaceInvalidAfterNameMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
@@ -1089,7 +1120,7 @@ REGEX;
 
     private static function normalizeDoctypeIdentifier(?string $identifier): ?string
     {
-        if ($identifier === null || $identifier === '') {
+        if ($identifier === null) {
             return null;
         }
 

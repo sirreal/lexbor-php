@@ -240,7 +240,7 @@ final class SerializeTest extends TestCase
         ];
         yield 'doctype.ton #17 EOF after opening public quote' => [
             '<!DOCTYPE html PUBLIC "',
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
             false,
         ];
         yield 'html5lib test2 doctype without space before html name' => [
@@ -350,7 +350,7 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test3 public identifier quote without preceding whitespace at EOF' => [
             '<!DOCTYPE a PUBLIC"',
-            '<!DOCTYPE a><html><head></head><body></body></html>',
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 public identifier NUL without preceding whitespace' => [
@@ -785,7 +785,7 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test3 system identifier quote without preceding whitespace at EOF' => [
             '<!DOCTYPE a SYSTEM"',
-            '<!DOCTYPE a><html><head></head><body></body></html>',
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 system identifier NUL without preceding whitespace' => [
@@ -1270,12 +1270,12 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test3 empty system identifier vertical tab trailing garbage forces quirks' => [
             "<!DOCTYPE html SYSTEM''\v",
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 empty public system identifier vertical tab trailing garbage forces quirks' => [
             "<!DOCTYPE html PUBLIC''''\v",
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC "" ""><html><head></head><body></body></html>',
             true,
         ];
         yield 'system identifier trailing tab remains standards mode' => [
@@ -1320,12 +1320,12 @@ final class SerializeTest extends TestCase
         ];
         yield 'vertical tab guard does not cross abrupt public identifier boundary' => [
             "<!DOCTYPE html PUBLIC \">x\"\v>y",
-            '<!DOCTYPE html><html><head></head><body>x"&gt;y</body></html>',
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body>x"&gt;y</body></html>',
             false,
         ];
         yield 'vertical tab guard does not cross abrupt single-quoted public identifier boundary' => [
             "<!DOCTYPE html PUBLIC '>x'\v>y",
-            "<!DOCTYPE html><html><head></head><body>x'&gt;y</body></html>",
+            "<!DOCTYPE html PUBLIC \"\"><html><head></head><body>x'&gt;y</body></html>",
             false,
         ];
         yield 'trailing system identifier garbage does not leak fake body attributes' => [
@@ -1345,37 +1345,37 @@ final class SerializeTest extends TestCase
         ];
         yield 'empty closed public system identifiers without preceding whitespace at EOF' => [
             '<!DOCTYPE a PUBLIC"" ""',
-            '<!DOCTYPE a><html><head></head><body></body></html>',
+            '<!DOCTYPE a PUBLIC "" ""><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 empty public identifier without keyword whitespace forces quirks' => [
             '<!DOCTYPE html PUBLIC\'\'>',
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test3 empty system identifier without keyword whitespace forces quirks' => [
             '<!DOCTYPE html SYSTEM\'\'>',
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
             true,
         ];
         yield 'spaced empty public identifier remains standards mode' => [
             '<!DOCTYPE html PUBLIC \'\'>',
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
             false,
         ];
         yield 'spaced empty system identifier remains standards mode' => [
             '<!DOCTYPE html SYSTEM \'\'>',
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
             false,
         ];
         yield 'empty public identifier with trailing whitespace remains standards mode' => [
             '<!DOCTYPE html PUBLIC"" >',
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
             false,
         ];
         yield 'empty system identifier with trailing whitespace remains standards mode' => [
             '<!DOCTYPE html SYSTEM"" >',
-            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body></body></html>',
             false,
         ];
         yield 'html5lib test3 missing system quote after closed public identifier' => [
@@ -1385,62 +1385,62 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test3 missing system quote after empty public identifier' => [
             "<!DOCTYPE a PUBLIC\"\"\0",
-            '<!DOCTYPE a><html><head></head><body></body></html>',
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test2 abrupt double-quoted public identifier' => [
             '<!DOCTYPE html PUBLIC ">x',
-            '<!DOCTYPE html><html><head></head><body>x</body></html>',
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body>x</body></html>',
             false,
         ];
         yield 'html5lib test2 abrupt single-quoted public identifier' => [
             '<!DOCTYPE html PUBLIC \'>x',
-            '<!DOCTYPE html><html><head></head><body>x</body></html>',
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body>x</body></html>',
             false,
         ];
         yield 'html5lib test2 abrupt double-quoted system identifier' => [
             '<!DOCTYPE html PUBLIC "foo" ">x',
-            '<!DOCTYPE html PUBLIC "foo"><html><head></head><body>x</body></html>',
+            '<!DOCTYPE html PUBLIC "foo" ""><html><head></head><body>x</body></html>',
             false,
         ];
         yield 'html5lib test2 abrupt single-quoted system identifier' => [
             '<!DOCTYPE html PUBLIC \'foo\' \'>x',
-            '<!DOCTYPE html PUBLIC "foo"><html><head></head><body>x</body></html>',
+            '<!DOCTYPE html PUBLIC "foo" ""><html><head></head><body>x</body></html>',
             false,
         ];
         yield 'abrupt public system identifier without whitespace preserves body quotes' => [
             '<!DOCTYPE html PUBLIC "foo"">x">y',
-            '<!DOCTYPE html PUBLIC "foo"><html><head></head><body>x"&gt;y</body></html>',
+            '<!DOCTYPE html PUBLIC "foo" ""><html><head></head><body>x"&gt;y</body></html>',
             false,
         ];
         yield 'abrupt direct public identifier preserves later body quotes' => [
             '<!DOCTYPE html PUBLIC ">x "">y',
-            '<!DOCTYPE html><html><head></head><body>x ""&gt;y</body></html>',
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body>x ""&gt;y</body></html>',
             false,
         ];
         yield 'abrupt direct system identifier preserves body quotes' => [
             '<!DOCTYPE html SYSTEM ">x">y',
-            '<!DOCTYPE html><html><head></head><body>x"&gt;y</body></html>',
+            '<!DOCTYPE html SYSTEM ""><html><head></head><body>x"&gt;y</body></html>',
             false,
         ];
         yield 'abrupt no-whitespace public identifier preserves body text' => [
             '<!DOCTYPEa PUBLIC">x',
-            '<!DOCTYPE a><html><head></head><body>x</body></html>',
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body>x</body></html>',
             true,
         ];
         yield 'abrupt no-whitespace single-quoted public identifier preserves body text' => [
             "<!DOCTYPEa PUBLIC'>x",
-            '<!DOCTYPE a><html><head></head><body>x</body></html>',
+            '<!DOCTYPE a PUBLIC ""><html><head></head><body>x</body></html>',
             true,
         ];
         yield 'abrupt no-whitespace system identifier preserves body text' => [
             '<!DOCTYPEa SYSTEM">x',
-            '<!DOCTYPE a><html><head></head><body>x</body></html>',
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body>x</body></html>',
             true,
         ];
         yield 'abrupt no-whitespace single-quoted system identifier preserves body text' => [
             "<!DOCTYPEa SYSTEM'>x",
-            '<!DOCTYPE a><html><head></head><body>x</body></html>',
+            '<!DOCTYPE a SYSTEM ""><html><head></head><body>x</body></html>',
             true,
         ];
     }
@@ -1918,15 +1918,12 @@ final class SerializeTest extends TestCase
     }
 
     #[DataProvider('emptyDocumentTypeIdentifierProvider')]
-    public function testFullDocumentTypeSerializationOmitsEmptyIdentifiers(string $html): void
+    public function testFullDocumentTypeSerializationPreservesEmptyIdentifiers(string $html): void
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
 
-        self::assertSame(
-            '<!DOCTYPE html><html><head></head><body></body></html>',
-            Serializer::serializeDeep($document, fullDoctype: true),
-        );
+        self::assertSame($html, Serializer::serializeDeep($document, fullDoctype: true));
     }
 
     #[DataProvider('tokenizerDoctypeProvider')]
