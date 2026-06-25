@@ -2719,6 +2719,28 @@ final class SerializeTest extends TestCase
             "<div \0>",
             "<div \u{FFFD}=\"\"></div>",
         ];
+        yield 'html5lib test3 before attribute name space boundary' => ['<a >', '<a></a>'];
+        yield 'html5lib test3 before attribute name NUL replacement' => [
+            "<a \0>",
+            "<a \u{FFFD}=\"\"></a>",
+        ];
+        yield 'html5lib test3 before attribute name backspace retained' => [
+            "<a \x08>",
+            "<a \x08=\"\"></a>",
+        ];
+        yield 'html5lib test3 before attribute name tab boundary' => ["<a \t>", '<a></a>'];
+        yield 'html5lib test3 before attribute name line feed boundary' => ["<a \n>", '<a></a>'];
+        yield 'html5lib test3 before attribute name vertical tab retained' => [
+            "<a \v>",
+            "<a \v=\"\"></a>",
+        ];
+        yield 'html5lib test3 before attribute name form feed boundary' => ["<a \f>", '<a></a>'];
+        yield 'html5lib test3 before attribute name carriage return boundary' => ["<a \r>", '<a></a>'];
+        yield 'html5lib test3 before attribute name unit separator retained' => [
+            "<a \x1F>",
+            "<a \x1F=\"\"></a>",
+        ];
+        yield 'html5lib test3 repeated before attribute name space boundary' => ['<a  >', '<a></a>'];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
