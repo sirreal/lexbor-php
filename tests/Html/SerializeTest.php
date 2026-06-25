@@ -3049,6 +3049,24 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 unquoted attribute value uppercase Z' => ['<a a=Z>', '<a a="Z"></a>'];
         yield 'html5lib test3 unquoted attribute value backtick' => ['<a a=`>', '<a a="`"></a>'];
         yield 'html5lib test3 unquoted attribute value lowercase a' => ['<a a=a>', '<a a="a"></a>'];
+        yield 'html5lib test3 unquoted attribute value backspace retained after character' => [
+            "<a a=a\x08>",
+            "<a a=\"a\x08\"></a>",
+        ];
+        yield 'html5lib test3 unquoted attribute value tab boundary after character' => ["<a a=a\t>", '<a a="a"></a>'];
+        yield 'html5lib test3 unquoted attribute value line feed boundary after character' => ["<a a=a\n>", '<a a="a"></a>'];
+        yield 'html5lib test3 unquoted attribute value vertical tab retained after character' => [
+            "<a a=a\v>",
+            "<a a=\"a\v\"></a>",
+        ];
+        yield 'html5lib test3 unquoted attribute value form feed boundary after character' => ["<a a=a\f>", '<a a="a"></a>'];
+        yield 'html5lib test3 unquoted attribute value carriage return boundary after character' => ["<a a=a\r>", '<a a="a"></a>'];
+        yield 'html5lib test3 unquoted attribute value unit separator retained after character' => [
+            "<a a=a\x1F>",
+            "<a a=\"a\x1F\"></a>",
+        ];
+        yield 'html5lib test3 unquoted attribute value space boundary after character' => ['<a a=a >', '<a a="a"></a>'];
+        yield 'html5lib test3 unquoted attribute value exclamation after character' => ['<a a=a!>', '<a a="a!"></a>'];
         yield 'html5lib test1 less-than in unquoted attribute value' => [
             '<a a=f<>',
             '<a a="f&lt;"></a>',
