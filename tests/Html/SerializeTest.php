@@ -288,6 +288,51 @@ final class SerializeTest extends TestCase
             "<!DOCTYPE html PUBLIC \"p\" \"s\u{FFFD}\"><html><head></head><body></body></html>",
             false,
         ];
+        yield 'html5lib test3 public identifier quote without preceding whitespace at EOF' => [
+            '<!DOCTYPE a PUBLIC"',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public identifier NUL without preceding whitespace' => [
+            "<!DOCTYPE a PUBLIC\"\0",
+            "<!DOCTYPE a PUBLIC \"\u{FFFD}\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 closed public identifier without preceding whitespace at EOF' => [
+            '<!DOCTYPE a PUBLIC"x"',
+            '<!DOCTYPE a PUBLIC "x"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier quote without preceding whitespace at EOF' => [
+            '<!DOCTYPE a SYSTEM"',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 system identifier NUL without preceding whitespace' => [
+            "<!DOCTYPE a SYSTEM\"\0",
+            "<!DOCTYPE a SYSTEM \"\u{FFFD}\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 closed system identifier without preceding whitespace at EOF' => [
+            '<!DOCTYPE a SYSTEM"x"',
+            '<!DOCTYPE a SYSTEM "x"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test3 public system identifier EOF with system NUL' => [
+            "<!DOCTYPE a PUBLIC\"p\" \"s\0",
+            "<!DOCTYPE a PUBLIC \"p\" \"s\u{FFFD}\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'closed public system identifiers without preceding whitespace at EOF' => [
+            '<!DOCTYPE a PUBLIC"p" "s"',
+            '<!DOCTYPE a PUBLIC "p" "s"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'empty closed public system identifiers without preceding whitespace at EOF' => [
+            '<!DOCTYPE a PUBLIC"" ""',
+            '<!DOCTYPE a><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'html5lib test2 abrupt double-quoted public identifier' => [
             '<!DOCTYPE html PUBLIC ">x',
             '<!DOCTYPE html><html><head></head><body>x</body></html>',
