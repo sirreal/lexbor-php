@@ -2496,6 +2496,50 @@ final class SerializeTest extends TestCase
         yield 'char_ref.ton #21 failed short named reference ac remains literal' => ['&ac', '&amp;ac'];
         yield 'char_ref.ton #22 failed short named reference a remains literal' => ['&a', '&amp;a'];
         yield 'char_ref.ton #23 bare ampersand remains literal' => ['&', '&amp;'];
+        yield 'html5lib entities undefined double-quoted attribute entity remains literal' => [
+            '<h a="&noti;">',
+            '<h a="&amp;noti;"></h>',
+        ];
+        yield 'html5lib entities semicolon-required double-quoted attribute entity before equals remains literal' => [
+            '<h a="&lang=">',
+            '<h a="&amp;lang="></h>',
+        ];
+        yield 'html5lib entities legacy double-quoted attribute entity before equals remains literal' => [
+            '<h a="&not=">',
+            '<h a="&amp;not="></h>',
+        ];
+        yield 'html5lib entities undefined single-quoted attribute entity remains literal' => [
+            "<h a='&noti;'>",
+            '<h a="&amp;noti;"></h>',
+        ];
+        yield 'html5lib entities semicolon-required single-quoted attribute entity before equals remains literal' => [
+            "<h a='&lang='>",
+            '<h a="&amp;lang="></h>',
+        ];
+        yield 'html5lib entities legacy single-quoted attribute entity before equals remains literal' => [
+            "<h a='&not='>",
+            '<h a="&amp;not="></h>',
+        ];
+        yield 'html5lib entities undefined unquoted attribute entity remains literal' => [
+            '<h a=&noti;>',
+            '<h a="&amp;noti;"></h>',
+        ];
+        yield 'html5lib entities semicolon-required unquoted attribute entity before equals remains literal' => [
+            '<h a=&lang=>',
+            '<h a="&amp;lang="></h>',
+        ];
+        yield 'html5lib entities legacy unquoted attribute entity before equals remains literal' => [
+            '<h a=&not=>',
+            '<h a="&amp;not="></h>',
+        ];
+        yield 'html5lib entities ambiguous ampersand remains literal' => [
+            '&rrrraannddom;',
+            '&amp;rrrraannddom;',
+        ];
+        yield 'html5lib entities semicolonless not body reference before name tail' => [
+            '&noti;',
+            '¬i;',
+        ];
         yield 'html5lib test3 data state equals text' => ['=', '='];
         yield 'html5lib test3 data state greater-than text' => ['>', '&gt;'];
         yield 'html5lib test3 data state question mark text' => ['?', '?'];
