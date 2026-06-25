@@ -2808,6 +2808,47 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib numericEntities $label" => $case;
         }
+        foreach ([
+            'valid Unicode boundary U+D7FF' => ['&#xd7ff;', "\u{D7FF}"],
+            'valid Unicode boundary U+E000' => ['&#xe000;', "\u{E000}"],
+            'valid Unicode boundary U+FDCF' => ['&#xfdcf;', "\u{FDCF}"],
+            'valid Unicode boundary U+FDF0' => ['&#xfdf0;', "\u{FDF0}"],
+            'valid Unicode boundary U+FFFD' => ['&#xfffd;', "\u{FFFD}"],
+            'valid Unicode boundary U+10000' => ['&#x10000;', "\u{10000}"],
+            'valid Unicode boundary U+1FFFD' => ['&#x1fffd;', "\u{1FFFD}"],
+            'valid Unicode boundary U+20000' => ['&#x20000;', "\u{20000}"],
+            'valid Unicode boundary U+2FFFD' => ['&#x2fffd;', "\u{2FFFD}"],
+            'valid Unicode boundary U+30000' => ['&#x30000;', "\u{30000}"],
+            'valid Unicode boundary U+3FFFD' => ['&#x3fffd;', "\u{3FFFD}"],
+            'valid Unicode boundary U+40000' => ['&#x40000;', "\u{40000}"],
+            'valid Unicode boundary U+4FFFD' => ['&#x4fffd;', "\u{4FFFD}"],
+            'valid Unicode boundary U+50000' => ['&#x50000;', "\u{50000}"],
+            'valid Unicode boundary U+5FFFD' => ['&#x5fffd;', "\u{5FFFD}"],
+            'valid Unicode boundary U+60000' => ['&#x60000;', "\u{60000}"],
+            'valid Unicode boundary U+6FFFD' => ['&#x6fffd;', "\u{6FFFD}"],
+            'valid Unicode boundary U+70000' => ['&#x70000;', "\u{70000}"],
+            'valid Unicode boundary U+7FFFD' => ['&#x7fffd;', "\u{7FFFD}"],
+            'valid Unicode boundary U+80000' => ['&#x80000;', "\u{80000}"],
+            'valid Unicode boundary U+8FFFD' => ['&#x8fffd;', "\u{8FFFD}"],
+            'valid Unicode boundary U+90000' => ['&#x90000;', "\u{90000}"],
+            'valid Unicode boundary U+9FFFD' => ['&#x9fffd;', "\u{9FFFD}"],
+            'valid Unicode boundary U+A0000' => ['&#xa0000;', "\u{A0000}"],
+            'valid Unicode boundary U+AFFFD' => ['&#xafffd;', "\u{AFFFD}"],
+            'valid Unicode boundary U+B0000' => ['&#xb0000;', "\u{B0000}"],
+            'valid Unicode boundary U+BFFFD' => ['&#xbfffd;', "\u{BFFFD}"],
+            'valid Unicode boundary U+C0000' => ['&#xc0000;', "\u{C0000}"],
+            'valid Unicode boundary U+CFFFD' => ['&#xcfffd;', "\u{CFFFD}"],
+            'valid Unicode boundary U+D0000' => ['&#xd0000;', "\u{D0000}"],
+            'valid Unicode boundary U+DFFFD' => ['&#xdfffd;', "\u{DFFFD}"],
+            'valid Unicode boundary U+E0000' => ['&#xe0000;', "\u{E0000}"],
+            'valid Unicode boundary U+EFFFD' => ['&#xefffd;', "\u{EFFFD}"],
+            'valid Unicode boundary U+F0000' => ['&#xf0000;', "\u{F0000}"],
+            'valid Unicode boundary U+FFFFD' => ['&#xffffd;', "\u{FFFFD}"],
+            'valid Unicode boundary U+100000' => ['&#x100000;', "\u{100000}"],
+            'valid Unicode boundary U+10FFFD' => ['&#x10fffd;', "\u{10FFFD}"],
+        ] as $label => $case) {
+            yield "html5lib numericEntities $label" => $case;
+        }
         yield 'char_ref.ton #39 decimal Cyrillic reference' => ['&#1024', 'Ѐ'];
         yield 'char_ref.ton #40 invalid decimal reference remains literal' => ['&#j', '&amp;#j'];
         yield 'char_ref.ton #41 invalid decimal reference before text remains literal' => ['&#jgf', '&amp;#jgf'];
