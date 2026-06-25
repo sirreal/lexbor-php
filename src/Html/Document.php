@@ -167,7 +167,7 @@ final class Document extends Node
     private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void
     {
         $stack = [$root];
-        $pattern = '~<!--(?<comment>.*?)(?:-->|\z)|<(?<bogus_comment>\?[^>]*)>|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z](?:[A-Za-z0-9:-]|\x00)*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~s';
+        $pattern = '~(?<comment_start><!--)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z](?:[A-Za-z0-9:-]|\x00)*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~si';
         $offset = 0;
 
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
@@ -177,15 +177,31 @@ final class Document extends Node
             }
 
             $tagEnd = $tagStart + strlen($match[0][0]);
+            $parent = $stack[count($stack) - 1];
 
-            if (($match['comment'][1] ?? -1) !== -1) {
-                $this->appendComment($stack[count($stack) - 1], $match['comment'][0]);
+            if (($match['comment_start'][1] ?? -1) !== -1) {
+                [$comment, $tagEnd] = self::consumeHtmlComment($html, $tagStart);
+                $this->appendComment($parent, $comment);
                 $offset = $tagEnd;
                 continue;
             }
 
             if (($match['bogus_comment'][1] ?? -1) !== -1) {
-                $this->appendComment($stack[count($stack) - 1], $match['bogus_comment'][0]);
+                $this->appendComment($parent, $match['bogus_comment'][0]);
+                $offset = $tagEnd;
+                continue;
+            }
+
+            if (($match['bogus_declaration'][1] ?? -1) !== -1) {
+                $declaration = $match['bogus_declaration'][0];
+                if (str_starts_with($declaration, '[CDATA[') && self::isForeignContentCdataContext($parent, $root, $context)) {
+                    [$cdata, $tagEnd] = self::consumeCdataSection($html, $tagStart);
+                    $this->appendText($parent, $cdata, false);
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                $this->appendComment($parent, $declaration);
                 $offset = $tagEnd;
                 continue;
             }
@@ -204,7 +220,6 @@ final class Document extends Node
                 $attributeSource = self::rtrimHtmlWhitespace(substr($attributeSource, 0, -1));
             }
 
-            $parent = $stack[count($stack) - 1];
             $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             $element = $this->createElement($tagName, $this->namespaceForElement($namespaceParent, $tagName));
             foreach ($this->parseAttributes($attributeSource) as $name => $value) {
@@ -234,6 +249,126 @@ final class Document extends Node
     private function appendComment(Node $parent, string $data): void
     {
         $parent->appendChild($this->createComment($data));
+    }
+
+    /**
+     * @return array{string, int}
+     */
+    private static function consumeCdataSection(string $html, int $start): array
+    {
+        $dataStart = $start + strlen('<![CDATA[');
+        $dataEnd = strpos($html, ']]>', $dataStart);
+
+        if ($dataEnd === false) {
+            return [str_replace("\0", "\u{FFFD}", substr($html, $dataStart)), strlen($html)];
+        }
+
+        return [
+            str_replace("\0", "\u{FFFD}", substr($html, $dataStart, $dataEnd - $dataStart)),
+            $dataEnd + 3,
+        ];
+    }
+
+    private static function isForeignContentCdataContext(Node $parent, Node $root, ?Element $context): bool
+    {
+        $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+
+        return $namespaceParent instanceof Element
+            && $namespaceParent->namespace !== Element::NAMESPACE_HTML;
+    }
+
+    /**
+     * @return array{string, int}
+     */
+    private static function consumeHtmlComment(string $html, int $start): array
+    {
+        $data = '';
+        $offset = $start + 4;
+        $length = strlen($html);
+        $state = 'start';
+
+        while ($offset < $length) {
+            $character = $html[$offset];
+            $normalized = $character === "\0" ? "\u{FFFD}" : $character;
+
+            switch ($state) {
+                case 'start':
+                    if ($character === '>') {
+                        return [$data, $offset + 1];
+                    }
+
+                    if ($character === '-') {
+                        $state = 'start_dash';
+                    } else {
+                        $data .= $normalized;
+                        $state = 'comment';
+                    }
+                    break;
+
+                case 'start_dash':
+                    if ($character === '>') {
+                        return [$data, $offset + 1];
+                    }
+
+                    if ($character === '-') {
+                        $state = 'end';
+                    } else {
+                        $data .= '-' . $normalized;
+                        $state = 'comment';
+                    }
+                    break;
+
+                case 'dash':
+                    if ($character === '-') {
+                        $state = 'end';
+                    } else {
+                        $data .= '-' . $normalized;
+                        $state = 'comment';
+                    }
+                    break;
+
+                case 'end':
+                    if ($character === '>') {
+                        return [$data, $offset + 1];
+                    }
+
+                    if ($character === '!') {
+                        $state = 'end_bang';
+                    } elseif ($character === '-') {
+                        $data .= '-';
+                    } else {
+                        $data .= '--' . $normalized;
+                        $state = 'comment';
+                    }
+                    break;
+
+                case 'end_bang':
+                    if ($character === '>') {
+                        return [$data, $offset + 1];
+                    }
+
+                    if ($character === '-') {
+                        $data .= '--!';
+                        $state = 'dash';
+                    } else {
+                        $data .= '--!' . $normalized;
+                        $state = 'comment';
+                    }
+                    break;
+
+                default:
+                    if ($character === '-') {
+                        $state = 'dash';
+                    } else {
+                        $data .= $normalized;
+                    }
+                    break;
+            }
+
+            $offset++;
+        }
+
+        return [$data, $length];
     }
 
     private static function normalizeTagTokenName(string $tagName): string
@@ -424,6 +559,26 @@ REGEX;
                     'publicId' => null,
                     'systemId' => null,
                     'offset' => strlen($eofPublicKeywordMatch[0][0]),
+                ];
+            }
+
+            $noWhitespaceNamePattern = '~^\s*<!doctype(?<name>[^\x00\s>"\']+)\s*>~i';
+            if (preg_match($noWhitespaceNamePattern, $html, $noWhitespaceNameMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => strtolower($noWhitespaceNameMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($noWhitespaceNameMatch[0][0]),
+                ];
+            }
+
+            $invalidAfterNamePattern = '~^\s*<!doctype\s+(?<name>[^\x00\s>"\']+)[^>]*>~i';
+            if (preg_match($invalidAfterNamePattern, $html, $invalidAfterNameMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => strtolower($invalidAfterNameMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($invalidAfterNameMatch[0][0]),
                 ];
             }
 

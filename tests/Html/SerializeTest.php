@@ -243,6 +243,21 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html><html><head></head><body></body></html>',
             false,
         ];
+        yield 'html5lib test2 doctype without space before html name' => [
+            '<!DOCTYPEhtml>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test2 doctype without space before non-html name' => [
+            '<!DOCTYPEfoo>',
+            '<!DOCTYPE foo><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test4 invalid sequence after doctype name' => [
+            '<!DOCTYPE html x>text',
+            '<!DOCTYPE html><html><head></head><body>text</body></html>',
+            false,
+        ];
     }
 
     /**
@@ -335,6 +350,35 @@ final class SerializeTest extends TestCase
     {
         yield 'comment.ton #1 space comment' => ['<div><!-- --></div>', '<div><!-- --></div>'];
         yield 'comment.ton #2 repeated hyphen comment' => ['<div><!-------></div>', '<div><!-------></div>'];
+        yield 'html5lib test1 truncated doctype start is bogus comment' => ['<!DOC>', '<!--' . 'DOC' . '-->'];
+        yield 'html5lib test1 incorrectly opened comment start' => ['<!-', '<!--' . '-' . '-->'];
+        yield 'html5lib test1 short empty comment' => ['<!-->', '<!--' . '' . '-->'];
+        yield 'html5lib test1 short empty comment with dash' => ['<!--->', '<!--' . '' . '-->'];
+        yield 'html5lib test1 unfinished nested comment start' => ['<!-- <!--', '<!--' . ' <!' . '-->'];
+        yield 'html5lib test2 comment with dash at EOF' => ['<!---x', '<!--' . '-x' . '-->'];
+        yield 'html5lib test3 unfinished four-dash comment' => ['<!----', '<!--' . '' . '-->'];
+        yield 'html5lib test3 incorrectly closed empty comment' => ['<!----!>', '<!--' . '' . '-->'];
+        yield 'html5lib test3 incorrectly closed comment with data' => ['<!----!-->', '<!--' . '--!' . '-->'];
+        yield 'html5lib pendingSpecChanges unfinished four-dash comment with space' => ['<!---- >', '<!--' . '-- >' . '-->'];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function html5CdataProvider(): iterable
+    {
+        yield 'tests21.ton #1 SVG CDATA is text' => ['<svg><![CDATA[foo]]>', '<svg>foo</svg>'];
+        yield 'tests21.ton #2 Math CDATA is text' => ['<math><![CDATA[foo]]>', '<math>foo</math>'];
+        yield 'tests21.ton #3 HTML CDATA is bogus comment' => ['<div><![CDATA[foo]]>', '<div><!--[CDATA[foo]]--></div>'];
+        yield 'tests21.ton #14 foreignObject HTML child CDATA is bogus comment' => [
+            '<svg><foreignObject><div><![CDATA[foo]]></div></foreignObject></svg>',
+            '<svg><foreignobject><div><!--[CDATA[foo]]--></div></foreignobject></svg>',
+        ];
+        yield 'tests21.ton #15 SVG CDATA can contain markup text' => ['<svg><![CDATA[<svg>]]>', '<svg>&lt;svg&gt;</svg>'];
+        yield 'foreignObject direct child CDATA stays SVG text' => [
+            '<svg><foreignObject><![CDATA[foo]]></foreignObject></svg>',
+            '<svg><foreignobject>foo</foreignobject></svg>',
+        ];
     }
 
     /**
@@ -579,6 +623,15 @@ final class SerializeTest extends TestCase
 
     #[DataProvider('tokenizerCommentProvider')]
     public function testTokenizerCommentRegressions(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('html5CdataProvider')]
+    public function testHtml5CdataRegressions(string $html, string $expected): void
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
