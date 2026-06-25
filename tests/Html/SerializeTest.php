@@ -531,6 +531,10 @@ final class SerializeTest extends TestCase
             '<a a=f<>',
             '<a a="f&lt;"></a>',
         ];
+        yield 'html5lib test3 slash in unquoted attribute value before tag end' => [
+            '<a a=a/>',
+            '<a a="a/"></a>',
+        ];
         yield 'html5lib test2 double-quote after attribute name' => [
             '<h a ">',
             '<h a="" &quot;=""></h>',

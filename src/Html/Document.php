@@ -224,18 +224,12 @@ final class Document extends Node
                 return;
             }
 
-            [$attributeSource, $tagEnd] = $startTagEnd;
+            [$attributeSource, $tagEnd, $selfClosing] = $startTagEnd;
 
             if ($match['closing'][0] === '/') {
                 $this->closeElement($stack, $tagName);
                 $offset = $tagEnd;
                 continue;
-            }
-
-            $attributeSource = self::rtrimHtmlWhitespace($attributeSource);
-            $selfClosing = str_ends_with($attributeSource, '/');
-            if ($selfClosing) {
-                $attributeSource = self::rtrimHtmlWhitespace(substr($attributeSource, 0, -1));
             }
 
             $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
@@ -265,13 +259,14 @@ final class Document extends Node
     }
 
     /**
-     * @return array{string, int}|null
+     * @return array{string, int, bool}|null
      */
     private static function consumeStartTag(string $html, int $offset): ?array
     {
         $attributeStart = $offset;
         $length = strlen($html);
         $state = 'before_attribute_name';
+        $selfClosingStart = null;
 
         while ($offset < $length) {
             $character = $html[$offset];
@@ -279,10 +274,12 @@ final class Document extends Node
             switch ($state) {
                 case 'before_attribute_name':
                     if ($character === '>') {
-                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1, false];
                     }
 
                     if ($character === '/') {
+                        $selfClosingStart = $offset;
+                        $state = 'self_closing_start_tag';
                         break;
                     }
 
@@ -295,10 +292,13 @@ final class Document extends Node
 
                 case 'attribute_name':
                     if ($character === '>') {
-                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1, false];
                     }
 
-                    if (str_contains(" \t\n\r\f", $character) || $character === '/') {
+                    if ($character === '/') {
+                        $selfClosingStart = $offset;
+                        $state = 'self_closing_start_tag';
+                    } elseif (str_contains(" \t\n\r\f", $character)) {
                         $state = 'after_attribute_name';
                     } elseif ($character === '=') {
                         $state = 'before_attribute_value';
@@ -307,7 +307,7 @@ final class Document extends Node
 
                 case 'after_attribute_name':
                     if ($character === '>') {
-                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1, false];
                     }
 
                     if (str_contains(" \t\n\r\f", $character)) {
@@ -315,7 +315,8 @@ final class Document extends Node
                     }
 
                     if ($character === '/') {
-                        $state = 'before_attribute_name';
+                        $selfClosingStart = $offset;
+                        $state = 'self_closing_start_tag';
                     } elseif ($character === '=') {
                         $state = 'before_attribute_value';
                     } else {
@@ -325,7 +326,7 @@ final class Document extends Node
 
                 case 'before_attribute_value':
                     if ($character === '>') {
-                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1, false];
                     }
 
                     if (str_contains(" \t\n\r\f", $character)) {
@@ -355,19 +356,31 @@ final class Document extends Node
 
                 case 'after_quoted_attribute_value':
                     if ($character === '>') {
-                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1, false];
                     }
 
                     if (str_contains(" \t\n\r\f", $character)) {
                         $state = 'before_attribute_name';
+                    } elseif ($character === '/') {
+                        $selfClosingStart = $offset;
+                        $state = 'self_closing_start_tag';
                     } else {
                         $state = 'attribute_name';
                     }
                     break;
 
+                case 'self_closing_start_tag':
+                    if ($character === '>') {
+                        $attributeSource = substr($html, $attributeStart, ($selfClosingStart ?? $offset) - $attributeStart);
+                        return [self::rtrimHtmlWhitespace($attributeSource), $offset + 1, true];
+                    }
+
+                    $state = 'before_attribute_name';
+                    continue 2;
+
                 default:
                     if ($character === '>') {
-                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1];
+                        return [substr($html, $attributeStart, $offset - $attributeStart), $offset + 1, false];
                     }
 
                     if (str_contains(" \t\n\r\f", $character)) {
