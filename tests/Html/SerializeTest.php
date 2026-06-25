@@ -305,6 +305,11 @@ final class SerializeTest extends TestCase
         yield 'char_ref.ton #58 no-break space reference inside text' => ['ab&nbsp;cd', 'ab&nbsp;cd'];
         yield 'char_ref.ton #59 legacy no-break space reference' => ['&nbsp', '&nbsp;'];
         yield 'char_ref.ton #60 legacy no-break space reference before text' => ['ab&nbspcd', 'ab&nbsp;cd'];
+        yield 'char_ref.ton #34 mixed text and comment reference handling' => [
+            "&AEli var asdasd = 131312;\n    var ggff = \"sdfsdf\";\n      &AElig;&acute&acute; &Agrave;\n    <!--<script --</script>\r\r\r\r\n&between",
+            "&amp;AEli var asdasd = 131312;\n    var ggff = \"sdfsdf\";\n      Æ´´ À\n    <!--<script --</script>\n\n\n\n&between-->",
+        ];
+        yield 'EOF comment consumes terminal newline' => ["<!--x\n", "<!--x\n-->"];
         yield 'uppercase ampersand alias with semicolon' => ['<p>&AMP;</p>', '<p>&amp;</p>'];
         yield 'uppercase less-than alias with semicolon' => ['<p>&LT;</p>', '<p>&lt;</p>'];
         yield 'multi-codepoint named reference' => ['<p>&NotEqualTilde;</p>', '<p>≂̸</p>'];
