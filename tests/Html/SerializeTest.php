@@ -194,6 +194,20 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
+    public static function tokenizerTagNameProvider(): iterable
+    {
+        yield 'tag_name.ton #1 NUL in middle of tag name' => ["<sEf\0sTf>", "<sef\u{FFFD}stf></sef\u{FFFD}stf>"];
+        yield 'tag_name.ton #2 NUL at end of tag name' => ["<sEf\0>", "<sef\u{FFFD}></sef\u{FFFD}>"];
+        yield 'tag_name.ton #3 NUL after first character' => ["<s\0Ef>", "<s\u{FFFD}ef></s\u{FFFD}ef>"];
+        yield 'tag_name.ton #4 single-letter tag plus NUL' => ["<s\0>", "<s\u{FFFD}></s\u{FFFD}>"];
+        yield 'tag_name.ton #5 repeated NULs in tag name' => ["<sEf\0\0\0sTf>", "<sef\u{FFFD}\u{FFFD}\u{FFFD}stf></sef\u{FFFD}\u{FFFD}\u{FFFD}stf>"];
+        yield 'tag_name.ton #6 uppercase ASCII is lowercased' => ['<AAAAAA-aa>', '<aaaaaa-aa></aaaaaa-aa>'];
+        yield 'body pre-scan does not consume NUL-suffixed body tag' => ["<body\0>x</body\0>", "<body\u{FFFD}>x</body\u{FFFD}>"];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function upstreamSerializeExtElementProvider(): iterable
     {
         yield 'element.ton #1 div' => ['<div></div>', '<div></div>'];
@@ -329,6 +343,15 @@ final class SerializeTest extends TestCase
 
     #[DataProvider('tokenizerCharacterReferenceProvider')]
     public function testTokenizerCharacterReferenceRegressions(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('tokenizerTagNameProvider')]
+    public function testTokenizerTagNameRegressions(string $html, string $expected): void
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));

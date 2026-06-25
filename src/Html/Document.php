@@ -167,7 +167,7 @@ final class Document extends Node
     private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void
     {
         $stack = [$root];
-        $pattern = '~<!--(?<comment>.*?)-->|<(?<bogus_comment>\?[^>]*)>|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z][A-Za-z0-9:-]*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~s';
+        $pattern = '~<!--(?<comment>.*?)-->|<(?<bogus_comment>\?[^>]*)>|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z](?:[A-Za-z0-9:-]|\x00)*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~s';
         $offset = 0;
 
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
@@ -190,7 +190,7 @@ final class Document extends Node
                 continue;
             }
 
-            $tagName = strtolower($match['tag'][0]);
+            $tagName = self::normalizeTagTokenName($match['tag'][0]);
 
             if ($match['closing'][0] === '/') {
                 $this->closeElement($stack, $tagName);
@@ -234,6 +234,11 @@ final class Document extends Node
     private function appendComment(Node $parent, string $data): void
     {
         $parent->appendChild($this->createComment($data));
+    }
+
+    private static function normalizeTagTokenName(string $tagName): string
+    {
+        return str_replace("\0", "\u{FFFD}", strtolower($tagName));
     }
 
     private function appendText(Node $parent, string $data, bool $decodeCharacterReferences = true): void
@@ -311,7 +316,7 @@ final class Document extends Node
      */
     private function bodyFragment(string $html): ?array
     {
-        $pattern = '~<\s*body\b((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>~si';
+        $pattern = '~<\s*body(?=[\t\n\f\r />])((?:[^>"\']+|"[^"]*"|\'[^\']*\')*)>~si';
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE) !== 1) {
             return null;
