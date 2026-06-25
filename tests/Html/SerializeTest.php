@@ -2473,6 +2473,19 @@ final class SerializeTest extends TestCase
         yield 'char_ref.ton #36 decimal reference before text' => ['&#80v', 'Pv'];
         yield 'char_ref.ton #37 text before decimal reference' => ['a&#80v', 'aPv'];
         yield 'char_ref.ton #38 oversized decimal reference is replaced' => ['a&#654654654654654646546v', 'a�v'];
+        foreach ([
+            'overflow before EOF 11 digits' => ['&#11111111111', '�'],
+            'overflow before EOF 10 digits' => ['&#1111111111', '�'],
+            'overflow before EOF 12 digits' => ['&#111111111111', '�'],
+            'overflow before text 11 digits' => ['&#11111111111x', '�x'],
+            'overflow before text 10 digits' => ['&#1111111111x', '�x'],
+            'overflow before text 12 digits' => ['&#111111111111x', '�x'],
+            'overflow semicolon 11 digits' => ['&#11111111111;', '�'],
+            'overflow semicolon 10 digits' => ['&#1111111111;', '�'],
+            'overflow semicolon 12 digits' => ['&#111111111111;', '�'],
+        ] as $label => $case) {
+            yield "html5lib numericEntities $label" => $case;
+        }
         yield 'char_ref.ton #39 decimal Cyrillic reference' => ['&#1024', 'Ѐ'];
         yield 'char_ref.ton #40 invalid decimal reference remains literal' => ['&#j', '&amp;#j'];
         yield 'char_ref.ton #41 invalid decimal reference before text remains literal' => ['&#jgf', '&amp;#jgf'];
