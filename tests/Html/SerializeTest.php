@@ -2594,6 +2594,15 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 standalone uppercase Z start tag folds' => ['<Z>', '<z></z>'];
         yield 'html5lib test3 invalid tag-open left bracket is text' => ['<[', '&lt;['];
         yield 'html5lib test3 invalid tag-open backtick is text' => ['<`', '&lt;`'];
+        yield 'html5lib test3 standalone lowercase a start tag' => ['<a>', '<a></a>'];
+        yield 'html5lib test3 tag name NUL replacement' => ["<a\0>", "<a\u{FFFD}></a\u{FFFD}>"];
+        yield 'html5lib test3 tag name backspace is retained' => ["<a\x08>", "<a\x08></a\x08>"];
+        yield 'html5lib test3 tag name tab boundary' => ["<a\t>", '<a></a>'];
+        yield 'html5lib test3 tag name line feed boundary' => ["<a\n>", '<a></a>'];
+        yield 'html5lib test3 tag name vertical tab is retained' => ["<a\v>", "<a\v></a\v>"];
+        yield 'html5lib test3 tag name form feed boundary' => ["<a\f>", '<a></a>'];
+        yield 'html5lib test3 tag name carriage return boundary' => ["<a\r>", '<a></a>'];
+        yield 'html5lib test3 tag name unit separator is retained' => ["<a\x1F>", "<a\x1F></a\x1F>"];
         yield 'html5lib test3 EOF before end tag name is text' => ['</', '&lt;/'];
         yield 'html5lib test4 EOF in tag name state' => ['<a', ''];
         yield 'html5lib test4 slash EOF in tag name state' => ['<z/', ''];
