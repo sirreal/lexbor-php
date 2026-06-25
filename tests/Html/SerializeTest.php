@@ -2595,6 +2595,44 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib numericEntities $label" => $case;
         }
+        foreach ([
+            'valid ASCII tab' => ['&#x0009;', "\t"],
+            'valid ASCII newline' => ['&#x000a;', "\n"],
+            'valid ASCII space' => ['&#x0020;', ' '],
+            'valid ASCII exclamation mark' => ['&#x0021;', '!'],
+            'valid ASCII double quote' => ['&#x0022;', '"'],
+            'valid ASCII number sign' => ['&#x0023;', '#'],
+            'valid ASCII dollar sign' => ['&#x0024;', '$'],
+            'valid ASCII percent sign' => ['&#x0025;', '%'],
+            'valid ASCII ampersand' => ['&#x0026;', '&amp;'],
+            'valid ASCII apostrophe' => ['&#x0027;', "'"],
+            'valid ASCII left parenthesis' => ['&#x0028;', '('],
+            'valid ASCII right parenthesis' => ['&#x0029;', ')'],
+            'valid ASCII asterisk' => ['&#x002a;', '*'],
+            'valid ASCII plus sign' => ['&#x002b;', '+'],
+            'valid ASCII comma' => ['&#x002c;', ','],
+            'valid ASCII hyphen-minus' => ['&#x002d;', '-'],
+            'valid ASCII full stop' => ['&#x002e;', '.'],
+            'valid ASCII solidus' => ['&#x002f;', '/'],
+            'valid ASCII digit 0' => ['&#x0030;', '0'],
+            'valid ASCII digit 1' => ['&#x0031;', '1'],
+            'valid ASCII digit 2' => ['&#x0032;', '2'],
+            'valid ASCII digit 3' => ['&#x0033;', '3'],
+            'valid ASCII digit 4' => ['&#x0034;', '4'],
+            'valid ASCII digit 5' => ['&#x0035;', '5'],
+            'valid ASCII digit 6' => ['&#x0036;', '6'],
+            'valid ASCII digit 7' => ['&#x0037;', '7'],
+            'valid ASCII digit 8' => ['&#x0038;', '8'],
+            'valid ASCII digit 9' => ['&#x0039;', '9'],
+            'valid ASCII colon' => ['&#x003a;', ':'],
+            'valid ASCII semicolon' => ['&#x003b;', ';'],
+            'valid ASCII less-than sign' => ['&#x003c;', '&lt;'],
+            'valid ASCII equals sign' => ['&#x003d;', '='],
+            'valid ASCII greater-than sign' => ['&#x003e;', '&gt;'],
+            'valid ASCII question mark' => ['&#x003f;', '?'],
+        ] as $label => $case) {
+            yield "html5lib numericEntities $label" => $case;
+        }
         yield 'char_ref.ton #39 decimal Cyrillic reference' => ['&#1024', 'Ѐ'];
         yield 'char_ref.ton #40 invalid decimal reference remains literal' => ['&#j', '&amp;#j'];
         yield 'char_ref.ton #41 invalid decimal reference before text remains literal' => ['&#jgf', '&amp;#jgf'];
