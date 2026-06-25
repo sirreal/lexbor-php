@@ -2390,6 +2390,65 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
+    public static function html5libTokenizerContentModelProvider(): iterable
+    {
+        yield 'contentModelFlags.test PLAINTEXT content model flag' => [
+            '<plaintext><head>&body;',
+            '<plaintext><head>&body;</plaintext>',
+        ];
+        yield 'contentModelFlags.test PLAINTEXT seeming close tag stays text' => [
+            '<plaintext></plaintext>&body;',
+            '<plaintext></plaintext>&body;</plaintext>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp end tag closes' => [
+            '<xmp>foo</xmp>',
+            '<xmp>foo</xmp>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp end tag is case-insensitive' => [
+            '<xmp>foo</xMp>',
+            '<xmp>foo</xmp>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp EOF partial end tag remains text' => [
+            '<xmp>foo</xmp',
+            '<xmp>foo</xmp</xmp>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp angle after partial end tag remains text' => [
+            '<xmp>foo</xmp<',
+            '<xmp>foo</xmp<</xmp>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp incorrect end tag remains text until xmp close' => [
+            '<xmp></foo>bar</xmp>',
+            '<xmp></foo>bar</xmp>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp repeated partial end tags close at final complete tag' => [
+            '<xmp></xmp</xmp</xmp>',
+            '<xmp></xmp</xmp</xmp>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp prefixed incorrect end tag remains text' => [
+            '<xmp></foo>bar</xmpaar>',
+            '<xmp></foo>bar</xmpaar></xmp>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp entity-looking text is not decoded' => [
+            '<xmp>&foo;</xmp>',
+            '<xmp>&foo;</xmp>',
+        ];
+        yield 'contentModelFlags.test RCDATA textarea end tag closes' => [
+            '<textarea>foo</textarea>',
+            '<textarea>foo</textarea>',
+        ];
+        yield 'contentModelFlags.test RCDATA textarea end tag is case-insensitive' => [
+            '<textarea>foo</tExTaReA>',
+            '<textarea>foo</textarea>',
+        ];
+        yield 'contentModelFlags.test RCDATA textarea decodes character reference' => [
+            '<textarea>&lt;</textarea>',
+            '<textarea>&lt;</textarea>',
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function tokenizerCharacterReferenceProvider(): iterable
     {
         yield 'char_ref.ton #1 decimal reference before text' => ['abc&#1234cde', 'abcӒcde'];
@@ -3451,6 +3510,15 @@ final class SerializeTest extends TestCase
 
         self::assertSame($quirksMode, $document->isQuirksMode());
         self::assertSame($expected, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    #[DataProvider('html5libTokenizerContentModelProvider')]
+    public function testHtml5libTokenizerContentModelRegressions(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
     }
 
     #[DataProvider('tokenizerCharacterReferenceProvider')]
