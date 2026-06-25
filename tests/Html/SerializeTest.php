@@ -2750,6 +2750,19 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 before attribute name dash' => ['<a ->', '<a -=""></a>'];
         yield 'html5lib test3 before attribute name period' => ['<a .>', '<a .=""></a>'];
         yield 'html5lib test3 before attribute name self-closing slash' => ['<a />', '<a></a>'];
+        yield 'html5lib test3 before attribute name zero' => ['<a 0>', '<a 0=""></a>'];
+        yield 'html5lib test3 before attribute name one' => ['<a 1>', '<a 1=""></a>'];
+        yield 'html5lib test3 before attribute name nine' => ['<a 9>', '<a 9=""></a>'];
+        yield 'html5lib test3 before attribute name less-than' => ['<a <>', '<a &lt;=""></a>'];
+        yield 'html5lib test3 before attribute name equals' => ['<a =>', '<a ==""></a>'];
+        yield 'html5lib test3 before attribute name question mark' => ['<a ?>', '<a ?=""></a>'];
+        yield 'html5lib test3 before attribute name at sign' => ['<a @>', '<a @=""></a>'];
+        yield 'html5lib test3 before attribute name uppercase A' => ['<a A>', '<a a=""></a>'];
+        yield 'html5lib test3 before attribute name uppercase B' => ['<a B>', '<a b=""></a>'];
+        yield 'html5lib test3 before attribute name uppercase Y' => ['<a Y>', '<a y=""></a>'];
+        yield 'html5lib test3 before attribute name uppercase Z' => ['<a Z>', '<a z=""></a>'];
+        yield 'html5lib test3 before attribute name left bracket' => ['<a [>', '<a [=""></a>'];
+        yield 'html5lib test3 before attribute name backtick' => ['<a `>', '<a `=""></a>'];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
