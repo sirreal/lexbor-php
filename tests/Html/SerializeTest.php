@@ -2872,6 +2872,26 @@ final class SerializeTest extends TestCase
             "<a a=\"\x1F\"></a>",
         ];
         yield 'html5lib test3 before attribute value space boundary' => ['<a a= >', '<a a=""></a>'];
+        yield 'html5lib test3 before attribute value exclamation' => ['<a a=!>', '<a a="!"></a>'];
+        yield 'html5lib test3 double-quoted attribute value empty' => ['<a a="">', '<a a=""></a>'];
+        yield 'html5lib test3 double-quoted attribute value tab retained' => [
+            "<a a=\"\t\">",
+            "<a a=\"\t\"></a>",
+        ];
+        yield 'html5lib test3 double-quoted attribute value line feed retained' => [
+            "<a a=\"\n\">",
+            "<a a=\"\n\"></a>",
+        ];
+        yield 'html5lib test3 double-quoted attribute value vertical tab retained' => [
+            "<a a=\"\v\">",
+            "<a a=\"\v\"></a>",
+        ];
+        yield 'html5lib test3 double-quoted attribute value form feed retained' => [
+            "<a a=\"\f\">",
+            "<a a=\"\f\"></a>",
+        ];
+        yield 'html5lib test3 double-quoted attribute value space retained' => ['<a a=" ">', '<a a=" "></a>'];
+        yield 'html5lib test3 double-quoted attribute value exclamation' => ['<a a="!">', '<a a="!"></a>'];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
