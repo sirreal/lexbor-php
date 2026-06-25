@@ -198,7 +198,7 @@ final class Document extends Node
             }
 
             if (($match['bogus_comment'][1] ?? -1) !== -1) {
-                $this->appendComment($parent, $match['bogus_comment'][0]);
+                $this->appendComment($parent, str_replace("\0", "\u{FFFD}", $match['bogus_comment'][0]));
                 $offset = $tagEnd;
                 continue;
             }
@@ -212,7 +212,7 @@ final class Document extends Node
                     continue;
                 }
 
-                $this->appendComment($parent, $declaration);
+                $this->appendComment($parent, str_replace("\0", "\u{FFFD}", $declaration));
                 $offset = $tagEnd;
                 continue;
             }

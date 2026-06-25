@@ -386,6 +386,9 @@ final class SerializeTest extends TestCase
         yield 'comment.ton #1 space comment' => ['<div><!-- --></div>', '<div><!-- --></div>'];
         yield 'comment.ton #2 repeated hyphen comment' => ['<div><!-------></div>', '<div><!-------></div>'];
         yield 'html5lib test1 truncated doctype start is bogus comment' => ['<!DOC>', '<!--' . 'DOC' . '-->'];
+        yield 'html5lib test3 incorrectly opened comment NUL' => ["<!\0", "<!--\u{FFFD}-->"];
+        yield 'html5lib test3 incorrectly opened comment space NUL' => ["<! \0", "<!-- \u{FFFD}-->"];
+        yield 'html5lib test3 processing instruction NUL' => ["<?\0", "<!--?\u{FFFD}-->"];
         yield 'html5lib test1 incorrectly opened comment start' => ['<!-', '<!--' . '-' . '-->'];
         yield 'html5lib test1 short empty comment' => ['<!-->', '<!--' . '' . '-->'];
         yield 'html5lib test1 short empty comment with dash' => ['<!--->', '<!--' . '' . '-->'];
