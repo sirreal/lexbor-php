@@ -358,6 +358,16 @@ final class SerializeTest extends TestCase
             "<!DOCTYPE a PUBLIC \"\u{FFFD}\"><html><head></head><body></body></html>",
             true,
         ];
+        yield 'html5lib test3 public identifier vertical tab without preceding whitespace' => [
+            "<!DOCTYPEa PUBLIC\"\v",
+            "<!DOCTYPE a PUBLIC \"\v\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 single-quoted public identifier vertical tab without preceding whitespace' => [
+            "<!DOCTYPEa PUBLIC'\v",
+            "<!DOCTYPE a PUBLIC \"\v\"><html><head></head><body></body></html>",
+            true,
+        ];
         yield 'html5lib test3 closed public identifier without preceding whitespace at EOF' => [
             '<!DOCTYPE a PUBLIC"x"',
             '<!DOCTYPE a PUBLIC "x"><html><head></head><body></body></html>',
@@ -381,6 +391,16 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 system identifier NUL without preceding whitespace' => [
             "<!DOCTYPE a SYSTEM\"\0",
             "<!DOCTYPE a SYSTEM \"\u{FFFD}\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 system identifier vertical tab without preceding whitespace' => [
+            "<!DOCTYPEa SYSTEM\"\v",
+            "<!DOCTYPE a SYSTEM \"\v\"><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 single-quoted system identifier vertical tab without preceding whitespace' => [
+            "<!DOCTYPEa SYSTEM'\v",
+            "<!DOCTYPE a SYSTEM \"\v\"><html><head></head><body></body></html>",
             true,
         ];
         yield 'html5lib test3 closed system identifier without preceding whitespace at EOF' => [
@@ -602,6 +622,26 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html SYSTEM ">x">y',
             '<!DOCTYPE html><html><head></head><body>x"&gt;y</body></html>',
             false,
+        ];
+        yield 'abrupt no-whitespace public identifier preserves body text' => [
+            '<!DOCTYPEa PUBLIC">x',
+            '<!DOCTYPE a><html><head></head><body>x</body></html>',
+            true,
+        ];
+        yield 'abrupt no-whitespace single-quoted public identifier preserves body text' => [
+            "<!DOCTYPEa PUBLIC'>x",
+            '<!DOCTYPE a><html><head></head><body>x</body></html>',
+            true,
+        ];
+        yield 'abrupt no-whitespace system identifier preserves body text' => [
+            '<!DOCTYPEa SYSTEM">x',
+            '<!DOCTYPE a><html><head></head><body>x</body></html>',
+            true,
+        ];
+        yield 'abrupt no-whitespace single-quoted system identifier preserves body text' => [
+            "<!DOCTYPEa SYSTEM'>x",
+            '<!DOCTYPE a><html><head></head><body>x</body></html>',
+            true,
         ];
     }
 

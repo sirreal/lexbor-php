@@ -1008,6 +1008,36 @@ REGEX;
                 ];
             }
 
+            $eofNoWhitespacePublicPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+PUBLIC[ \t\n\f\r]*(?:"(?<publicIdDouble>[^">]*)|'(?<publicIdSingle>[^'>]*))[ \t\n\f\r]*$~is
+REGEX;
+
+            if (preg_match($eofNoWhitespacePublicPattern, $html, $eofNoWhitespacePublicMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $publicId = $eofNoWhitespacePublicMatch['publicIdDouble'][0] ?? $eofNoWhitespacePublicMatch['publicIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($eofNoWhitespacePublicMatch['name'][0]),
+                    'publicId' => self::normalizeDoctypeIdentifier($publicId),
+                    'systemId' => null,
+                    'offset' => strlen($eofNoWhitespacePublicMatch[0][0]),
+                ];
+            }
+
+            $eofNoWhitespaceSystemPattern = <<<'REGEX'
+~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+SYSTEM[ \t\n\f\r]*(?:"(?<systemIdDouble>[^">]*)|'(?<systemIdSingle>[^'>]*))[ \t\n\f\r]*$~is
+REGEX;
+
+            if (preg_match($eofNoWhitespaceSystemPattern, $html, $eofNoWhitespaceSystemMatch, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) === 1) {
+                $systemId = $eofNoWhitespaceSystemMatch['systemIdDouble'][0] ?? $eofNoWhitespaceSystemMatch['systemIdSingle'][0] ?? null;
+
+                return [
+                    'name' => self::normalizeDoctypeToken($eofNoWhitespaceSystemMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => self::normalizeDoctypeIdentifier($systemId),
+                    'offset' => strlen($eofNoWhitespaceSystemMatch[0][0]),
+                ];
+            }
+
             $noWhitespaceInvalidAfterNamePattern = '~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"\']+)[^>]*(?:>|$)~i';
             if (preg_match($noWhitespaceInvalidAfterNamePattern, $html, $noWhitespaceInvalidAfterNameMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
