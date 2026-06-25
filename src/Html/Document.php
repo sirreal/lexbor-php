@@ -1197,6 +1197,7 @@ REGEX;
                     'publicId' => self::normalizeDoctypeIdentifier($publicId),
                     'systemId' => null,
                     'offset' => strlen($eofNoWhitespacePublicMatch[0][0]),
+                    'forceQuirks' => true,
                 ];
             }
 
@@ -1212,6 +1213,7 @@ REGEX;
                     'publicId' => null,
                     'systemId' => self::normalizeDoctypeIdentifier($systemId),
                     'offset' => strlen($eofNoWhitespaceSystemMatch[0][0]),
+                    'forceQuirks' => true,
                 ];
             }
 
@@ -1227,6 +1229,7 @@ REGEX;
                     'publicId' => self::normalizeDoctypeIdentifier($publicId),
                     'systemId' => null,
                     'offset' => strlen($abruptNoWhitespacePublicMatch[0][0]),
+                    'forceQuirks' => true,
                 ];
             }
 
@@ -1242,6 +1245,7 @@ REGEX;
                     'publicId' => null,
                     'systemId' => self::normalizeDoctypeIdentifier($systemId),
                     'offset' => strlen($abruptNoWhitespaceSystemMatch[0][0]),
+                    'forceQuirks' => true,
                 ];
             }
 
