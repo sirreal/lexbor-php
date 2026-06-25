@@ -2617,6 +2617,14 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 invalid tag-open left bracket is text' => ['<[', '&lt;['];
         yield 'html5lib test3 invalid tag-open backtick is text' => ['<`', '&lt;`'];
         yield 'html5lib test3 standalone lowercase a start tag' => ['<a>', '<a></a>'];
+        yield 'html5lib test3 standalone lowercase b start tag' => ['<b>', '<b></b>'];
+        yield 'html5lib test3 standalone lowercase y start tag' => ['<y>', '<y></y>'];
+        yield 'html5lib test3 standalone lowercase z start tag' => ['<z>', '<z></z>'];
+        yield 'html5lib test3 invalid tag-open left brace is text' => ['<{', '&lt;{'];
+        yield 'html5lib test3 invalid tag-open non-BMP is text' => [
+            "<\u{100000}",
+            "&lt;\u{100000}",
+        ];
         yield 'html5lib test3 tag name NUL replacement' => ["<a\0>", "<a\u{FFFD}></a\u{FFFD}>"];
         yield 'html5lib test3 tag name backspace is retained' => ["<a\x08>", "<a\x08></a\x08>"];
         yield 'html5lib test3 tag name tab boundary' => ["<a\t>", '<a></a>'];
