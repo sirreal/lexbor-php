@@ -2954,6 +2954,27 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 single-quoted attribute value double quote' => ['<a a=\'"\'>', '<a a="&quot;"></a>'];
         yield 'html5lib test3 single-quoted attribute value percent' => ["<a a='%'>", '<a a="%"></a>'];
         yield 'html5lib test3 single-quoted attribute value ampersand' => ["<a a='&'>", '<a a="&amp;"></a>'];
+        yield 'html5lib test3 after single-quoted value NUL replacement' => [
+            "<a a=''\0>",
+            "<a a=\"\" \u{FFFD}=\"\"></a>",
+        ];
+        yield 'html5lib test3 after single-quoted value backspace retained' => [
+            "<a a=''\x08>",
+            "<a a=\"\" \x08=\"\"></a>",
+        ];
+        yield 'html5lib test3 after single-quoted value tab boundary' => ["<a a=''\t>", '<a a=""></a>'];
+        yield 'html5lib test3 after single-quoted value line feed boundary' => ["<a a=''\n>", '<a a=""></a>'];
+        yield 'html5lib test3 after single-quoted value vertical tab retained' => [
+            "<a a=''\v>",
+            "<a a=\"\" \v=\"\"></a>",
+        ];
+        yield 'html5lib test3 after single-quoted value form feed boundary' => ["<a a=''\f>", '<a a=""></a>'];
+        yield 'html5lib test3 after single-quoted value carriage return boundary' => ["<a a=''\r>", '<a a=""></a>'];
+        yield 'html5lib test3 after single-quoted value unit separator retained' => [
+            "<a a=''\x1F>",
+            "<a a=\"\" \x1F=\"\"></a>",
+        ];
+        yield 'html5lib test3 after single-quoted value space boundary' => ["<a a='' >", '<a a=""></a>'];
         yield 'trailing NUL survives self-closing slash removal' => [
             "<div disabled\0/>",
             "<div disabled\u{FFFD}=\"\"></div>",
