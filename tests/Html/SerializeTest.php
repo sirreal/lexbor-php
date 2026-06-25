@@ -2846,6 +2846,11 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 attribute name dash suffix' => ['<a a->', '<a a-=""></a>'];
         yield 'html5lib test3 attribute name period suffix' => ['<a a.>', '<a a.=""></a>'];
         yield 'html5lib test3 attribute name self-closing slash boundary' => ['<a a/>', '<a a=""></a>'];
+        yield 'html5lib test3 attribute name zero suffix' => ['<a a0>', '<a a0=""></a>'];
+        yield 'html5lib test3 attribute name one suffix' => ['<a a1>', '<a a1=""></a>'];
+        yield 'html5lib test3 attribute name nine suffix' => ['<a a9>', '<a a9=""></a>'];
+        yield 'html5lib test3 attribute name less-than suffix' => ['<a a<>', '<a a&lt;=""></a>'];
+        yield 'html5lib test3 attribute name equals boundary' => ['<a a=>', '<a a=""></a>'];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
