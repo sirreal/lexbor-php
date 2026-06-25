@@ -2481,6 +2481,19 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 incorrectly opened comment NUL' => ["<!\0", "<!--\u{FFFD}-->"];
         yield 'html5lib test3 incorrectly opened comment space NUL' => ["<! \0", "<!-- \u{FFFD}-->"];
         yield 'html5lib test3 processing instruction NUL' => ["<?\0", "<!--?\u{FFFD}-->"];
+        foreach ([
+            'uppercase Y' => ['<!Y', '<!--Y-->'],
+            'uppercase Z' => ['<!Z', '<!--Z-->'],
+            'backtick' => ['<!`', '<!--`-->'],
+            'lowercase a' => ['<!a', '<!--a-->'],
+            'lowercase b' => ['<!b', '<!--b-->'],
+            'lowercase y' => ['<!y', '<!--y-->'],
+            'lowercase z' => ['<!z', '<!--z-->'],
+            'opening brace' => ['<!{', '<!--{-->'],
+            'non-BMP' => ["<!\u{100000}", "<!--\u{100000}-->"],
+        ] as $label => [$html, $expected]) {
+            yield "html5lib test3 incorrectly opened comment $label" => [$html, $expected];
+        }
         yield 'html5lib test1 incorrectly opened comment start' => ['<!-', '<!--' . '-' . '-->'];
         yield 'html5lib test1 short empty comment' => ['<!-->', '<!--' . '' . '-->'];
         yield 'html5lib test1 short empty comment with dash' => ['<!--->', '<!--' . '' . '-->'];
