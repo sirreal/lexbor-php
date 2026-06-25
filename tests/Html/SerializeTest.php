@@ -2525,6 +2525,42 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib entities $label" => $case;
         }
+        foreach ([
+            'hexadecimal Windows-1252 euro sign' => ['&#x080;', '€'],
+            'hexadecimal Windows-1252 replacement char 0x81' => ['&#x081;', "\u{0081}"],
+            'hexadecimal Windows-1252 single low-9 quotation mark' => ['&#x082;', '‚'],
+            'hexadecimal Windows-1252 latin small f with hook' => ['&#x083;', 'ƒ'],
+            'hexadecimal Windows-1252 double low-9 quotation mark' => ['&#x084;', '„'],
+            'hexadecimal Windows-1252 horizontal ellipsis' => ['&#x085;', '…'],
+            'hexadecimal Windows-1252 dagger' => ['&#x086;', '†'],
+            'hexadecimal Windows-1252 double dagger' => ['&#x087;', '‡'],
+            'hexadecimal Windows-1252 modifier circumflex' => ['&#x088;', 'ˆ'],
+            'hexadecimal Windows-1252 per mille sign' => ['&#x089;', '‰'],
+            'hexadecimal Windows-1252 latin capital S with caron' => ['&#x08A;', 'Š'],
+            'hexadecimal Windows-1252 single left angle quote' => ['&#x08B;', '‹'],
+            'hexadecimal Windows-1252 latin capital OE ligature' => ['&#x08C;', 'Œ'],
+            'hexadecimal Windows-1252 replacement char 0x8D' => ['&#x08D;', "\u{008D}"],
+            'hexadecimal Windows-1252 latin capital Z with caron' => ['&#x08E;', 'Ž'],
+            'hexadecimal Windows-1252 replacement char 0x8F' => ['&#x08F;', "\u{008F}"],
+            'hexadecimal Windows-1252 replacement char 0x90' => ['&#x090;', "\u{0090}"],
+            'hexadecimal Windows-1252 left single quotation mark' => ['&#x091;', '‘'],
+            'hexadecimal Windows-1252 right single quotation mark' => ['&#x092;', '’'],
+            'hexadecimal Windows-1252 left double quotation mark' => ['&#x093;', '“'],
+            'hexadecimal Windows-1252 right double quotation mark' => ['&#x094;', '”'],
+            'hexadecimal Windows-1252 bullet' => ['&#x095;', '•'],
+            'hexadecimal Windows-1252 en dash' => ['&#x096;', '–'],
+            'hexadecimal Windows-1252 em dash' => ['&#x097;', '—'],
+            'hexadecimal Windows-1252 small tilde' => ['&#x098;', '˜'],
+            'hexadecimal Windows-1252 trade mark sign' => ['&#x099;', '™'],
+            'hexadecimal Windows-1252 latin small s with caron' => ['&#x09A;', 'š'],
+            'hexadecimal Windows-1252 single right angle quote' => ['&#x09B;', '›'],
+            'hexadecimal Windows-1252 latin small oe ligature' => ['&#x09C;', 'œ'],
+            'hexadecimal Windows-1252 replacement char 0x9D' => ['&#x09D;', "\u{009D}"],
+            'hexadecimal Windows-1252 latin small z with caron' => ['&#x09E;', 'ž'],
+            'hexadecimal Windows-1252 latin capital Y with diaeresis' => ['&#x09F;', 'Ÿ'],
+        ] as $label => $case) {
+            yield "html5lib entities $label" => $case;
+        }
         yield 'char_ref.ton #55 invalid hexadecimal reference remains literal' => ['&#xj', '&amp;#xj'];
         yield 'char_ref.ton #56 invalid hexadecimal reference before text remains literal' => ['&#xjgf', '&amp;#xjgf'];
         yield 'char_ref.ton #19 failed short named reference acir remains literal' => ['&acir', '&amp;acir'];
