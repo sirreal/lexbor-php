@@ -2906,6 +2906,17 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 double-quoted attribute value greater-than' => ['<a a=">">', '<a a="&gt;"></a>'];
         yield 'html5lib test3 double-quoted attribute value question mark' => ['<a a="?">', '<a a="?"></a>'];
         yield 'html5lib test3 double-quoted attribute value at sign' => ['<a a="@">', '<a a="@"></a>'];
+        yield 'html5lib test3 double-quoted attribute value uppercase A' => ['<a a="A">', '<a a="A"></a>'];
+        yield 'html5lib test3 double-quoted attribute value uppercase B' => ['<a a="B">', '<a a="B"></a>'];
+        yield 'html5lib test3 double-quoted attribute value uppercase Y' => ['<a a="Y">', '<a a="Y"></a>'];
+        yield 'html5lib test3 double-quoted attribute value uppercase Z' => ['<a a="Z">', '<a a="Z"></a>'];
+        yield 'html5lib test3 double-quoted attribute value backtick' => ['<a a="`">', '<a a="`"></a>'];
+        yield 'html5lib test3 double-quoted attribute value lowercase a' => ['<a a="a">', '<a a="a"></a>'];
+        yield 'html5lib test3 double-quoted attribute value lowercase b' => ['<a a="b">', '<a a="b"></a>'];
+        yield 'html5lib test3 double-quoted attribute value lowercase y' => ['<a a="y">', '<a a="y"></a>'];
+        yield 'html5lib test3 double-quoted attribute value lowercase z' => ['<a a="z">', '<a a="z"></a>'];
+        yield 'html5lib test3 double-quoted attribute value open brace' => ['<a a="{">', '<a a="{"></a>'];
+        yield 'html5lib test3 double-quoted attribute value non-BMP' => ["<a a=\"\u{100000}\">", "<a a=\"\u{100000}\"></a>"];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
