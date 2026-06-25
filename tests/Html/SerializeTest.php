@@ -268,6 +268,66 @@ final class SerializeTest extends TestCase
             "<!DOCTYPE a\u{FFFD}><html><head></head><body></body></html>",
             true,
         ];
+        yield 'html5lib test3 vertical tab after doctype keyword is name at EOF' => [
+            "<!DOCTYPE\v",
+            "<!DOCTYPE \v><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'vertical tab after doctype keyword is name before invalid sequence' => [
+            "<!DOCTYPE\v html>",
+            "<!DOCTYPE \v><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'vertical tab before public-looking text remains in no-whitespace name' => [
+            "<!DOCTYPE\vPUBLIC \"p\">",
+            "<!DOCTYPE \vpublic><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 vertical tab after doctype keyword whitespace is name at EOF' => [
+            "<!DOCTYPE \v",
+            "<!DOCTYPE \v><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 vertical tab in doctype name at EOF' => [
+            "<!DOCTYPE a\v",
+            "<!DOCTYPE a\v><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'html5lib test3 vertical tab in no-whitespace doctype name at EOF' => [
+            "<!DOCTYPEa\v",
+            "<!DOCTYPE a\v><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'vertical tab in html doctype name forces quirks' => [
+            "<!DOCTYPE html\v",
+            "<!DOCTYPE html\v><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'vertical tab before public keyword remains in doctype name' => [
+            "<!DOCTYPE html\vPUBLIC \"p\"",
+            "<!DOCTYPE html\vpublic><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'vertical tab before system keyword remains in doctype name' => [
+            "<!DOCTYPE html\vSYSTEM \"s\"",
+            "<!DOCTYPE html\vsystem><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'vertical tab before EOF public keyword remains in doctype name' => [
+            "<!DOCTYPE html\vPUBLIC",
+            "<!DOCTYPE html\vpublic><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'vertical tab before EOF system keyword remains in doctype name' => [
+            "<!DOCTYPE html\vSYSTEM",
+            "<!DOCTYPE html\vsystem><html><head></head><body></body></html>",
+            true,
+        ];
+        yield 'leading vertical tab before doctype is not stripped as whitespace' => [
+            "\v<!DOCTYPE html><p>x</p>",
+            "<html><head></head><body>&lt;!DOCTYPE html&gt;<p>x</p></body></html>",
+            true,
+        ];
         yield 'html5lib test4 invalid sequence after doctype name' => [
             '<!DOCTYPE html x>text',
             '<!DOCTYPE html><html><head></head><body>text</body></html>',
