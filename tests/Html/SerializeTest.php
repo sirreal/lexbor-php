@@ -233,6 +233,16 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html PUBLIC "test public" "test syst"><html><head></head><body></body></html>',
             false,
         ];
+        yield 'doctype.ton #16 EOF after public keyword' => [
+            '<!DOCTYPE html PUBLIC ',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #17 EOF after opening public quote' => [
+            '<!DOCTYPE html PUBLIC "',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
     }
 
     /**

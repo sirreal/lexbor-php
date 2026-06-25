@@ -417,6 +417,16 @@ REGEX;
                 ];
             }
 
+            $eofPublicKeywordPattern = '~^\s*<!doctype\s+(?<name>[^\x00\s>"\']+)\s+PUBLIC\s*$~i';
+            if (preg_match($eofPublicKeywordPattern, $html, $eofPublicKeywordMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => strtolower($eofPublicKeywordMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($eofPublicKeywordMatch[0][0]),
+                ];
+            }
+
             $eofNamePattern = '~^\s*<!doctype\s+(?<name>[^\x00\s>"\']+)\s*$~i';
             if (preg_match($eofNamePattern, $html, $eofMatch, PREG_OFFSET_CAPTURE) !== 1) {
                 return null;
