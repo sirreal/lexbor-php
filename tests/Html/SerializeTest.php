@@ -2806,6 +2806,15 @@ final class SerializeTest extends TestCase
             "<a a=\"\" \x1F=\"\"></a>",
         ];
         yield 'html5lib test3 repeated after attribute name space boundary' => ['<a a  >', '<a a=""></a>'];
+        yield 'html5lib test3 after attribute name exclamation' => ['<a a !>', '<a a="" !=""></a>'];
+        yield 'html5lib test3 after attribute name double quote' => ['<a a ">', '<a a="" &quot;=""></a>'];
+        yield 'html5lib test3 after attribute name hash' => ['<a a #>', '<a a="" #=""></a>'];
+        yield 'html5lib test3 after attribute name ampersand' => ['<a a &>', '<a a="" &amp;=""></a>'];
+        yield 'html5lib test3 after attribute name single quote' => ["<a a '>", '<a a="" &#039;=""></a>'];
+        yield 'html5lib test3 after attribute name opening parenthesis' => ['<a a (>', '<a a="" (=""></a>'];
+        yield 'html5lib test3 after attribute name dash' => ['<a a ->', '<a a="" -=""></a>'];
+        yield 'html5lib test3 after attribute name period' => ['<a a .>', '<a a="" .=""></a>'];
+        yield 'html5lib test3 after attribute name self-closing slash' => ['<a a />', '<a a=""></a>'];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
