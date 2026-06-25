@@ -433,6 +433,26 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, string}>
      */
+    public static function html5libTokenizerEmptyEndTagProvider(): iterable
+    {
+        yield 'html5lib test2 empty end tag before characters' => ['a</>bc', 'abc'];
+        yield 'html5lib test2 empty end tag before start tag' => ['a</><b>c', 'a<b>c</b>'];
+        yield 'html5lib test2 empty end tag before comment' => ['a</><!--b-->c', 'a<!--b-->c'];
+        yield 'html5lib test2 empty end tag before end tag' => ['a</></b>c', 'ac'];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function html5libTokenizerInvalidEndTagProvider(): iterable
+    {
+        yield 'html5lib test2 illegal end tag name' => ['</1>', '<!--1-->'];
+        yield 'invalid end tag with whitespace is bogus comment' => ['a</ >bc', 'a<!-- -->bc'];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
     public static function tokenizerTagAttributeProvider(): iterable
     {
         yield 'tag_attr.ton #1 attribute name is lowercased' => [
@@ -680,6 +700,24 @@ final class SerializeTest extends TestCase
 
     #[DataProvider('tokenizerTagNameProvider')]
     public function testTokenizerTagNameRegressions(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('html5libTokenizerEmptyEndTagProvider')]
+    public function testHtml5libTokenizerEmptyEndTagRegressions(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('html5libTokenizerInvalidEndTagProvider')]
+    public function testHtml5libTokenizerInvalidEndTagRegressions(string $html, string $expected): void
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));

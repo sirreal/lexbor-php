@@ -167,7 +167,7 @@ final class Document extends Node
     private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void
     {
         $stack = [$root];
-        $pattern = '~(?<comment_start><!--)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z](?:[A-Za-z0-9:-]|\x00)*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~si';
+        $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z](?:[A-Za-z0-9:-]|\x00)*)((?<attributes>(?:[^>"\']+|"[^"]*"|\'[^\']*\')*))>~si';
         $offset = 0;
 
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
@@ -182,6 +182,17 @@ final class Document extends Node
             if (($match['comment_start'][1] ?? -1) !== -1) {
                 [$comment, $tagEnd] = self::consumeHtmlComment($html, $tagStart);
                 $this->appendComment($parent, $comment);
+                $offset = $tagEnd;
+                continue;
+            }
+
+            if (($match['empty_end_tag'][1] ?? -1) !== -1) {
+                $offset = $tagEnd;
+                continue;
+            }
+
+            if (($match['invalid_end_tag'][1] ?? -1) !== -1) {
+                $this->appendComment($parent, str_replace("\0", "\u{FFFD}", $match['invalid_end_tag'][0]));
                 $offset = $tagEnd;
                 continue;
             }
