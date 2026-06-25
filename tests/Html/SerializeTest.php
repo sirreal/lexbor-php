@@ -2892,6 +2892,20 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test3 double-quoted attribute value space retained' => ['<a a=" ">', '<a a=" "></a>'];
         yield 'html5lib test3 double-quoted attribute value exclamation' => ['<a a="!">', '<a a="!"></a>'];
+        yield 'html5lib test3 double-quoted attribute value hash' => ['<a a="#">', '<a a="#"></a>'];
+        yield 'html5lib test3 double-quoted attribute value percent' => ['<a a="%">', '<a a="%"></a>'];
+        yield 'html5lib test3 double-quoted attribute value ampersand' => ['<a a="&">', '<a a="&amp;"></a>'];
+        yield 'html5lib test3 double-quoted attribute value single quote' => ["<a a=\"'\">", "<a a=\"'\"></a>"];
+        yield 'html5lib test3 double-quoted attribute value dash' => ['<a a="-">', '<a a="-"></a>'];
+        yield 'html5lib test3 double-quoted attribute value slash' => ['<a a="/">', '<a a="/"></a>'];
+        yield 'html5lib test3 double-quoted attribute value zero' => ['<a a="0">', '<a a="0"></a>'];
+        yield 'html5lib test3 double-quoted attribute value one' => ['<a a="1">', '<a a="1"></a>'];
+        yield 'html5lib test3 double-quoted attribute value nine' => ['<a a="9">', '<a a="9"></a>'];
+        yield 'html5lib test3 double-quoted attribute value less-than' => ['<a a="<">', '<a a="&lt;"></a>'];
+        yield 'html5lib test3 double-quoted attribute value equals' => ['<a a="=">', '<a a="="></a>'];
+        yield 'html5lib test3 double-quoted attribute value greater-than' => ['<a a=">">', '<a a="&gt;"></a>'];
+        yield 'html5lib test3 double-quoted attribute value question mark' => ['<a a="?">', '<a a="?"></a>'];
+        yield 'html5lib test3 double-quoted attribute value at sign' => ['<a a="@">', '<a a="@"></a>'];
         yield 'html5lib test3 NUL in unquoted attribute value is replaced' => [
             "<a a=a\0>",
             "<a a=\"a\u{FFFD}\"></a>",
