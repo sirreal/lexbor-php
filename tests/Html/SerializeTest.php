@@ -2851,6 +2851,14 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 attribute name nine suffix' => ['<a a9>', '<a a9=""></a>'];
         yield 'html5lib test3 attribute name less-than suffix' => ['<a a<>', '<a a&lt;=""></a>'];
         yield 'html5lib test3 attribute name equals boundary' => ['<a a=>', '<a a=""></a>'];
+        yield 'html5lib test3 attribute name question mark suffix' => ['<a a?>', '<a a?=""></a>'];
+        yield 'html5lib test3 attribute name at sign suffix' => ['<a a@>', '<a a@=""></a>'];
+        yield 'html5lib test3 attribute name uppercase A suffix' => ['<a aA>', '<a aa=""></a>'];
+        yield 'html5lib test3 attribute name uppercase B suffix' => ['<a aB>', '<a ab=""></a>'];
+        yield 'html5lib test3 attribute name uppercase Y suffix' => ['<a aY>', '<a ay=""></a>'];
+        yield 'html5lib test3 attribute name uppercase Z suffix' => ['<a aZ>', '<a az=""></a>'];
+        yield 'html5lib test3 attribute name left bracket suffix' => ['<a a[>', '<a a[=""></a>'];
+        yield 'html5lib test3 attribute name backtick suffix' => ['<a a`>', '<a a`=""></a>'];
         yield 'html5lib test3 before attribute value NUL replacement' => [
             "<a a=\0>",
             "<a a=\"\u{FFFD}\"></a>",
