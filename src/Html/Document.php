@@ -391,6 +391,32 @@ final class Document extends Node
 REGEX;
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL) !== 1) {
+            $eofPublicSystemPattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>.*?)\k<publicQuote>\s*(?<systemQuote>["'])(?<systemId>[^"']*)\s*$~is
+REGEX;
+
+            if (preg_match($eofPublicSystemPattern, $html, $eofPublicSystemMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => strtolower($eofPublicSystemMatch['name'][0]),
+                    'publicId' => $eofPublicSystemMatch['publicId'][0] === '' ? null : $eofPublicSystemMatch['publicId'][0],
+                    'systemId' => $eofPublicSystemMatch['systemId'][0] === '' ? null : $eofPublicSystemMatch['systemId'][0],
+                    'offset' => strlen($eofPublicSystemMatch[0][0]),
+                ];
+            }
+
+            $eofPublicPattern = <<<'REGEX'
+~^\s*<!doctype\s+(?<name>[^\x00\s>"']+)\s+PUBLIC\s+(?<publicQuote>["'])(?<publicId>[^"']*)\s*$~is
+REGEX;
+
+            if (preg_match($eofPublicPattern, $html, $eofPublicMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => strtolower($eofPublicMatch['name'][0]),
+                    'publicId' => $eofPublicMatch['publicId'][0] === '' ? null : $eofPublicMatch['publicId'][0],
+                    'systemId' => null,
+                    'offset' => strlen($eofPublicMatch[0][0]),
+                ];
+            }
+
             $eofNamePattern = '~^\s*<!doctype\s+(?<name>[^\x00\s>"\']+)\s*$~i';
             if (preg_match($eofNamePattern, $html, $eofMatch, PREG_OFFSET_CAPTURE) !== 1) {
                 return null;

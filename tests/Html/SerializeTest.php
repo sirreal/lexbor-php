@@ -213,6 +213,26 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE htm><html><head></head><body></body></html>',
             true,
         ];
+        yield 'doctype.ton #12 EOF in single-quoted public identifier' => [
+            "<!DOCTYPE html PUBLIC 'test publi",
+            '<!DOCTYPE html PUBLIC "test publi"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #13 duplicate EOF in single-quoted public identifier' => [
+            "<!DOCTYPE html PUBLIC 'test publi",
+            '<!DOCTYPE html PUBLIC "test publi"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #14 EOF in system identifier after public identifier' => [
+            '<!DOCTYPE html PUBLIC \'test public\' "test syst',
+            '<!DOCTYPE html PUBLIC "test public" "test syst"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'doctype.ton #15 missing whitespace before EOF system identifier' => [
+            '<!DOCTYPE html PUBLIC \'test public\'"test syst',
+            '<!DOCTYPE html PUBLIC "test public" "test syst"><html><head></head><body></body></html>',
+            false,
+        ];
     }
 
     /**
