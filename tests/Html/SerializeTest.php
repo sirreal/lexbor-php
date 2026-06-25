@@ -3003,6 +3003,17 @@ final class SerializeTest extends TestCase
             "<a a=''\u{100000}>",
             "<a a=\"\" \u{100000}=\"\"></a>",
         ];
+        yield 'html5lib test3 single-quoted attribute value opening parenthesis' => ["<a a='('>", '<a a="("></a>'];
+        yield 'html5lib test3 single-quoted attribute value dash' => ["<a a='-'>", '<a a="-"></a>'];
+        yield 'html5lib test3 single-quoted attribute value slash' => ["<a a='/'>", '<a a="/"></a>'];
+        yield 'html5lib test3 single-quoted attribute value zero' => ["<a a='0'>", '<a a="0"></a>'];
+        yield 'html5lib test3 single-quoted attribute value one' => ["<a a='1'>", '<a a="1"></a>'];
+        yield 'html5lib test3 single-quoted attribute value nine' => ["<a a='9'>", '<a a="9"></a>'];
+        yield 'html5lib test3 single-quoted attribute value less-than' => ["<a a='<'>", '<a a="&lt;"></a>'];
+        yield 'html5lib test3 single-quoted attribute value equals' => ["<a a='='>", '<a a="="></a>'];
+        yield 'html5lib test3 single-quoted attribute value greater-than' => ["<a a='>'>", '<a a="&gt;"></a>'];
+        yield 'html5lib test3 single-quoted attribute value question mark' => ["<a a='?'>", '<a a="?"></a>'];
+        yield 'html5lib test3 single-quoted attribute value at sign' => ["<a a='@'>", '<a a="@"></a>'];
         yield 'trailing NUL survives self-closing slash removal' => [
             "<div disabled\0/>",
             "<div disabled\u{FFFD}=\"\"></div>",
