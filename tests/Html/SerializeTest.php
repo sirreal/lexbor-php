@@ -2480,7 +2480,14 @@ final class SerializeTest extends TestCase
         yield 'html5lib test1 truncated doctype start is bogus comment' => ['<!DOC>', '<!--' . 'DOC' . '-->'];
         yield 'html5lib test3 incorrectly opened comment NUL' => ["<!\0", "<!--\u{FFFD}-->"];
         yield 'html5lib test3 incorrectly opened comment space NUL' => ["<! \0", "<!-- \u{FFFD}-->"];
+        yield 'html5lib test3 processing instruction EOF' => ['<?', '<!--?-->'];
         yield 'html5lib test3 processing instruction NUL' => ["<?\0", "<!--?\u{FFFD}-->"];
+        yield 'html5lib test3 processing instruction tab' => ["<?\t", "<!--?\t-->"];
+        yield 'html5lib test3 processing instruction line feed' => ["<?\n", "<!--?\n-->"];
+        yield 'html5lib test3 processing instruction vertical tab' => ["<?\v", "<!--?\v-->"];
+        yield 'html5lib test3 processing instruction form feed' => ["<?\f", "<!--?\f-->"];
+        yield 'html5lib test3 processing instruction space' => ['<? ', '<!--? -->'];
+        yield 'html5lib test3 processing instruction space NUL' => ["<? \0", "<!--? \u{FFFD}-->"];
         foreach ([
             'uppercase Y' => ['<!Y', '<!--Y-->'],
             'uppercase Z' => ['<!Z', '<!--Z-->'],
