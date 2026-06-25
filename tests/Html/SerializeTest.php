@@ -2763,6 +2763,14 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 before attribute name uppercase Z' => ['<a Z>', '<a z=""></a>'];
         yield 'html5lib test3 before attribute name left bracket' => ['<a [>', '<a [=""></a>'];
         yield 'html5lib test3 before attribute name backtick' => ['<a `>', '<a `=""></a>'];
+        yield 'html5lib test3 before attribute name lowercase b' => ['<a b>', '<a b=""></a>'];
+        yield 'html5lib test3 before attribute name lowercase y' => ['<a y>', '<a y=""></a>'];
+        yield 'html5lib test3 before attribute name lowercase z' => ['<a z>', '<a z=""></a>'];
+        yield 'html5lib test3 before attribute name left brace' => ['<a {>', '<a {=""></a>'];
+        yield 'html5lib test3 before attribute name non-BMP' => [
+            "<a \u{100000}>",
+            "<a \u{100000}=\"\"></a>",
+        ];
         yield 'html5lib test3 attribute name lowercase a' => ['<a a>', '<a a=""></a>'];
         yield 'html5lib test3 attribute name NUL replacement' => [
             "<a a\0>",
@@ -2859,6 +2867,15 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 attribute name uppercase Z suffix' => ['<a aZ>', '<a az=""></a>'];
         yield 'html5lib test3 attribute name left bracket suffix' => ['<a a[>', '<a a[=""></a>'];
         yield 'html5lib test3 attribute name backtick suffix' => ['<a a`>', '<a a`=""></a>'];
+        yield 'html5lib test3 attribute name lowercase a suffix' => ['<a aa>', '<a aa=""></a>'];
+        yield 'html5lib test3 attribute name lowercase b suffix' => ['<a ab>', '<a ab=""></a>'];
+        yield 'html5lib test3 attribute name lowercase y suffix' => ['<a ay>', '<a ay=""></a>'];
+        yield 'html5lib test3 attribute name lowercase z suffix' => ['<a az>', '<a az=""></a>'];
+        yield 'html5lib test3 attribute name left brace suffix' => ['<a a{>', '<a a{=""></a>'];
+        yield 'html5lib test3 attribute name non-BMP suffix' => [
+            "<a a\u{100000}>",
+            "<a a\u{100000}=\"\"></a>",
+        ];
         yield 'html5lib test3 before attribute value NUL replacement' => [
             "<a a=\0>",
             "<a a=\"\u{FFFD}\"></a>",
