@@ -3194,6 +3194,42 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib unicodeChars $label" => $case;
         }
+        foreach ([
+            'data-state valid U+005F low line' => ['_', '_'],
+            'data-state valid U+0060 grave accent' => ['`', '`'],
+            'data-state valid U+0061 lowercase a' => ['a', 'a'],
+            'data-state valid U+0062 lowercase b' => ['b', 'b'],
+            'data-state valid U+0063 lowercase c' => ['c', 'c'],
+            'data-state valid U+0064 lowercase d' => ['d', 'd'],
+            'data-state valid U+0065 lowercase e' => ['e', 'e'],
+            'data-state valid U+0066 lowercase f' => ['f', 'f'],
+            'data-state valid U+0067 lowercase g' => ['g', 'g'],
+            'data-state valid U+0068 lowercase h' => ['h', 'h'],
+            'data-state valid U+0069 lowercase i' => ['i', 'i'],
+            'data-state valid U+006A lowercase j' => ['j', 'j'],
+            'data-state valid U+006B lowercase k' => ['k', 'k'],
+            'data-state valid U+006C lowercase l' => ['l', 'l'],
+            'data-state valid U+006D lowercase m' => ['m', 'm'],
+            'data-state valid U+006E lowercase n' => ['n', 'n'],
+            'data-state valid U+006F lowercase o' => ['o', 'o'],
+            'data-state valid U+0070 lowercase p' => ['p', 'p'],
+            'data-state valid U+0071 lowercase q' => ['q', 'q'],
+            'data-state valid U+0072 lowercase r' => ['r', 'r'],
+            'data-state valid U+0073 lowercase s' => ['s', 's'],
+            'data-state valid U+0074 lowercase t' => ['t', 't'],
+            'data-state valid U+0075 lowercase u' => ['u', 'u'],
+            'data-state valid U+0076 lowercase v' => ['v', 'v'],
+            'data-state valid U+0077 lowercase w' => ['w', 'w'],
+            'data-state valid U+0078 lowercase x' => ['x', 'x'],
+            'data-state valid U+0079 lowercase y' => ['y', 'y'],
+            'data-state valid U+007A lowercase z' => ['z', 'z'],
+            'data-state valid U+007B left curly bracket' => ['{', '{'],
+            'data-state valid U+007C vertical line' => ['|', '|'],
+            'data-state valid U+007D right curly bracket' => ['}', '}'],
+            'data-state valid U+007E tilde' => ['~', '~'],
+        ] as $label => $case) {
+            yield "html5lib unicodeChars $label" => $case;
+        }
         yield 'char_ref.ton #28 NUL text is preserved' => ["\0", "\0"];
         yield 'char_ref.ton #29 NUL in text is preserved' => ["a\0b", "a\0b"];
         yield 'char_ref.ton #30 leading NUL in text is preserved' => ["\0b", "\0b"];
