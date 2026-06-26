@@ -3086,6 +3086,42 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib unicodeChars $label" => $case;
         }
+        foreach ([
+            'data-state supplementary-plane noncharacter U+1FFFE' => ["\u{1FFFE}", "\u{1FFFE}"],
+            'data-state supplementary-plane noncharacter U+1FFFF' => ["\u{1FFFF}", "\u{1FFFF}"],
+            'data-state supplementary-plane noncharacter U+2FFFE' => ["\u{2FFFE}", "\u{2FFFE}"],
+            'data-state supplementary-plane noncharacter U+2FFFF' => ["\u{2FFFF}", "\u{2FFFF}"],
+            'data-state supplementary-plane noncharacter U+3FFFE' => ["\u{3FFFE}", "\u{3FFFE}"],
+            'data-state supplementary-plane noncharacter U+3FFFF' => ["\u{3FFFF}", "\u{3FFFF}"],
+            'data-state supplementary-plane noncharacter U+4FFFE' => ["\u{4FFFE}", "\u{4FFFE}"],
+            'data-state supplementary-plane noncharacter U+4FFFF' => ["\u{4FFFF}", "\u{4FFFF}"],
+            'data-state supplementary-plane noncharacter U+5FFFE' => ["\u{5FFFE}", "\u{5FFFE}"],
+            'data-state supplementary-plane noncharacter U+5FFFF' => ["\u{5FFFF}", "\u{5FFFF}"],
+            'data-state supplementary-plane noncharacter U+6FFFE' => ["\u{6FFFE}", "\u{6FFFE}"],
+            'data-state supplementary-plane noncharacter U+6FFFF' => ["\u{6FFFF}", "\u{6FFFF}"],
+            'data-state supplementary-plane noncharacter U+7FFFE' => ["\u{7FFFE}", "\u{7FFFE}"],
+            'data-state supplementary-plane noncharacter U+7FFFF' => ["\u{7FFFF}", "\u{7FFFF}"],
+            'data-state supplementary-plane noncharacter U+8FFFE' => ["\u{8FFFE}", "\u{8FFFE}"],
+            'data-state supplementary-plane noncharacter U+8FFFF' => ["\u{8FFFF}", "\u{8FFFF}"],
+            'data-state supplementary-plane noncharacter U+9FFFE' => ["\u{9FFFE}", "\u{9FFFE}"],
+            'data-state supplementary-plane noncharacter U+9FFFF' => ["\u{9FFFF}", "\u{9FFFF}"],
+            'data-state supplementary-plane noncharacter U+AFFFE' => ["\u{AFFFE}", "\u{AFFFE}"],
+            'data-state supplementary-plane noncharacter U+AFFFF' => ["\u{AFFFF}", "\u{AFFFF}"],
+            'data-state supplementary-plane noncharacter U+BFFFE' => ["\u{BFFFE}", "\u{BFFFE}"],
+            'data-state supplementary-plane noncharacter U+BFFFF' => ["\u{BFFFF}", "\u{BFFFF}"],
+            'data-state supplementary-plane noncharacter U+CFFFE' => ["\u{CFFFE}", "\u{CFFFE}"],
+            'data-state supplementary-plane noncharacter U+CFFFF' => ["\u{CFFFF}", "\u{CFFFF}"],
+            'data-state supplementary-plane noncharacter U+DFFFE' => ["\u{DFFFE}", "\u{DFFFE}"],
+            'data-state supplementary-plane noncharacter U+DFFFF' => ["\u{DFFFF}", "\u{DFFFF}"],
+            'data-state supplementary-plane noncharacter U+EFFFE' => ["\u{EFFFE}", "\u{EFFFE}"],
+            'data-state supplementary-plane noncharacter U+EFFFF' => ["\u{EFFFF}", "\u{EFFFF}"],
+            'data-state supplementary-plane noncharacter U+FFFFE' => ["\u{FFFFE}", "\u{FFFFE}"],
+            'data-state supplementary-plane noncharacter U+FFFFF' => ["\u{FFFFF}", "\u{FFFFF}"],
+            'data-state supplementary-plane noncharacter U+10FFFE' => ["\u{10FFFE}", "\u{10FFFE}"],
+            'data-state supplementary-plane noncharacter U+10FFFF' => ["\u{10FFFF}", "\u{10FFFF}"],
+        ] as $label => $case) {
+            yield "html5lib unicodeChars $label" => $case;
+        }
         yield 'char_ref.ton #28 NUL text is preserved' => ["\0", "\0"];
         yield 'char_ref.ton #29 NUL in text is preserved' => ["a\0b", "a\0b"];
         yield 'char_ref.ton #30 leading NUL in text is preserved' => ["\0b", "\0b"];
