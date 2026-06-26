@@ -3230,6 +3230,42 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib unicodeChars $label" => $case;
         }
+        foreach ([
+            'data-state valid U+00A0 no-break space' => ["\u{00A0}", '&nbsp;'],
+            'data-state valid U+00A1 inverted exclamation mark' => ["\u{00A1}", "\u{00A1}"],
+            'data-state valid U+00A2 cent sign' => ["\u{00A2}", "\u{00A2}"],
+            'data-state valid U+00A3 pound sign' => ["\u{00A3}", "\u{00A3}"],
+            'data-state valid U+00A4 currency sign' => ["\u{00A4}", "\u{00A4}"],
+            'data-state valid U+00A5 yen sign' => ["\u{00A5}", "\u{00A5}"],
+            'data-state valid U+00A6 broken bar' => ["\u{00A6}", "\u{00A6}"],
+            'data-state valid U+00A7 section sign' => ["\u{00A7}", "\u{00A7}"],
+            'data-state valid U+00A8 diaeresis' => ["\u{00A8}", "\u{00A8}"],
+            'data-state valid U+00A9 copyright sign' => ["\u{00A9}", "\u{00A9}"],
+            'data-state valid U+00AA feminine ordinal indicator' => ["\u{00AA}", "\u{00AA}"],
+            'data-state valid U+00AB left-pointing double angle quotation mark' => ["\u{00AB}", "\u{00AB}"],
+            'data-state valid U+00AC not sign' => ["\u{00AC}", "\u{00AC}"],
+            'data-state valid U+00AD soft hyphen' => ["\u{00AD}", "\u{00AD}"],
+            'data-state valid U+00AE registered sign' => ["\u{00AE}", "\u{00AE}"],
+            'data-state valid U+00AF macron' => ["\u{00AF}", "\u{00AF}"],
+            'data-state valid U+00B0 degree sign' => ["\u{00B0}", "\u{00B0}"],
+            'data-state valid U+00B1 plus-minus sign' => ["\u{00B1}", "\u{00B1}"],
+            'data-state valid U+00B2 superscript two' => ["\u{00B2}", "\u{00B2}"],
+            'data-state valid U+00B3 superscript three' => ["\u{00B3}", "\u{00B3}"],
+            'data-state valid U+00B4 acute accent' => ["\u{00B4}", "\u{00B4}"],
+            'data-state valid U+00B5 micro sign' => ["\u{00B5}", "\u{00B5}"],
+            'data-state valid U+00B6 pilcrow sign' => ["\u{00B6}", "\u{00B6}"],
+            'data-state valid U+00B7 middle dot' => ["\u{00B7}", "\u{00B7}"],
+            'data-state valid U+00B8 cedilla' => ["\u{00B8}", "\u{00B8}"],
+            'data-state valid U+00B9 superscript one' => ["\u{00B9}", "\u{00B9}"],
+            'data-state valid U+00BA masculine ordinal indicator' => ["\u{00BA}", "\u{00BA}"],
+            'data-state valid U+00BB right-pointing double angle quotation mark' => ["\u{00BB}", "\u{00BB}"],
+            'data-state valid U+00BC vulgar fraction one quarter' => ["\u{00BC}", "\u{00BC}"],
+            'data-state valid U+00BD vulgar fraction one half' => ["\u{00BD}", "\u{00BD}"],
+            'data-state valid U+00BE vulgar fraction three quarters' => ["\u{00BE}", "\u{00BE}"],
+            'data-state valid U+00BF inverted question mark' => ["\u{00BF}", "\u{00BF}"],
+        ] as $label => $case) {
+            yield "html5lib unicodeChars $label" => $case;
+        }
         yield 'char_ref.ton #28 NUL text is preserved' => ["\0", "\0"];
         yield 'char_ref.ton #29 NUL in text is preserved' => ["a\0b", "a\0b"];
         yield 'char_ref.ton #30 leading NUL in text is preserved' => ["\0b", "\0b"];
