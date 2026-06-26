@@ -3338,6 +3338,47 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib unicodeChars $label" => $case;
         }
+        foreach ([
+            'data-state valid U+D7FF high BMP scalar boundary' => ["\u{D7FF}", "\u{D7FF}"],
+            'data-state valid U+E000 low private-use scalar boundary' => ["\u{E000}", "\u{E000}"],
+            'data-state valid U+FDCF Arabic presentation boundary' => ["\u{FDCF}", "\u{FDCF}"],
+            'data-state valid U+FDF0 Arabic presentation boundary' => ["\u{FDF0}", "\u{FDF0}"],
+            'data-state valid U+FFFD replacement character' => ["\u{FFFD}", "\u{FFFD}"],
+            'data-state valid U+10000 plane 1 start' => ["\u{10000}", "\u{10000}"],
+            'data-state valid U+1FFFD plane 1 end' => ["\u{1FFFD}", "\u{1FFFD}"],
+            'data-state valid U+20000 plane 2 start' => ["\u{20000}", "\u{20000}"],
+            'data-state valid U+2FFFD plane 2 end' => ["\u{2FFFD}", "\u{2FFFD}"],
+            'data-state valid U+30000 plane 3 start' => ["\u{30000}", "\u{30000}"],
+            'data-state valid U+3FFFD plane 3 end' => ["\u{3FFFD}", "\u{3FFFD}"],
+            'data-state valid U+40000 plane 4 start' => ["\u{40000}", "\u{40000}"],
+            'data-state valid U+4FFFD plane 4 end' => ["\u{4FFFD}", "\u{4FFFD}"],
+            'data-state valid U+50000 plane 5 start' => ["\u{50000}", "\u{50000}"],
+            'data-state valid U+5FFFD plane 5 end' => ["\u{5FFFD}", "\u{5FFFD}"],
+            'data-state valid U+60000 plane 6 start' => ["\u{60000}", "\u{60000}"],
+            'data-state valid U+6FFFD plane 6 end' => ["\u{6FFFD}", "\u{6FFFD}"],
+            'data-state valid U+70000 plane 7 start' => ["\u{70000}", "\u{70000}"],
+            'data-state valid U+7FFFD plane 7 end' => ["\u{7FFFD}", "\u{7FFFD}"],
+            'data-state valid U+80000 plane 8 start' => ["\u{80000}", "\u{80000}"],
+            'data-state valid U+8FFFD plane 8 end' => ["\u{8FFFD}", "\u{8FFFD}"],
+            'data-state valid U+90000 plane 9 start' => ["\u{90000}", "\u{90000}"],
+            'data-state valid U+9FFFD plane 9 end' => ["\u{9FFFD}", "\u{9FFFD}"],
+            'data-state valid U+A0000 plane 10 start' => ["\u{A0000}", "\u{A0000}"],
+            'data-state valid U+AFFFD plane 10 end' => ["\u{AFFFD}", "\u{AFFFD}"],
+            'data-state valid U+B0000 plane 11 start' => ["\u{B0000}", "\u{B0000}"],
+            'data-state valid U+BFFFD plane 11 end' => ["\u{BFFFD}", "\u{BFFFD}"],
+            'data-state valid U+C0000 plane 12 start' => ["\u{C0000}", "\u{C0000}"],
+            'data-state valid U+CFFFD plane 12 end' => ["\u{CFFFD}", "\u{CFFFD}"],
+            'data-state valid U+D0000 plane 13 start' => ["\u{D0000}", "\u{D0000}"],
+            'data-state valid U+DFFFD plane 13 end' => ["\u{DFFFD}", "\u{DFFFD}"],
+            'data-state valid U+E0000 plane 14 start' => ["\u{E0000}", "\u{E0000}"],
+            'data-state valid U+EFFFD plane 14 end' => ["\u{EFFFD}", "\u{EFFFD}"],
+            'data-state valid U+F0000 plane 15 start' => ["\u{F0000}", "\u{F0000}"],
+            'data-state valid U+FFFFD plane 15 end' => ["\u{FFFFD}", "\u{FFFFD}"],
+            'data-state valid U+100000 plane 16 start' => ["\u{100000}", "\u{100000}"],
+            'data-state valid U+10FFFD plane 16 end' => ["\u{10FFFD}", "\u{10FFFD}"],
+        ] as $label => $case) {
+            yield "html5lib unicodeChars $label" => $case;
+        }
         yield 'char_ref.ton #28 NUL text is preserved' => ["\0", "\0"];
         yield 'char_ref.ton #29 NUL in text is preserved' => ["a\0b", "a\0b"];
         yield 'char_ref.ton #30 leading NUL in text is preserved' => ["\0b", "\0b"];
