@@ -3048,6 +3048,44 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib unicodeChars $label" => $case;
         }
+        foreach ([
+            'data-state noncharacter U+FDD0' => ["\u{FDD0}", "\u{FDD0}"],
+            'data-state noncharacter U+FDD1' => ["\u{FDD1}", "\u{FDD1}"],
+            'data-state noncharacter U+FDD2' => ["\u{FDD2}", "\u{FDD2}"],
+            'data-state noncharacter U+FDD3' => ["\u{FDD3}", "\u{FDD3}"],
+            'data-state noncharacter U+FDD4' => ["\u{FDD4}", "\u{FDD4}"],
+            'data-state noncharacter U+FDD5' => ["\u{FDD5}", "\u{FDD5}"],
+            'data-state noncharacter U+FDD6' => ["\u{FDD6}", "\u{FDD6}"],
+            'data-state noncharacter U+FDD7' => ["\u{FDD7}", "\u{FDD7}"],
+            'data-state noncharacter U+FDD8' => ["\u{FDD8}", "\u{FDD8}"],
+            'data-state noncharacter U+FDD9' => ["\u{FDD9}", "\u{FDD9}"],
+            'data-state noncharacter U+FDDA' => ["\u{FDDA}", "\u{FDDA}"],
+            'data-state noncharacter U+FDDB' => ["\u{FDDB}", "\u{FDDB}"],
+            'data-state noncharacter U+FDDC' => ["\u{FDDC}", "\u{FDDC}"],
+            'data-state noncharacter U+FDDD' => ["\u{FDDD}", "\u{FDDD}"],
+            'data-state noncharacter U+FDDE' => ["\u{FDDE}", "\u{FDDE}"],
+            'data-state noncharacter U+FDDF' => ["\u{FDDF}", "\u{FDDF}"],
+            'data-state noncharacter U+FDE0' => ["\u{FDE0}", "\u{FDE0}"],
+            'data-state noncharacter U+FDE1' => ["\u{FDE1}", "\u{FDE1}"],
+            'data-state noncharacter U+FDE2' => ["\u{FDE2}", "\u{FDE2}"],
+            'data-state noncharacter U+FDE3' => ["\u{FDE3}", "\u{FDE3}"],
+            'data-state noncharacter U+FDE4' => ["\u{FDE4}", "\u{FDE4}"],
+            'data-state noncharacter U+FDE5' => ["\u{FDE5}", "\u{FDE5}"],
+            'data-state noncharacter U+FDE6' => ["\u{FDE6}", "\u{FDE6}"],
+            'data-state noncharacter U+FDE7' => ["\u{FDE7}", "\u{FDE7}"],
+            'data-state noncharacter U+FDE8' => ["\u{FDE8}", "\u{FDE8}"],
+            'data-state noncharacter U+FDE9' => ["\u{FDE9}", "\u{FDE9}"],
+            'data-state noncharacter U+FDEA' => ["\u{FDEA}", "\u{FDEA}"],
+            'data-state noncharacter U+FDEB' => ["\u{FDEB}", "\u{FDEB}"],
+            'data-state noncharacter U+FDEC' => ["\u{FDEC}", "\u{FDEC}"],
+            'data-state noncharacter U+FDED' => ["\u{FDED}", "\u{FDED}"],
+            'data-state noncharacter U+FDEE' => ["\u{FDEE}", "\u{FDEE}"],
+            'data-state noncharacter U+FDEF' => ["\u{FDEF}", "\u{FDEF}"],
+            'data-state noncharacter U+FFFE' => ["\u{FFFE}", "\u{FFFE}"],
+            'data-state noncharacter U+FFFF' => ["\u{FFFF}", "\u{FFFF}"],
+        ] as $label => $case) {
+            yield "html5lib unicodeChars $label" => $case;
+        }
         yield 'char_ref.ton #28 NUL text is preserved' => ["\0", "\0"];
         yield 'char_ref.ton #29 NUL in text is preserved' => ["a\0b", "a\0b"];
         yield 'char_ref.ton #30 leading NUL in text is preserved' => ["\0b", "\0b"];
