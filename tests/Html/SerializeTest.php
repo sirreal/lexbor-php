@@ -3302,6 +3302,42 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib unicodeChars $label" => $case;
         }
+        foreach ([
+            'data-state valid U+00E0 latin small a with grave' => ["\u{00E0}", "\u{00E0}"],
+            'data-state valid U+00E1 latin small a with acute' => ["\u{00E1}", "\u{00E1}"],
+            'data-state valid U+00E2 latin small a with circumflex' => ["\u{00E2}", "\u{00E2}"],
+            'data-state valid U+00E3 latin small a with tilde' => ["\u{00E3}", "\u{00E3}"],
+            'data-state valid U+00E4 latin small a with diaeresis' => ["\u{00E4}", "\u{00E4}"],
+            'data-state valid U+00E5 latin small a with ring above' => ["\u{00E5}", "\u{00E5}"],
+            'data-state valid U+00E6 latin small ae' => ["\u{00E6}", "\u{00E6}"],
+            'data-state valid U+00E7 latin small c with cedilla' => ["\u{00E7}", "\u{00E7}"],
+            'data-state valid U+00E8 latin small e with grave' => ["\u{00E8}", "\u{00E8}"],
+            'data-state valid U+00E9 latin small e with acute' => ["\u{00E9}", "\u{00E9}"],
+            'data-state valid U+00EA latin small e with circumflex' => ["\u{00EA}", "\u{00EA}"],
+            'data-state valid U+00EB latin small e with diaeresis' => ["\u{00EB}", "\u{00EB}"],
+            'data-state valid U+00EC latin small i with grave' => ["\u{00EC}", "\u{00EC}"],
+            'data-state valid U+00ED latin small i with acute' => ["\u{00ED}", "\u{00ED}"],
+            'data-state valid U+00EE latin small i with circumflex' => ["\u{00EE}", "\u{00EE}"],
+            'data-state valid U+00EF latin small i with diaeresis' => ["\u{00EF}", "\u{00EF}"],
+            'data-state valid U+00F0 latin small eth' => ["\u{00F0}", "\u{00F0}"],
+            'data-state valid U+00F1 latin small n with tilde' => ["\u{00F1}", "\u{00F1}"],
+            'data-state valid U+00F2 latin small o with grave' => ["\u{00F2}", "\u{00F2}"],
+            'data-state valid U+00F3 latin small o with acute' => ["\u{00F3}", "\u{00F3}"],
+            'data-state valid U+00F4 latin small o with circumflex' => ["\u{00F4}", "\u{00F4}"],
+            'data-state valid U+00F5 latin small o with tilde' => ["\u{00F5}", "\u{00F5}"],
+            'data-state valid U+00F6 latin small o with diaeresis' => ["\u{00F6}", "\u{00F6}"],
+            'data-state valid U+00F7 division sign' => ["\u{00F7}", "\u{00F7}"],
+            'data-state valid U+00F8 latin small o with stroke' => ["\u{00F8}", "\u{00F8}"],
+            'data-state valid U+00F9 latin small u with grave' => ["\u{00F9}", "\u{00F9}"],
+            'data-state valid U+00FA latin small u with acute' => ["\u{00FA}", "\u{00FA}"],
+            'data-state valid U+00FB latin small u with circumflex' => ["\u{00FB}", "\u{00FB}"],
+            'data-state valid U+00FC latin small u with diaeresis' => ["\u{00FC}", "\u{00FC}"],
+            'data-state valid U+00FD latin small y with acute' => ["\u{00FD}", "\u{00FD}"],
+            'data-state valid U+00FE latin small thorn' => ["\u{00FE}", "\u{00FE}"],
+            'data-state valid U+00FF latin small y with diaeresis' => ["\u{00FF}", "\u{00FF}"],
+        ] as $label => $case) {
+            yield "html5lib unicodeChars $label" => $case;
+        }
         yield 'char_ref.ton #28 NUL text is preserved' => ["\0", "\0"];
         yield 'char_ref.ton #29 NUL in text is preserved' => ["a\0b", "a\0b"];
         yield 'char_ref.ton #30 leading NUL in text is preserved' => ["\0b", "\0b"];
