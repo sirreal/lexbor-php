@@ -3122,6 +3122,42 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib unicodeChars $label" => $case;
         }
+        foreach ([
+            'data-state valid U+0009 tab' => ["\t", "\t"],
+            'data-state valid U+000A newline' => ["\n", "\n"],
+            'data-state valid U+0020 space' => [' ', ' '],
+            'data-state valid U+0021 exclamation mark' => ['!', '!'],
+            'data-state valid U+0022 quotation mark' => ['"', '"'],
+            'data-state valid U+0023 number sign' => ['#', '#'],
+            'data-state valid U+0024 dollar sign' => ['$', '$'],
+            'data-state valid U+0025 percent sign' => ['%', '%'],
+            'data-state valid U+0026 ampersand' => ['&', '&amp;'],
+            'data-state valid U+0027 apostrophe' => ["'", "'"],
+            'data-state valid U+0028 left parenthesis' => ['(', '('],
+            'data-state valid U+0029 right parenthesis' => [')', ')'],
+            'data-state valid U+002A asterisk' => ['*', '*'],
+            'data-state valid U+002B plus sign' => ['+', '+'],
+            'data-state valid U+002C comma' => [',', ','],
+            'data-state valid U+002D hyphen-minus' => ['-', '-'],
+            'data-state valid U+002E full stop' => ['.', '.'],
+            'data-state valid U+002F solidus' => ['/', '/'],
+            'data-state valid U+0030 digit zero' => ['0', '0'],
+            'data-state valid U+0031 digit one' => ['1', '1'],
+            'data-state valid U+0032 digit two' => ['2', '2'],
+            'data-state valid U+0033 digit three' => ['3', '3'],
+            'data-state valid U+0034 digit four' => ['4', '4'],
+            'data-state valid U+0035 digit five' => ['5', '5'],
+            'data-state valid U+0036 digit six' => ['6', '6'],
+            'data-state valid U+0037 digit seven' => ['7', '7'],
+            'data-state valid U+0038 digit eight' => ['8', '8'],
+            'data-state valid U+0039 digit nine' => ['9', '9'],
+            'data-state valid U+003A colon' => [':', ':'],
+            'data-state valid U+003B semicolon' => [';', ';'],
+            'data-state valid U+003D equals sign' => ['=', '='],
+            'data-state valid U+003E greater-than sign' => ['>', '&gt;'],
+        ] as $label => $case) {
+            yield "html5lib unicodeChars $label" => $case;
+        }
         yield 'char_ref.ton #28 NUL text is preserved' => ["\0", "\0"];
         yield 'char_ref.ton #29 NUL in text is preserved' => ["a\0b", "a\0b"];
         yield 'char_ref.ton #30 leading NUL in text is preserved' => ["\0b", "\0b"];
