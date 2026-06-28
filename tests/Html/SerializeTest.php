@@ -3338,6 +3338,63 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
+    public static function html5libTest3EndTagOpenFixtureProvider(): iterable
+    {
+        foreach ([
+            1118 => ['</', '</', [['Character', '</']], [['eof-before-tag-name', 1, 3]]],
+            1119 => ['</\\u0000', "</\0", [['Comment', "\u{FFFD}"]], [['invalid-first-character-of-tag-name', 1, 3], ['unexpected-null-character', 1, 3]]],
+            1120 => ['</\\u0009', "</\t", [['Comment', "\t"]], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1121 => ['</\\u000A', "</\n", [['Comment', "\n"]], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1122 => ['</\\u000B', "</\v", [['Comment', "\v"]], [['control-character-in-input-stream', 1, 3], ['invalid-first-character-of-tag-name', 1, 3]]],
+            1123 => ['</\\u000C', "</\f", [['Comment', "\f"]], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1124 => ['</ ', '</ ', [['Comment', ' ']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1125 => ['</ \\u0000', "</ \0", [['Comment', " \u{FFFD}"]], [['invalid-first-character-of-tag-name', 1, 3], ['unexpected-null-character', 1, 4]]],
+            1126 => ['</!', '</!', [['Comment', '!']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1127 => ['</"', '</"', [['Comment', '"']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1128 => ['</&', '</&', [['Comment', '&']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1129 => ["</'", "</'", [['Comment', "'"]], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1130 => ['</-', '</-', [['Comment', '-']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1131 => ['<//', '<//', [['Comment', '/']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1132 => ['</0', '</0', [['Comment', '0']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1133 => ['</1', '</1', [['Comment', '1']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1134 => ['</9', '</9', [['Comment', '9']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1135 => ['</<', '</<', [['Comment', '<']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1136 => ['</=', '</=', [['Comment', '=']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1137 => ['</>', '</>', [], [['missing-end-tag-name', 1, 3]]],
+            1138 => ['</?', '</?', [['Comment', '?']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1139 => ['</@', '</@', [['Comment', '@']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1140 => ['</A>', '</A>', [['EndTag', 'a']], []],
+            1141 => ['</B>', '</B>', [['EndTag', 'b']], []],
+            1142 => ['</Y>', '</Y>', [['EndTag', 'y']], []],
+            1143 => ['</Z>', '</Z>', [['EndTag', 'z']], []],
+            1144 => ['</[', '</[', [['Comment', '[']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1145 => ['</`', '</`', [['Comment', '`']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1146 => ['</a>', '</a>', [['EndTag', 'a']], []],
+            1147 => ['</b>', '</b>', [['EndTag', 'b']], []],
+            1148 => ['</y>', '</y>', [['EndTag', 'y']], []],
+            1149 => ['</z>', '</z>', [['EndTag', 'z']], []],
+            1150 => ['</{', '</{', [['Comment', '{']], [['invalid-first-character-of-tag-name', 1, 3]]],
+            1151 => ['</\\uDBC0\\uDC00', "</\u{100000}", [['Comment', "\u{100000}"]], [['invalid-first-character-of-tag-name', 1, 3]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description end-tag-open exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
     {
         foreach ([
@@ -12382,6 +12439,36 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3EndTagOpenFixtureProvider')]
+    public function testHtml5libTest3EndTagOpenFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
     }
 
     /**
