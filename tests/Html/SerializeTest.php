@@ -4088,6 +4088,52 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3SingleQuotedAttributeValueAsciiNonBmpFixtureProvider(): iterable
+    {
+        foreach ([
+            1396 => ["<a a='('>", "<a a='('>", '(', []],
+            1397 => ["<a a='-'>", "<a a='-'>", '-', []],
+            1398 => ["<a a='/'>", "<a a='/'>", '/', []],
+            1399 => ["<a a='0'>", "<a a='0'>", '0', []],
+            1400 => ["<a a='1'>", "<a a='1'>", '1', []],
+            1401 => ["<a a='9'>", "<a a='9'>", '9', []],
+            1402 => ["<a a='<'>", "<a a='<'>", '<', []],
+            1403 => ["<a a='='>", "<a a='='>", '=', []],
+            1404 => ["<a a='>'>", "<a a='>'>", '>', []],
+            1405 => ["<a a='?'>", "<a a='?'>", '?', []],
+            1406 => ["<a a='@'>", "<a a='@'>", '@', []],
+            1407 => ["<a a='A'>", "<a a='A'>", 'A', []],
+            1408 => ["<a a='B'>", "<a a='B'>", 'B', []],
+            1409 => ["<a a='Y'>", "<a a='Y'>", 'Y', []],
+            1410 => ["<a a='Z'>", "<a a='Z'>", 'Z', []],
+            1411 => ["<a a='`'>", "<a a='`'>", '`', []],
+            1412 => ["<a a='a'>", "<a a='a'>", 'a', []],
+            1413 => ["<a a='b'>", "<a a='b'>", 'b', []],
+            1414 => ["<a a='y'>", "<a a='y'>", 'y', []],
+            1415 => ["<a a='z'>", "<a a='z'>", 'z', []],
+            1416 => ["<a a='{'>", "<a a='{'>", '{', []],
+            1417 => ["<a a='\\uDBC0\\uDC00'>", "<a a='\u{100000}'>", "\u{100000}", []],
+        ] as $testIndex => [$description, $html, $value, $errors]) {
+            $expectedOutput = [['StartTag', 'a', ['a' => $value]]];
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description single-quoted attribute-value ASCII/non-BMP exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -13683,6 +13729,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3AfterSingleQuotedAttributeValueAsciiNonBmpFixtureProvider')]
     public function testHtml5libTest3AfterSingleQuotedAttributeValueAsciiNonBmpFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3SingleQuotedAttributeValueAsciiNonBmpFixtureProvider')]
+    public function testHtml5libTest3SingleQuotedAttributeValueAsciiNonBmpFixtureRows(
         string $html,
         int $testIndex,
         string $description,
