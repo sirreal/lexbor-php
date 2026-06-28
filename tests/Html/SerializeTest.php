@@ -3320,6 +3320,32 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest2CharacterReferenceFixtureProvider(): iterable
+    {
+        foreach ([
+            15 => ['Numeric entity representing the NUL character', '&#0000;', [['Character', "\u{FFFD}"]], [['code' => 'null-character-reference', 'line' => 1, 'col' => 8]]],
+            16 => ['Hexadecimal entity representing the NUL character', '&#x0000;', [['Character', "\u{FFFD}"]], [['code' => 'null-character-reference', 'line' => 1, 'col' => 9]]],
+            17 => ['Numeric entity representing a codepoint after 1114111 (U+10FFFF)', '&#2225222;', [['Character', "\u{FFFD}"]], [['code' => 'character-reference-outside-unicode-range', 'line' => 1, 'col' => 11]]],
+            18 => ['Hexadecimal entity representing a codepoint after 1114111 (U+10FFFF)', '&#x1010FFFF;', [['Character', "\u{FFFD}"]], [['code' => 'character-reference-outside-unicode-range', 'line' => 1, 'col' => 13]]],
+            19 => ['Hexadecimal entity pair representing a surrogate pair', '&#xD869;&#xDED6;', [['Character', "\u{FFFD}\u{FFFD}"]], [['code' => 'surrogate-character-reference', 'line' => 1, 'col' => 9], ['code' => 'surrogate-character-reference', 'line' => 1, 'col' => 17]]],
+            20 => ['Hexadecimal entity with mixed uppercase and lowercase', '&#xaBcD;', [['Character', "\u{ABCD}"]], []],
+            21 => ['Entity without a name', '&;', [['Character', '&;']], []],
+            22 => ['Unescaped ampersand in attribute value', "<h a='&'>", [['StartTag', 'h', ['a' => '&']]], []],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test2.test $testIndex $description character-reference exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -13910,6 +13936,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest2DoctypeFixtureProvider')]
     public function testHtml5libTest2DoctypeFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test2.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest2CharacterReferenceFixtureProvider')]
+    public function testHtml5libTest2CharacterReferenceFixtureRows(
         string $html,
         int $testIndex,
         string $description,
