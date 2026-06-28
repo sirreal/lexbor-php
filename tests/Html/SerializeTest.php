@@ -2860,6 +2860,40 @@ final class SerializeTest extends TestCase
             'line' => 1,
             'col' => 2,
         ]];
+        $scriptCommentNulErrors = [
+            [
+                'code' => 'unexpected-null-character',
+                'line' => 1,
+                'col' => 9,
+            ],
+            [
+                'code' => 'unexpected-null-character',
+                'line' => 1,
+                'col' => 22,
+            ],
+            [
+                'code' => 'unexpected-null-character',
+                'line' => 1,
+                'col' => 36,
+            ],
+        ];
+        $doubleEscapedScriptCommentNulErrors = [
+            [
+                'code' => 'unexpected-null-character',
+                'line' => 1,
+                'col' => 13,
+            ],
+            [
+                'code' => 'unexpected-null-character',
+                'line' => 1,
+                'col' => 30,
+            ],
+            [
+                'code' => 'unexpected-null-character',
+                'line' => 1,
+                'col' => 48,
+            ],
+        ];
 
         yield 'domjs.test CR in bogus comment state exact fixture row' => [
             "<?\r",
@@ -2899,6 +2933,33 @@ final class SerializeTest extends TestCase
                 'line' => 1,
                 'col' => 1,
             ]],
+            true,
+        ];
+        yield 'domjs.test NUL in CDATA section exact fixture row' => [
+            '\u0000]]>',
+            4,
+            'NUL in CDATA section',
+            ['CDATA section state'],
+            [['Character', '\u0000']],
+            [],
+            true,
+        ];
+        yield 'domjs.test NUL in script HTML comment exact fixture row' => [
+            '<!--test\u0000--><!--test-\u0000--><!--test--\u0000-->',
+            5,
+            'NUL in script HTML comment',
+            ['Script data state'],
+            [['Character', '<!--test\uFFFD--><!--test-\uFFFD--><!--test--\uFFFD-->']],
+            $scriptCommentNulErrors,
+            true,
+        ];
+        yield 'domjs.test NUL in double-escaped script HTML comment exact fixture row' => [
+            '<!--<script>\u0000--><!--<script>-\u0000--><!--<script>--\u0000-->',
+            6,
+            'NUL in script HTML comment - double escaped',
+            ['Script data state'],
+            [['Character', '<!--<script>\uFFFD--><!--<script>-\uFFFD--><!--<script>--\uFFFD-->']],
+            $doubleEscapedScriptCommentNulErrors,
             true,
         ];
     }
