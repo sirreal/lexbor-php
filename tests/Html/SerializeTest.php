@@ -4379,6 +4379,43 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3UnexpectedSolidusAsciiNonBmpFixtureProvider(): iterable
+    {
+        foreach ([
+            1521 => ['<a/>', '<a/>', [['StartTag', 'a', [], true]], []],
+            1522 => ['<a/?>', '<a/?>', [['StartTag', 'a', ['?' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1523 => ['<a/@>', '<a/@>', [['StartTag', 'a', ['@' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1524 => ['<a/A>', '<a/A>', [['StartTag', 'a', ['a' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1525 => ['<a/B>', '<a/B>', [['StartTag', 'a', ['b' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1526 => ['<a/Y>', '<a/Y>', [['StartTag', 'a', ['y' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1527 => ['<a/Z>', '<a/Z>', [['StartTag', 'a', ['z' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1528 => ['<a/`>', '<a/`>', [['StartTag', 'a', ['`' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1529 => ['<a/a>', '<a/a>', [['StartTag', 'a', ['a' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1530 => ['<a/b>', '<a/b>', [['StartTag', 'a', ['b' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1531 => ['<a/y>', '<a/y>', [['StartTag', 'a', ['y' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1532 => ['<a/z>', '<a/z>', [['StartTag', 'a', ['z' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1533 => ['<a/{>', '<a/{>', [['StartTag', 'a', ['{' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1534 => ['<a/\\uDBC0\\uDC00>', "<a/\u{100000}>", [['StartTag', 'a', ["\u{100000}" => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description unexpected-solidus ASCII/non-BMP exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -14184,6 +14221,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3UnexpectedSolidusControlPunctuationFixtureProvider')]
     public function testHtml5libTest3UnexpectedSolidusControlPunctuationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3UnexpectedSolidusAsciiNonBmpFixtureProvider')]
+    public function testHtml5libTest3UnexpectedSolidusAsciiNonBmpFixtureRows(
         string $html,
         int $testIndex,
         string $description,
