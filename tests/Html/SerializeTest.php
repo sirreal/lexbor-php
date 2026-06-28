@@ -4887,6 +4887,56 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeMissingWhitespaceNameInvalidSequenceFixtureProvider(): iterable
+    {
+        foreach ([
+            736 => ['<!DOCTYPEa \\u0000', "<!DOCTYPEa \0", false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12], ['unexpected-null-character', 1, 12]]],
+            737 => ['<!DOCTYPEa \\u0008', "<!DOCTYPEa \x08", false, [['control-character-in-input-stream', 1, 12], ['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            738 => ['<!DOCTYPEa \\u0009', "<!DOCTYPEa \t", false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 13]]],
+            739 => ['<!DOCTYPEa \\u000A', "<!DOCTYPEa \n", false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 2, 1]]],
+            740 => ['<!DOCTYPEa \\u000B', "<!DOCTYPEa \v", false, [['control-character-in-input-stream', 1, 12], ['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            741 => ['<!DOCTYPEa \\u000C', "<!DOCTYPEa \f", false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 13]]],
+            742 => ['<!DOCTYPEa \\u000D', "<!DOCTYPEa \r", false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 2, 1]]],
+            743 => ['<!DOCTYPEa \\u001F', "<!DOCTYPEa \x1F", false, [['control-character-in-input-stream', 1, 12], ['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            744 => ['<!DOCTYPEa  ', '<!DOCTYPEa  ', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 13]]],
+            745 => ['<!DOCTYPEa !', '<!DOCTYPEa !', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            746 => ['<!DOCTYPEa "', '<!DOCTYPEa "', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            747 => ['<!DOCTYPEa &', '<!DOCTYPEa &', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            748 => ['<!DOCTYPEa \'', "<!DOCTYPEa '", false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            749 => ['<!DOCTYPEa -', '<!DOCTYPEa -', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            750 => ['<!DOCTYPEa /', '<!DOCTYPEa /', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            751 => ['<!DOCTYPEa 0', '<!DOCTYPEa 0', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            752 => ['<!DOCTYPEa 1', '<!DOCTYPEa 1', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            753 => ['<!DOCTYPEa 9', '<!DOCTYPEa 9', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            754 => ['<!DOCTYPEa <', '<!DOCTYPEa <', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            755 => ['<!DOCTYPEa =', '<!DOCTYPEa =', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            756 => ['<!DOCTYPEa >', '<!DOCTYPEa >', true, [['missing-whitespace-before-doctype-name', 1, 10]]],
+            757 => ['<!DOCTYPEa ?', '<!DOCTYPEa ?', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            758 => ['<!DOCTYPEa @', '<!DOCTYPEa @', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            759 => ['<!DOCTYPEa A', '<!DOCTYPEa A', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+            760 => ['<!DOCTYPEa B', '<!DOCTYPEa B', false, [['missing-whitespace-before-doctype-name', 1, 10], ['invalid-character-sequence-after-doctype-name', 1, 12]]],
+        ] as $testIndex => [$description, $html, $tokenForceQuirks, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description missing-whitespace doctype-name invalid sequence exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', 'a', null, null, $tokenForceQuirks]],
+                $expectedErrors,
+                '<!DOCTYPE a><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -12441,6 +12491,49 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeMissingWhitespaceNameEofControlFixtureProvider')]
     public function testHtml5libTest3DoctypeMissingWhitespaceNameEofControlFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeMissingWhitespaceNameInvalidSequenceFixtureProvider')]
+    public function testHtml5libTest3DoctypeMissingWhitespaceNameInvalidSequenceFixtureRows(
         string $html,
         int $testIndex,
         string $description,
