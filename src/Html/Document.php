@@ -166,7 +166,7 @@ final class Document extends Node
     private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void
     {
         $stack = [$root];
-        $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<\s*(?<closing>/)?\s*(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
+        $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
         $offset = 0;
 
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
@@ -558,7 +558,7 @@ final class Document extends Node
             return $closeEnd;
         }
 
-        $pattern = sprintf('~<\s*/\s*%s\s*>~i', preg_quote($element->tagName, '~'));
+        $pattern = sprintf('~</%s\s*>~i', preg_quote($element->tagName, '~'));
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE, $offset) !== 1) {
             $this->appendText($element, substr($html, $offset), $this->shouldDecodeTextOnlyElementContent($element));
@@ -622,7 +622,7 @@ final class Document extends Node
      */
     private static function consumeTextOnlyEndTagAt(string $html, int $offset, string $tagName): ?array
     {
-        if (preg_match(sprintf('~^<\s*/\s*%s\s*>~i', preg_quote($tagName, '~')), substr($html, $offset), $match) !== 1) {
+        if (preg_match(sprintf('~^</%s\s*>~i', preg_quote($tagName, '~')), substr($html, $offset), $match) !== 1) {
             return null;
         }
 
@@ -692,7 +692,7 @@ final class Document extends Node
      */
     private function bodyFragment(string $html): ?array
     {
-        $pattern = '~<\s*body(?=[\t\n\f\r />])~si';
+        $pattern = '~<body(?=[\t\n\f\r />])~si';
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE) !== 1) {
             return null;
@@ -704,7 +704,7 @@ final class Document extends Node
         }
 
         [$attributes, $start] = $bodyTag;
-        $closePattern = '~<\s*/\s*body\s*>~i';
+        $closePattern = '~</body\s*>~i';
 
         if (preg_match($closePattern, $html, $close, PREG_OFFSET_CAPTURE, $start) !== 1) {
             return [

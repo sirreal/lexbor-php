@@ -2641,6 +2641,10 @@ final class SerializeTest extends TestCase
             '<script><!--<script></script--></script>',
             '<script><!--<script></script--></script>',
         ];
+        yield 'spaced script end tag remains script text until real close' => [
+            '<script>a< /script>b</script>',
+            '<script>a< /script>b</script>',
+        ];
         yield 'domjs.test RCDATA FEFF pass-through' => [
             "<textarea>\u{FEFF}foo\u{FEFF}bar</textarea>",
             "<textarea>\u{FEFF}foo\u{FEFF}bar</textarea>",
@@ -8082,6 +8086,7 @@ final class SerializeTest extends TestCase
         yield 'html5lib test1 start and end tag' => ['<h></h>', '<h></h>'];
         yield 'html5lib test1 two unclosed start tags' => ['<p>One<p>Two', '<p>One</p><p>Two</p>'];
         yield 'body pre-scan does not consume NUL-suffixed body tag' => ["<body\0>x</body\0>", "<body\u{FFFD}>x</body\u{FFFD}>"];
+        yield 'body pre-scan does not consume spaced body-looking text' => ['foo < body>x</ body>', 'foo &lt; body&gt;x<!-- body-->'];
         yield 'html5lib test2 less-than in tag name' => ['<a<b>', '<a<b></a<b>'];
         yield 'html5lib test3 exclamation in tag name' => ['<a!>', '<a!></a!>'];
         yield 'html5lib test3 double quote in tag name' => ['<a">', '<a"></a">'];
@@ -8144,6 +8149,7 @@ final class SerializeTest extends TestCase
             "<\u{100000}",
             "&lt;\u{100000}",
         ];
+        yield 'html5lib test2 invalid tag-open space is text' => ['foo < bar', 'foo &lt; bar'];
         yield 'html5lib test3 tag name NUL replacement' => ["<a\0>", "<a\u{FFFD}></a\u{FFFD}>"];
         yield 'html5lib test3 tag name backspace is retained' => ["<a\x08>", "<a\x08></a\x08>"];
         yield 'html5lib test3 tag name tab boundary' => ["<a\t>", '<a></a>'];
