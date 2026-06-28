@@ -4777,6 +4777,62 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeNameContinuationPrintableEofFixtureProvider(): iterable
+    {
+        foreach ([
+            676 => ['<!DOCTYPE a!', '<!DOCTYPE a!', 'a!', false, [['eof-in-doctype', 1, 13]]],
+            677 => ['<!DOCTYPE a"', '<!DOCTYPE a"', 'a"', false, [['eof-in-doctype', 1, 13]]],
+            678 => ['<!DOCTYPE a&', '<!DOCTYPE a&', 'a&', false, [['eof-in-doctype', 1, 13]]],
+            679 => ['<!DOCTYPE a\'', "<!DOCTYPE a'", "a'", false, [['eof-in-doctype', 1, 13]]],
+            680 => ['<!DOCTYPE a-', '<!DOCTYPE a-', 'a-', false, [['eof-in-doctype', 1, 13]]],
+            681 => ['<!DOCTYPE a/', '<!DOCTYPE a/', 'a/', false, [['eof-in-doctype', 1, 13]]],
+            682 => ['<!DOCTYPE a0', '<!DOCTYPE a0', 'a0', false, [['eof-in-doctype', 1, 13]]],
+            683 => ['<!DOCTYPE a1', '<!DOCTYPE a1', 'a1', false, [['eof-in-doctype', 1, 13]]],
+            684 => ['<!DOCTYPE a9', '<!DOCTYPE a9', 'a9', false, [['eof-in-doctype', 1, 13]]],
+            685 => ['<!DOCTYPE a<', '<!DOCTYPE a<', 'a<', false, [['eof-in-doctype', 1, 13]]],
+            686 => ['<!DOCTYPE a=', '<!DOCTYPE a=', 'a=', false, [['eof-in-doctype', 1, 13]]],
+            687 => ['<!DOCTYPE a>', '<!DOCTYPE a>', 'a', true, []],
+            688 => ['<!DOCTYPE a?', '<!DOCTYPE a?', 'a?', false, [['eof-in-doctype', 1, 13]]],
+            689 => ['<!DOCTYPE a@', '<!DOCTYPE a@', 'a@', false, [['eof-in-doctype', 1, 13]]],
+            690 => ['<!DOCTYPE aA', '<!DOCTYPE aA', 'aa', false, [['eof-in-doctype', 1, 13]]],
+            691 => ['<!DOCTYPE aB', '<!DOCTYPE aB', 'ab', false, [['eof-in-doctype', 1, 13]]],
+            692 => ['<!DOCTYPE aY', '<!DOCTYPE aY', 'ay', false, [['eof-in-doctype', 1, 13]]],
+            693 => ['<!DOCTYPE aZ', '<!DOCTYPE aZ', 'az', false, [['eof-in-doctype', 1, 13]]],
+            694 => ['<!DOCTYPE a[', '<!DOCTYPE a[', 'a[', false, [['eof-in-doctype', 1, 13]]],
+            695 => ['<!DOCTYPE a`', '<!DOCTYPE a`', 'a`', false, [['eof-in-doctype', 1, 13]]],
+            696 => ['<!DOCTYPE aa', '<!DOCTYPE aa', 'aa', false, [['eof-in-doctype', 1, 13]]],
+            697 => ['<!DOCTYPE ab', '<!DOCTYPE ab', 'ab', false, [['eof-in-doctype', 1, 13]]],
+            698 => ['<!DOCTYPE ay', '<!DOCTYPE ay', 'ay', false, [['eof-in-doctype', 1, 13]]],
+            699 => ['<!DOCTYPE az', '<!DOCTYPE az', 'az', false, [['eof-in-doctype', 1, 13]]],
+            700 => ['<!DOCTYPE a{', '<!DOCTYPE a{', 'a{', false, [['eof-in-doctype', 1, 13]]],
+            701 => ['<!DOCTYPE a\\uDBC0\\uDC00', "<!DOCTYPE a\u{100000}", "a\u{100000}", false, [['eof-in-doctype', 1, 14]]],
+            702 => ['<!DOCTYPE b', '<!DOCTYPE b', 'b', false, [['eof-in-doctype', 1, 12]]],
+            703 => ['<!DOCTYPE y', '<!DOCTYPE y', 'y', false, [['eof-in-doctype', 1, 12]]],
+            704 => ['<!DOCTYPE z', '<!DOCTYPE z', 'z', false, [['eof-in-doctype', 1, 12]]],
+            705 => ['<!DOCTYPE {', '<!DOCTYPE {', '{', false, [['eof-in-doctype', 1, 12]]],
+            706 => ['<!DOCTYPE \\uDBC0\\uDC00', "<!DOCTYPE \u{100000}", "\u{100000}", false, [['eof-in-doctype', 1, 13]]],
+        ] as $testIndex => [$description, $html, $name, $forceQuirks, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description doctype-name continuation printable EOF exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', $name, null, null, $forceQuirks]],
+                $expectedErrors,
+                '<!DOCTYPE ' . $name . '><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -12245,6 +12301,49 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeNameInvalidContinuationFixtureProvider')]
     public function testHtml5libTest3DoctypeNameInvalidContinuationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeNameContinuationPrintableEofFixtureProvider')]
+    public function testHtml5libTest3DoctypeNameContinuationPrintableEofFixtureRows(
         string $html,
         int $testIndex,
         string $description,
