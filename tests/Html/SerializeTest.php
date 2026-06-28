@@ -3445,6 +3445,44 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest4EofNumericReferenceFixtureProvider(): iterable
+    {
+        foreach ([
+            23 => ['CR EOF after doctype name', "<!doctype html \r", [['DOCTYPE', 'html', null, null, false]], [['code' => 'eof-in-doctype', 'line' => 2, 'col' => 1]]],
+            24 => ['CR EOF in tag name', "<z\r", [], [['code' => 'eof-in-tag', 'line' => 2, 'col' => 1]]],
+            25 => ['Slash EOF in tag name', '<z/', [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 4]]],
+            26 => ['Zero hex numeric entity', '&#x0', [['Character', "\u{FFFD}"]], [['code' => 'missing-semicolon-after-character-reference', 'line' => 1, 'col' => 5], ['code' => 'null-character-reference', 'line' => 1, 'col' => 5]]],
+            27 => ['Zero decimal numeric entity', '&#0', [['Character', "\u{FFFD}"]], [['code' => 'missing-semicolon-after-character-reference', 'line' => 1, 'col' => 4], ['code' => 'null-character-reference', 'line' => 1, 'col' => 4]]],
+            28 => ['Zero-prefixed hex numeric entity', '&#x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000041;', [['Character', 'A']], []],
+            29 => ['Zero-prefixed decimal numeric entity', '&#000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000065;', [['Character', 'A']], []],
+            30 => ['Empty hex numeric entities', '&#x &#X ', [['Character', '&#x &#X ']], [['code' => 'absence-of-digits-in-numeric-character-reference', 'line' => 1, 'col' => 4], ['code' => 'absence-of-digits-in-numeric-character-reference', 'line' => 1, 'col' => 8]]],
+            31 => ['Invalid digit in hex numeric entity', '&#xZ', [['Character', '&#xZ']], [['code' => 'absence-of-digits-in-numeric-character-reference', 'line' => 1, 'col' => 4]]],
+            32 => ['Empty decimal numeric entities', '&# &#; ', [['Character', '&# &#; ']], [['code' => 'absence-of-digits-in-numeric-character-reference', 'line' => 1, 'col' => 3], ['code' => 'absence-of-digits-in-numeric-character-reference', 'line' => 1, 'col' => 6]]],
+            33 => ['Invalid digit in decimal numeric entity', '&#A', [['Character', '&#A']], [['code' => 'absence-of-digits-in-numeric-character-reference', 'line' => 1, 'col' => 3]]],
+            34 => ['Non-BMP numeric entity', '&#x10000;', [['Character', "\u{10000}"]], []],
+            35 => ['Maximum non-BMP numeric entity', '&#X10FFFF;', [['Character', "\u{10FFFF}"]], [['code' => 'noncharacter-character-reference', 'line' => 1, 'col' => 11]]],
+            36 => ['Above maximum numeric entity', '&#x110000;', [['Character', "\u{FFFD}"]], [['code' => 'character-reference-outside-unicode-range', 'line' => 1, 'col' => 11]]],
+            37 => ['32-bit hex numeric entity', '&#x80000041;', [['Character', "\u{FFFD}"]], [['code' => 'character-reference-outside-unicode-range', 'line' => 1, 'col' => 13]]],
+            38 => ['33-bit hex numeric entity', '&#x100000041;', [['Character', "\u{FFFD}"]], [['code' => 'character-reference-outside-unicode-range', 'line' => 1, 'col' => 14]]],
+            39 => ['33-bit decimal numeric entity', '&#4294967361;', [['Character', "\u{FFFD}"]], [['code' => 'character-reference-outside-unicode-range', 'line' => 1, 'col' => 14]]],
+            40 => ['65-bit hex numeric entity', '&#x10000000000000041;', [['Character', "\u{FFFD}"]], [['code' => 'character-reference-outside-unicode-range', 'line' => 1, 'col' => 22]]],
+            41 => ['65-bit decimal numeric entity', '&#18446744073709551681;', [['Character', "\u{FFFD}"]], [['code' => 'character-reference-outside-unicode-range', 'line' => 1, 'col' => 24]]],
+            42 => ['Surrogate code point edge cases', '&#xD7FF;&#xD800;&#xD801;&#xDFFE;&#xDFFF;&#xE000;', [['Character', "\u{D7FF}\u{FFFD}\u{FFFD}\u{FFFD}\u{FFFD}\u{E000}"]], [['code' => 'surrogate-character-reference', 'line' => 1, 'col' => 17], ['code' => 'surrogate-character-reference', 'line' => 1, 'col' => 25], ['code' => 'surrogate-character-reference', 'line' => 1, 'col' => 33], ['code' => 'surrogate-character-reference', 'line' => 1, 'col' => 41]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test4.test $testIndex $description EOF/numeric-reference exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -14155,6 +14193,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest4TagAttributeFixtureProvider')]
     public function testHtml5libTest4TagAttributeFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test4.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest4EofNumericReferenceFixtureProvider')]
+    public function testHtml5libTest4EofNumericReferenceFixtureRows(
         string $html,
         int $testIndex,
         string $description,
