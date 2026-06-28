@@ -2851,6 +2851,62 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>}>
+     */
+    public static function html5libDomjsScriptCommentEndTagFixtureProvider(): iterable
+    {
+        foreach ([
+            16 => [
+                '</script> in script HTML comment',
+                '<!-- </script> --></script>',
+                [['Character', '<!-- '], ['EndTag', 'script'], ['Character', ' -->'], ['EndTag', 'script']],
+            ],
+            17 => [
+                '</script> in script HTML comment - double escaped',
+                '<!-- <script></script> --></script>',
+                [['Character', '<!-- <script></script> -->'], ['EndTag', 'script']],
+            ],
+            18 => [
+                '</script> in script HTML comment - double escaped with nested <script>',
+                '<!-- <script><script></script></script> --></script>',
+                [['Character', '<!-- <script><script></script>'], ['EndTag', 'script'], ['Character', ' -->'], ['EndTag', 'script']],
+            ],
+            19 => [
+                '</script> in script HTML comment - double escaped with abrupt end',
+                '<!-- <script>--></script> --></script>',
+                [['Character', '<!-- <script>-->'], ['EndTag', 'script'], ['Character', ' -->'], ['EndTag', 'script']],
+            ],
+            20 => [
+                'Incomplete start tag in script HTML comment double escaped',
+                '<!--<scrip></script>-->',
+                [['Character', '<!--<scrip>'], ['EndTag', 'script'], ['Character', '-->']],
+            ],
+            21 => [
+                'Unclosed start tag in script HTML comment double escaped',
+                '<!--<script</script>-->',
+                [['Character', '<!--<script'], ['EndTag', 'script'], ['Character', '-->']],
+            ],
+            22 => [
+                'Incomplete end tag in script HTML comment double escaped',
+                '<!--<script></scrip>-->',
+                [['Character', '<!--<script></scrip>-->']],
+            ],
+            23 => [
+                'Unclosed end tag in script HTML comment double escaped',
+                '<!--<script></script-->',
+                [['Character', '<!--<script></script-->']],
+            ],
+        ] as $testIndex => [$description, $html, $expectedOutput]) {
+            yield "domjs.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                $expectedOutput,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>, bool}>
      */
     public static function html5libDomjsFixtureProvider(): iterable
@@ -14128,6 +14184,34 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libDomjsScriptCommentEndTagFixtureProvider')]
+    public function testHtml5libDomjsScriptCommentEndTagFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/domjs.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame(['Script data state'], $fixture['initialStates']);
+        self::assertSame('script', $fixture['lastStartTag']);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame([], $fixture['errors'] ?? []);
     }
 
     /**
