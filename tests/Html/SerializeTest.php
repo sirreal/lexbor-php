@@ -4265,6 +4265,50 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3AttributeNameContinuationAsciiNonBmpFixtureProvider(): iterable
+    {
+        foreach ([
+            1477 => ['<a a>', '<a a>', 'a', []],
+            1478 => ['<a a?>', '<a a?>', 'a?', []],
+            1479 => ['<a a@>', '<a a@>', 'a@', []],
+            1480 => ['<a aA>', '<a aA>', 'aa', []],
+            1481 => ['<a aB>', '<a aB>', 'ab', []],
+            1482 => ['<a aY>', '<a aY>', 'ay', []],
+            1483 => ['<a aZ>', '<a aZ>', 'az', []],
+            1484 => ['<a a[>', '<a a[>', 'a[', []],
+            1485 => ['<a a`>', '<a a`>', 'a`', []],
+            1486 => ['<a aa>', '<a aa>', 'aa', []],
+            1487 => ['<a ab>', '<a ab>', 'ab', []],
+            1488 => ['<a ay>', '<a ay>', 'ay', []],
+            1489 => ['<a az>', '<a az>', 'az', []],
+            1490 => ['<a a{>', '<a a{>', 'a{', []],
+            1491 => ['<a a\\uDBC0\\uDC00>', "<a a\u{100000}>", "a\u{100000}", []],
+            1492 => ['<a b>', '<a b>', 'b', []],
+            1493 => ['<a y>', '<a y>', 'y', []],
+            1494 => ['<a z>', '<a z>', 'z', []],
+            1495 => ['<a {>', '<a {>', '{', []],
+            1496 => ['<a \\uDBC0\\uDC00>', "<a \u{100000}>", "\u{100000}", []],
+        ] as $testIndex => [$description, $html, $attributeName, $errors]) {
+            $expectedOutput = [['StartTag', 'a', [$attributeName => '']]];
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description attribute-name continuation ASCII/non-BMP exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -13980,6 +14024,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3UnquotedAttributeValueContinuationAsciiNonBmpFixtureProvider')]
     public function testHtml5libTest3UnquotedAttributeValueContinuationAsciiNonBmpFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3AttributeNameContinuationAsciiNonBmpFixtureProvider')]
+    public function testHtml5libTest3AttributeNameContinuationAsciiNonBmpFixtureRows(
         string $html,
         int $testIndex,
         string $description,
