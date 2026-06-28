@@ -3323,6 +3323,45 @@ final class SerializeTest extends TestCase
                 [['Character', '<.']],
                 [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
             ],
+            1152 => [
+                '<0',
+                '<0',
+                [['Character', '<0']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            1153 => [
+                '<1',
+                '<1',
+                [['Character', '<1']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            1154 => [
+                '<9',
+                '<9',
+                [['Character', '<9']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            1155 => [
+                '<<',
+                '<<',
+                [['Character', '<<']],
+                [
+                    ['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2],
+                    ['code' => 'eof-before-tag-name', 'line' => 1, 'col' => 3],
+                ],
+            ],
+            1156 => [
+                '<=',
+                '<=',
+                [['Character', '<=']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            1157 => [
+                '<>',
+                '<>',
+                [['Character', '<>']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
         ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
             yield "test3.test $description tag-open exact fixture row" => [
                 $html,
