@@ -5402,6 +5402,65 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeMissingWhitespaceSystemClosedEmptyIdentifierBoundaryFixtureProvider(): iterable
+    {
+        foreach ([
+            955 => ["<!DOCTYPEa SYSTEM''\\u0000", "<!DOCTYPEa SYSTEM''\0", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20], ['unexpected-null-character', 1, 20]]],
+            956 => ["<!DOCTYPEa SYSTEM''\\u0008", "<!DOCTYPEa SYSTEM''\x08", true, [['control-character-in-input-stream', 1, 20], ['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            957 => ["<!DOCTYPEa SYSTEM''\\u0009", "<!DOCTYPEa SYSTEM''\t", false, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 21]]],
+            958 => ["<!DOCTYPEa SYSTEM''\\u000A", "<!DOCTYPEa SYSTEM''\n", false, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 2, 1]]],
+            959 => ["<!DOCTYPEa SYSTEM''\\u000B", "<!DOCTYPEa SYSTEM''\v", true, [['control-character-in-input-stream', 1, 20], ['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            960 => ["<!DOCTYPEa SYSTEM''\\u000C", "<!DOCTYPEa SYSTEM''\f", false, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 21]]],
+            961 => ["<!DOCTYPEa SYSTEM''\\u000D", "<!DOCTYPEa SYSTEM''\r", false, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 2, 1]]],
+            962 => ["<!DOCTYPEa SYSTEM''\\u001F", "<!DOCTYPEa SYSTEM''\x1F", true, [['control-character-in-input-stream', 1, 20], ['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            963 => ["<!DOCTYPEa SYSTEM'' ", "<!DOCTYPEa SYSTEM'' ", false, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 21]]],
+            964 => ["<!DOCTYPEa SYSTEM''!", "<!DOCTYPEa SYSTEM''!", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            965 => ["<!DOCTYPEa SYSTEM''\"", "<!DOCTYPEa SYSTEM''\"", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            966 => ["<!DOCTYPEa SYSTEM''&", "<!DOCTYPEa SYSTEM''&", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            967 => ["<!DOCTYPEa SYSTEM'''", "<!DOCTYPEa SYSTEM'''", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            968 => ["<!DOCTYPEa SYSTEM''-", "<!DOCTYPEa SYSTEM''-", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            969 => ["<!DOCTYPEa SYSTEM''/", "<!DOCTYPEa SYSTEM''/", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            970 => ["<!DOCTYPEa SYSTEM''0", "<!DOCTYPEa SYSTEM''0", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            971 => ["<!DOCTYPEa SYSTEM''1", "<!DOCTYPEa SYSTEM''1", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            972 => ["<!DOCTYPEa SYSTEM''9", "<!DOCTYPEa SYSTEM''9", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            973 => ["<!DOCTYPEa SYSTEM''<", "<!DOCTYPEa SYSTEM''<", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            974 => ["<!DOCTYPEa SYSTEM''=", "<!DOCTYPEa SYSTEM''=", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            975 => ["<!DOCTYPEa SYSTEM''>", "<!DOCTYPEa SYSTEM''>", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18]]],
+            976 => ["<!DOCTYPEa SYSTEM''?", "<!DOCTYPEa SYSTEM''?", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            977 => ["<!DOCTYPEa SYSTEM''@", "<!DOCTYPEa SYSTEM''@", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            978 => ["<!DOCTYPEa SYSTEM''A", "<!DOCTYPEa SYSTEM''A", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            979 => ["<!DOCTYPEa SYSTEM''B", "<!DOCTYPEa SYSTEM''B", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            980 => ["<!DOCTYPEa SYSTEM''Y", "<!DOCTYPEa SYSTEM''Y", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            981 => ["<!DOCTYPEa SYSTEM''Z", "<!DOCTYPEa SYSTEM''Z", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            982 => ["<!DOCTYPEa SYSTEM''`", "<!DOCTYPEa SYSTEM''`", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            983 => ["<!DOCTYPEa SYSTEM''a", "<!DOCTYPEa SYSTEM''a", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            984 => ["<!DOCTYPEa SYSTEM''b", "<!DOCTYPEa SYSTEM''b", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            985 => ["<!DOCTYPEa SYSTEM''y", "<!DOCTYPEa SYSTEM''y", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            986 => ["<!DOCTYPEa SYSTEM''z", "<!DOCTYPEa SYSTEM''z", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            987 => ["<!DOCTYPEa SYSTEM''{", "<!DOCTYPEa SYSTEM''{", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+            988 => ["<!DOCTYPEa SYSTEM''\\uDBC0\\uDC00", "<!DOCTYPEa SYSTEM''\u{100000}", true, [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['unexpected-character-after-doctype-system-identifier', 1, 20]]],
+        ] as $testIndex => [$description, $html, $tokenForceQuirks, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description missing-whitespace closed empty SYSTEM identifier boundary exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', 'a', null, '', $tokenForceQuirks]],
+                $expectedErrors,
+                '<!DOCTYPE a SYSTEM ""><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -13429,6 +13488,49 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeMissingWhitespaceSystemSingleQuotedBoundaryFixtureProvider')]
     public function testHtml5libTest3DoctypeMissingWhitespaceSystemSingleQuotedBoundaryFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeMissingWhitespaceSystemClosedEmptyIdentifierBoundaryFixtureProvider')]
+    public function testHtml5libTest3DoctypeMissingWhitespaceSystemClosedEmptyIdentifierBoundaryFixtureRows(
         string $html,
         int $testIndex,
         string $description,
