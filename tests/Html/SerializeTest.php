@@ -2907,7 +2907,7 @@ final class SerializeTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>, bool}>
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, bool}>
      */
     public static function html5libDomjsFixtureProvider(): iterable
     {
@@ -3086,6 +3086,54 @@ final class SerializeTest extends TestCase
                 'code' => 'unknown-named-character-reference',
                 'line' => 1,
                 'col' => 14,
+            ]],
+            false,
+        ];
+        yield 'domjs.test attribute non-BMP character reference exact fixture row' => [
+            '<p id="&NotEqualTilde;">',
+            32,
+            'Non BMP-charref in attribute',
+            [],
+            [['StartTag', 'p', ['id' => "\u{2242}\u{0338}"]]],
+            [],
+            false,
+        ];
+        yield 'domjs.test incorrectly closed comment NUL exact fixture row' => [
+            '<!----!\u0000-->',
+            33,
+            '--!NUL in comment ',
+            [],
+            [['Comment', '--!\uFFFD']],
+            [[
+                'code' => 'unexpected-null-character',
+                'line' => 1,
+                'col' => 8,
+            ]],
+            true,
+        ];
+        yield 'domjs.test doctype EOF after name whitespace exact fixture row' => [
+            '<!DOCTYPE html ',
+            34,
+            'space EOF after doctype ',
+            [],
+            [['DOCTYPE', 'html', null, null, false]],
+            [[
+                'code' => 'eof-in-doctype',
+                'line' => 1,
+                'col' => 16,
+            ]],
+            false,
+        ];
+        yield 'domjs.test CDATA in HTML content exact fixture row' => [
+            '<![CDATA[foo]]>',
+            35,
+            'CDATA in HTML content',
+            [],
+            [['Comment', '[CDATA[foo]]']],
+            [[
+                'code' => 'cdata-in-html-content',
+                'line' => 1,
+                'col' => 9,
             ]],
             false,
         ];
@@ -14188,7 +14236,7 @@ final class SerializeTest extends TestCase
 
     /**
      * @param list<string> $initialStates
-     * @param list<list<string>> $expectedOutput
+     * @param list<list<mixed>> $expectedOutput
      * @param list<array{code: string, line: int, col: int}> $expectedErrors
      */
     #[DataProvider('html5libDomjsFixtureProvider')]
