@@ -4547,6 +4547,55 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesLeftDoubleBracketLeftUpVectorExactFixtureProvider(): iterable
+    {
+        foreach ([
+            480 => ['Bad named entity: LeftDoubleBracket without a semi-colon', '&LeftDoubleBracket', '&LeftDoubleBracket', []],
+            481 => ['Named entity: LeftDoubleBracket; with a semi-colon', '&LeftDoubleBracket;', "\u{27E6}", []],
+            482 => ['Bad named entity: LeftDownTeeVector without a semi-colon', '&LeftDownTeeVector', '&LeftDownTeeVector', []],
+            483 => ['Named entity: LeftDownTeeVector; with a semi-colon', '&LeftDownTeeVector;', "\u{2961}", []],
+            484 => ['Bad named entity: LeftDownVector without a semi-colon', '&LeftDownVector', '&LeftDownVector', []],
+            485 => ['Named entity: LeftDownVector; with a semi-colon', '&LeftDownVector;', "\u{21C3}", []],
+            486 => ['Bad named entity: LeftDownVectorBar without a semi-colon', '&LeftDownVectorBar', '&LeftDownVectorBar', []],
+            487 => ['Named entity: LeftDownVectorBar; with a semi-colon', '&LeftDownVectorBar;', "\u{2959}", []],
+            488 => ['Bad named entity: LeftFloor without a semi-colon', '&LeftFloor', '&LeftFloor', []],
+            489 => ['Named entity: LeftFloor; with a semi-colon', '&LeftFloor;', "\u{230A}", []],
+            490 => ['Bad named entity: LeftRightArrow without a semi-colon', '&LeftRightArrow', '&LeftRightArrow', []],
+            491 => ['Named entity: LeftRightArrow; with a semi-colon', '&LeftRightArrow;', "\u{2194}", []],
+            492 => ['Bad named entity: LeftRightVector without a semi-colon', '&LeftRightVector', '&LeftRightVector', []],
+            493 => ['Named entity: LeftRightVector; with a semi-colon', '&LeftRightVector;', "\u{294E}", []],
+            494 => ['Bad named entity: LeftTee without a semi-colon', '&LeftTee', '&LeftTee', []],
+            495 => ['Named entity: LeftTee; with a semi-colon', '&LeftTee;', "\u{22A3}", []],
+            496 => ['Bad named entity: LeftTeeArrow without a semi-colon', '&LeftTeeArrow', '&LeftTeeArrow', []],
+            497 => ['Named entity: LeftTeeArrow; with a semi-colon', '&LeftTeeArrow;', "\u{21A4}", []],
+            498 => ['Bad named entity: LeftTeeVector without a semi-colon', '&LeftTeeVector', '&LeftTeeVector', []],
+            499 => ['Named entity: LeftTeeVector; with a semi-colon', '&LeftTeeVector;', "\u{295A}", []],
+            500 => ['Bad named entity: LeftTriangle without a semi-colon', '&LeftTriangle', '&LeftTriangle', []],
+            501 => ['Named entity: LeftTriangle; with a semi-colon', '&LeftTriangle;', "\u{22B2}", []],
+            502 => ['Bad named entity: LeftTriangleBar without a semi-colon', '&LeftTriangleBar', '&LeftTriangleBar', []],
+            503 => ['Named entity: LeftTriangleBar; with a semi-colon', '&LeftTriangleBar;', "\u{29CF}", []],
+            504 => ['Bad named entity: LeftTriangleEqual without a semi-colon', '&LeftTriangleEqual', '&LeftTriangleEqual', []],
+            505 => ['Named entity: LeftTriangleEqual; with a semi-colon', '&LeftTriangleEqual;', "\u{22B4}", []],
+            506 => ['Bad named entity: LeftUpDownVector without a semi-colon', '&LeftUpDownVector', '&LeftUpDownVector', []],
+            507 => ['Named entity: LeftUpDownVector; with a semi-colon', '&LeftUpDownVector;', "\u{2951}", []],
+            508 => ['Bad named entity: LeftUpTeeVector without a semi-colon', '&LeftUpTeeVector', '&LeftUpTeeVector', []],
+            509 => ['Named entity: LeftUpTeeVector; with a semi-colon', '&LeftUpTeeVector;', "\u{2960}", []],
+            510 => ['Bad named entity: LeftUpVector without a semi-colon', '&LeftUpVector', '&LeftUpVector', []],
+            511 => ['Named entity: LeftUpVector; with a semi-colon', '&LeftUpVector;', "\u{21BF}", []],
+        ] as $testIndex => [$description, $html, $character, $expectedErrors]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -16309,6 +16358,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesKscrLeftCeilingExactFixtureProvider')]
     public function testHtml5libNamedEntitiesKscrLeftCeilingExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesLeftDoubleBracketLeftUpVectorExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesLeftDoubleBracketLeftUpVectorExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
