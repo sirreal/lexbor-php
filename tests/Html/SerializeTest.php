@@ -4146,6 +4146,47 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeNameInvalidSequenceFixtureProvider(): iterable
+    {
+        foreach ([
+            338 => ['<!DOCTYPE a !', '<!DOCTYPE a !', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            339 => ['<!DOCTYPE a "', '<!DOCTYPE a "', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            340 => ['<!DOCTYPE a &', '<!DOCTYPE a &', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            341 => ["<!DOCTYPE a '", "<!DOCTYPE a '", false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            342 => ['<!DOCTYPE a -', '<!DOCTYPE a -', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            343 => ['<!DOCTYPE a /', '<!DOCTYPE a /', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            344 => ['<!DOCTYPE a 0', '<!DOCTYPE a 0', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            345 => ['<!DOCTYPE a 1', '<!DOCTYPE a 1', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            346 => ['<!DOCTYPE a 9', '<!DOCTYPE a 9', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            347 => ['<!DOCTYPE a <', '<!DOCTYPE a <', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            348 => ['<!DOCTYPE a =', '<!DOCTYPE a =', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            349 => ['<!DOCTYPE a >', '<!DOCTYPE a >', true, []],
+            350 => ['<!DOCTYPE a ?', '<!DOCTYPE a ?', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            351 => ['<!DOCTYPE a @', '<!DOCTYPE a @', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            352 => ['<!DOCTYPE a A', '<!DOCTYPE a A', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            353 => ['<!DOCTYPE a B', '<!DOCTYPE a B', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+        ] as $testIndex => [$description, $html, $forceQuirks, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description doctype-name invalid sequence exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', 'a', null, null, $forceQuirks]],
+                $expectedErrors,
+                '<!DOCTYPE a><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -11219,6 +11260,43 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors']);
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeNameInvalidSequenceFixtureProvider')]
+    public function testHtml5libTest3DoctypeNameInvalidSequenceFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
 
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
