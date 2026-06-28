@@ -2714,6 +2714,18 @@ final class SerializeTest extends TestCase
         yield 'html5lib test1 triple dash in double escaped script HTML comment' => ['<!--<script>---</script>-->', '<!--<script>---</script>-->'];
         yield 'html5lib test1 spaced dash in double escaped script HTML comment' => ['<!--<script> - </script>-->', '<!--<script> - </script>-->'];
         yield 'html5lib test1 spaced double dash in double escaped script HTML comment' => ['<!--<script> -- </script>-->', '<!--<script> -- </script>-->'];
+        yield 'domjs.test script data EOF in HTML comment' => ['<!--test', '<!--test'];
+        yield 'domjs.test script data EOF in HTML comment after dash' => ['<!--test-', '<!--test-'];
+        yield 'domjs.test script data EOF in HTML comment after dash dash' => ['<!--test--', '<!--test--'];
+        yield 'domjs.test script data EOF in double escaped HTML comment after dash' => ['<!--<script>-', '<!--<script>-'];
+        yield 'domjs.test script data EOF in double escaped HTML comment after dash dash' => ['<!--<script>--', '<!--<script>--'];
+        yield 'domjs.test script data EOF in double escaped HTML comment' => ['<!--<script>', '<!--<script>'];
+        yield 'domjs.test script data dash in HTML comment' => ['<!-- - -->', '<!-- - -->'];
+        yield 'domjs.test script data dash less-than in HTML comment' => ['<!-- -< -->', '<!-- -< -->'];
+        yield 'domjs.test script data dash at end of HTML comment' => ['<!--test--->', '<!--test--->'];
+        yield 'domjs.test script data incomplete end tag in double escaped HTML comment' => ['<!--<script></scrip>-->', '<!--<script></scrip>-->'];
+        yield 'domjs.test script data unclosed end tag in double escaped HTML comment' => ['<!--<script></script-->', '<!--<script></script-->'];
+        yield 'domjs.test script data HTML tag stays text' => ['<b>hello world</b>', '<b>hello world</b>'];
     }
 
     /**
