@@ -3908,6 +3908,44 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3CommentDashContinuationFixtureProvider(): iterable
+    {
+        foreach ([
+            229 => ['<!---.', '<!---.', '-.', 7],
+            230 => ['<!---/', '<!---/', '-/', 7],
+            231 => ['<!---0', '<!---0', '-0', 7],
+            232 => ['<!---1', '<!---1', '-1', 7],
+            233 => ['<!---9', '<!---9', '-9', 7],
+            234 => ['<!---<', '<!---<', '-<', 7],
+            235 => ['<!---=', '<!---=', '-=', 7],
+            236 => ['<!---?', '<!---?', '-?', 7],
+            237 => ['<!---@', '<!---@', '-@', 7],
+            238 => ['<!---A', '<!---A', '-A', 7],
+            239 => ['<!---B', '<!---B', '-B', 7],
+            240 => ['<!---Y', '<!---Y', '-Y', 7],
+            241 => ['<!---Z', '<!---Z', '-Z', 7],
+            242 => ['<!---`', '<!---`', '-`', 7],
+            243 => ['<!---a', '<!---a', '-a', 7],
+            244 => ['<!---b', '<!---b', '-b', 7],
+            245 => ['<!---y', '<!---y', '-y', 7],
+            246 => ['<!---z', '<!---z', '-z', 7],
+            247 => ['<!---{', '<!---{', '-{', 7],
+            248 => ['<!---\\uDBC0\\uDC00', "<!---\u{100000}", "-\u{100000}", 8],
+        ] as $testIndex => [$description, $html, $comment, $errorColumn]) {
+            yield "test3.test $description comment dash-continuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Comment', $comment]],
+                [['code' => 'eof-in-comment', 'line' => 1, 'col' => $errorColumn]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -10785,6 +10823,36 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3CommentDashContinuationFixtureProvider')]
+    public function testHtml5libTest3CommentDashContinuationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
     }
 
     #[DataProvider('html5libRcdataStateProvider')]
