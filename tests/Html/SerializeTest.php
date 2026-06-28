@@ -7868,6 +7868,18 @@ final class SerializeTest extends TestCase
             '<svg><![CDATA[foo]]]></svg>',
             '<svg>foo]</svg>',
         ];
+        yield 'domjs.test CDATA without end marker ends at EOF' => [
+            '<svg><![CDATA[foo',
+            '<svg>foo</svg>',
+        ];
+        yield 'domjs.test CDATA with single bracket ending ends at EOF' => [
+            '<svg><![CDATA[foo]',
+            '<svg>foo]</svg>',
+        ];
+        yield 'domjs.test CDATA with two brackets ending ends at EOF' => [
+            '<svg><![CDATA[foo]]',
+            '<svg>foo]]</svg>',
+        ];
     }
 
     /**
