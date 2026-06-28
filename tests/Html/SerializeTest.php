@@ -2697,7 +2697,7 @@ final class SerializeTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return iterable<string, array{string, string, 2?: bool}>
      */
     public static function html5libScriptDataStateProvider(): iterable
     {
@@ -2720,12 +2720,33 @@ final class SerializeTest extends TestCase
         yield 'domjs.test script data EOF in double escaped HTML comment after dash' => ['<!--<script>-', '<!--<script>-'];
         yield 'domjs.test script data EOF in double escaped HTML comment after dash dash' => ['<!--<script>--', '<!--<script>--'];
         yield 'domjs.test script data EOF in double escaped HTML comment' => ['<!--<script>', '<!--<script>'];
+        yield 'domjs.test script data NUL in HTML comment' => [
+            '<!--test\u0000--><!--test-\u0000--><!--test--\u0000-->',
+            '<!--test\uFFFD--><!--test-\uFFFD--><!--test--\uFFFD-->',
+            true,
+        ];
+        yield 'domjs.test script data NUL in double escaped HTML comment' => [
+            '<!--<script>\u0000--><!--<script>-\u0000--><!--<script>--\u0000-->',
+            '<!--<script>\uFFFD--><!--<script>-\uFFFD--><!--<script>--\uFFFD-->',
+            true,
+        ];
         yield 'domjs.test script data dash in HTML comment' => ['<!-- - -->', '<!-- - -->'];
         yield 'domjs.test script data dash less-than in HTML comment' => ['<!-- -< -->', '<!-- -< -->'];
         yield 'domjs.test script data dash at end of HTML comment' => ['<!--test--->', '<!--test--->'];
         yield 'domjs.test script data incomplete end tag in double escaped HTML comment' => ['<!--<script></scrip>-->', '<!--<script></scrip>-->'];
         yield 'domjs.test script data unclosed end tag in double escaped HTML comment' => ['<!--<script></script-->', '<!--<script></script-->'];
         yield 'domjs.test script data HTML tag stays text' => ['<b>hello world</b>', '<b>hello world</b>'];
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string, bool}>
+     */
+    public static function html5libTextOnlyNulProvider(): iterable
+    {
+        yield 'domjs.test raw NUL in RCDATA state' => ['\u0000', 'textarea', '\uFFFD', true];
+        yield 'domjs.test raw NUL in RAWTEXT state' => ['\u0000', 'xmp', '\uFFFD', true];
+        yield 'domjs.test raw NUL in PLAINTEXT state' => ['\u0000', 'plaintext', '\uFFFD', true];
+        yield 'domjs.test raw NUL in script data state' => ['\u0000', 'script', '\uFFFD', true];
     }
 
     /**
@@ -9156,15 +9177,51 @@ final class SerializeTest extends TestCase
     }
 
     #[DataProvider('html5libScriptDataStateProvider')]
-    public function testHtml5libScriptDataStateFragments(string $html, string $expected): void
+    public function testHtml5libScriptDataStateFragments(string $html, string $expected, bool $decodeEscaped = false): void
     {
         $document = new Document();
         $script = $document->createElement('script');
+        if ($decodeEscaped) {
+            $html = self::decodeHtml5libEscapedCodePoints($html);
+            $expected = self::decodeHtml5libEscapedCodePoints($expected);
+        }
+
         $fragment = $document->createFragmentForElement($script, $html);
 
         self::assertInstanceOf(Text::class, $fragment->firstChild);
         self::assertNull($fragment->firstChild->next);
         self::assertSame($expected, $fragment->firstChild->data);
+    }
+
+    #[DataProvider('html5libTextOnlyNulProvider')]
+    public function testHtml5libTextOnlyNulFragments(
+        string $html,
+        string $tagName,
+        string $expected,
+        bool $decodeEscaped,
+    ): void
+    {
+        $document = new Document();
+        $context = $document->createElement($tagName);
+        if ($decodeEscaped) {
+            $html = self::decodeHtml5libEscapedCodePoints($html);
+            $expected = self::decodeHtml5libEscapedCodePoints($expected);
+        }
+
+        $fragment = $document->createFragmentForElement($context, $html);
+
+        self::assertInstanceOf(Text::class, $fragment->firstChild);
+        self::assertNull($fragment->firstChild->next);
+        self::assertSame($expected, $fragment->firstChild->data);
+    }
+
+    private static function decodeHtml5libEscapedCodePoints(string $data): string
+    {
+        return preg_replace_callback(
+            '/\\\\u([0-9A-Fa-f]{4})/',
+            static fn (array $match): string => \Lexbor\Encoding\Utf8::encodeCodePoint(hexdec($match[1])),
+            $data,
+        ) ?? $data;
     }
 
     #[DataProvider('tokenizerCharacterReferenceProvider')]

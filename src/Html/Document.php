@@ -111,9 +111,7 @@ final class Document extends Node
 
         if ($this->isTextOnlyFragmentContext($context)) {
             $fragment->appendChild($this->createTextNode(
-                $this->shouldDecodeTextOnlyElementContent($context)
-                    ? $this->decodeCharacterReferences($html)
-                    : $html,
+                $this->textOnlyElementData($context, $html),
             ));
             return $fragment;
         }
@@ -540,7 +538,7 @@ final class Document extends Node
     private function appendTextOnlyElementContent(Element $element, string $html, int $offset): int
     {
         if ($element->tagName === 'plaintext') {
-            $this->appendText($element, substr($html, $offset), false);
+            $this->appendTextOnlyElementData($element, substr($html, $offset));
 
             return strlen($html);
         }
@@ -548,12 +546,12 @@ final class Document extends Node
         if ($element->tagName === 'script') {
             $close = self::consumeScriptDataEndTag($html, $offset);
             if ($close === null) {
-                $this->appendText($element, substr($html, $offset), false);
+                $this->appendTextOnlyElementData($element, substr($html, $offset));
                 return strlen($html);
             }
 
             [$closeStart, $closeEnd] = $close;
-            $this->appendText($element, substr($html, $offset, $closeStart - $offset), false);
+            $this->appendTextOnlyElementData($element, substr($html, $offset, $closeStart - $offset));
 
             return $closeEnd;
         }
@@ -561,14 +559,30 @@ final class Document extends Node
         $pattern = sprintf('~</%s\s*>~i', preg_quote($element->tagName, '~'));
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE, $offset) !== 1) {
-            $this->appendText($element, substr($html, $offset), $this->shouldDecodeTextOnlyElementContent($element));
+            $this->appendTextOnlyElementData($element, substr($html, $offset));
             return strlen($html);
         }
 
         $closeStart = $match[0][1];
-        $this->appendText($element, substr($html, $offset, $closeStart - $offset), $this->shouldDecodeTextOnlyElementContent($element));
+        $this->appendTextOnlyElementData($element, substr($html, $offset, $closeStart - $offset));
 
         return $closeStart + strlen($match[0][0]);
+    }
+
+    private function appendTextOnlyElementData(Element $element, string $data): void
+    {
+        if ($data !== '') {
+            $element->appendChild($this->createTextNode($this->textOnlyElementData($element, $data)));
+        }
+    }
+
+    private function textOnlyElementData(Element $element, string $data): string
+    {
+        $data = $this->shouldDecodeTextOnlyElementContent($element)
+            ? $this->decodeCharacterReferences($data)
+            : $data;
+
+        return str_replace("\0", "\u{FFFD}", $data);
     }
 
     /**
