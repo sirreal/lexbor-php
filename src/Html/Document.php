@@ -1438,7 +1438,7 @@ REGEX;
                 ];
             }
 
-            $eofNamePattern = '~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"\']+)[ \t\n\f\r]*$~i';
+            $eofNamePattern = '~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>]+)[ \t\n\f\r]*$~i';
             if (preg_match($eofNamePattern, $html, $eofMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
                     'name' => self::normalizeDoctypeToken($eofMatch['name'][0]),

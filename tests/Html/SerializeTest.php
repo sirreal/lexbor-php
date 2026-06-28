@@ -4057,6 +4057,52 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypePrintableNameEofFixtureProvider(): iterable
+    {
+        foreach ([
+            299 => ['<!DOCTYPE !', '<!DOCTYPE !', '!'],
+            300 => ['<!DOCTYPE "', '<!DOCTYPE "', '"'],
+            301 => ['<!DOCTYPE &', '<!DOCTYPE &', '&'],
+            302 => ["<!DOCTYPE '", "<!DOCTYPE '", "'"],
+            303 => ['<!DOCTYPE -', '<!DOCTYPE -', '-'],
+            304 => ['<!DOCTYPE /', '<!DOCTYPE /', '/'],
+            305 => ['<!DOCTYPE 0', '<!DOCTYPE 0', '0'],
+            306 => ['<!DOCTYPE 1', '<!DOCTYPE 1', '1'],
+            307 => ['<!DOCTYPE 9', '<!DOCTYPE 9', '9'],
+            308 => ['<!DOCTYPE <', '<!DOCTYPE <', '<'],
+            309 => ['<!DOCTYPE =', '<!DOCTYPE =', '='],
+            310 => ['<!DOCTYPE >', '<!DOCTYPE >', null],
+            311 => ['<!DOCTYPE ?', '<!DOCTYPE ?', '?'],
+            312 => ['<!DOCTYPE @', '<!DOCTYPE @', '@'],
+            313 => ['<!DOCTYPE A', '<!DOCTYPE A', 'a'],
+            314 => ['<!DOCTYPE B', '<!DOCTYPE B', 'b'],
+            315 => ['<!DOCTYPE Y', '<!DOCTYPE Y', 'y'],
+            316 => ['<!DOCTYPE Z', '<!DOCTYPE Z', 'z'],
+            317 => ['<!DOCTYPE [', '<!DOCTYPE [', '['],
+            318 => ['<!DOCTYPE `', '<!DOCTYPE `', '`'],
+            319 => ['<!DOCTYPE a', '<!DOCTYPE a', 'a'],
+        ] as $testIndex => [$description, $html, $name]) {
+            $error = $name === null
+                ? ['code' => 'missing-doctype-name', 'line' => 1, 'col' => 11]
+                : ['code' => 'eof-in-doctype', 'line' => 1, 'col' => 12];
+            $serializedName = $name ?? '';
+
+            yield "test3.test $description doctype printable-name EOF exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', $name, null, null, false]],
+                [$error],
+                '<!DOCTYPE ' . $serializedName . '><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -11033,6 +11079,43 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeKeywordEofControlFixtureProvider')]
     public function testHtml5libTest3DoctypeKeywordEofControlFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypePrintableNameEofFixtureProvider')]
+    public function testHtml5libTest3DoctypePrintableNameEofFixtureRows(
         string $html,
         int $testIndex,
         string $description,
