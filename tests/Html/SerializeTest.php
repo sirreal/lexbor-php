@@ -3185,6 +3185,39 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest1ScriptDataFixtureProvider(): iterable
+    {
+        $initialStates = ['Script data state'];
+
+        foreach ([
+            33 => ['< in script data', '<test-->'],
+            34 => ['<! in script data', '<!test-->'],
+            35 => ['<!- in script data', '<!-test-->'],
+            36 => ['Escaped script data', '<!--test-->'],
+            37 => ['< in script HTML comment', '<!-- < test -->'],
+            38 => ['</ in script HTML comment', '<!-- </ test -->'],
+            39 => ['Start tag in script HTML comment', '<!-- <test> -->'],
+            40 => ['End tag in script HTML comment', '<!-- </test> -->'],
+            41 => ['- in script HTML comment double escaped', '<!--<script>-</script>-->'],
+            42 => ['-- in script HTML comment double escaped', '<!--<script>--</script>-->'],
+            43 => ['--- in script HTML comment double escaped', '<!--<script>---</script>-->'],
+            44 => ['- spaced in script HTML comment double escaped', '<!--<script> - </script>-->'],
+            45 => ['-- spaced in script HTML comment double escaped', '<!--<script> -- </script>-->'],
+        ] as $testIndex => [$description, $html]) {
+            yield "test1.test $testIndex $description script-data exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                $initialStates,
+                [['Character', $html]],
+                [],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -13655,6 +13688,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest1CommentContinuationFixtureProvider')]
     public function testHtml5libTest1CommentContinuationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test1.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest1ScriptDataFixtureProvider')]
+    public function testHtml5libTest1ScriptDataFixtureRows(
         string $html,
         int $testIndex,
         string $description,
