@@ -410,11 +410,11 @@ final class Document extends Node
         $dataEnd = strpos($html, ']]>', $dataStart);
 
         if ($dataEnd === false) {
-            return [str_replace("\0", "\u{FFFD}", substr($html, $dataStart)), strlen($html)];
+            return [substr($html, $dataStart), strlen($html)];
         }
 
         return [
-            str_replace("\0", "\u{FFFD}", substr($html, $dataStart, $dataEnd - $dataStart)),
+            substr($html, $dataStart, $dataEnd - $dataStart),
             $dataEnd + 3,
         ];
     }

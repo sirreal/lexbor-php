@@ -8158,10 +8158,15 @@ final class SerializeTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return iterable<string, array{string, string, 2?: bool}>
      */
     public static function html5libCdataSectionStateProvider(): iterable
     {
+        yield 'domjs.test CDATA NUL preservation initial state' => [
+            '\u0000]]>',
+            '\u0000',
+            true,
+        ];
         yield 'domjs.test CDATA content keeps character reference text initial state' => [
             'foo&#32;]]>',
             'foo&amp;#32;',
@@ -9334,10 +9339,18 @@ final class SerializeTest extends TestCase
     }
 
     #[DataProvider('html5libCdataSectionStateProvider')]
-    public function testHtml5libCdataSectionStateFragments(string $html, string $expected): void
+    public function testHtml5libCdataSectionStateFragments(
+        string $html,
+        string $expected,
+        bool $decodeEscaped = false,
+    ): void
     {
         $document = new Document();
         $svg = $document->createElement('svg', Element::NAMESPACE_SVG);
+        if ($decodeEscaped) {
+            $html = self::decodeHtml5libEscapedCodePoints($html);
+            $expected = self::decodeHtml5libEscapedCodePoints($expected);
+        }
 
         $fragment = $document->createFragmentForElement($svg, '<![CDATA[' . $html);
 
