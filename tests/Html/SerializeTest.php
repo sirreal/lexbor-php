@@ -7399,6 +7399,14 @@ final class SerializeTest extends TestCase
         yield 'html5lib test1 unfinished entity' => ['&f', '&amp;f'];
         yield 'html5lib test1 ampersand number sign' => ['&#', '&amp;#'];
         yield 'html5lib test1 unfinished numeric entity' => ['&#x', '&amp;#x'];
+        yield 'html5lib test1 entity with trailing semicolon not' => ["I'm &not;it", 'I\'m ¬it'];
+        yield 'html5lib test1 entity with trailing semicolon notin' => ["I'm &notin;", 'I\'m ∉'];
+        yield 'html5lib test1 entity without trailing semicolon not' => ["I'm &notit", 'I\'m ¬it'];
+        yield 'html5lib test1 entity without trailing semicolon notin' => ["I'm &notin", 'I\'m ¬in'];
+        yield 'html5lib test1 partial entity match at EOF' => ["I'm &no", 'I\'m &amp;no'];
+        yield 'html5lib test1 non-ASCII character reference name' => ["&\u{00AC};", '&amp;¬;'];
+        yield 'html5lib test1 ASCII decimal entity' => ['&#0036;', '$'];
+        yield 'html5lib test1 ASCII hexadecimal entity' => ['&#x3f;', '?'];
         yield 'html5lib entities undefined double-quoted attribute entity remains literal' => [
             '<h a="&noti;">',
             '<h a="&amp;noti;"></h>',
@@ -8025,6 +8033,7 @@ final class SerializeTest extends TestCase
         yield 'tag_name.ton #5 repeated NULs in tag name' => ["<sEf\0\0\0sTf>", "<sef\u{FFFD}\u{FFFD}\u{FFFD}stf></sef\u{FFFD}\u{FFFD}\u{FFFD}stf>"];
         yield 'tag_name.ton #6 uppercase ASCII is lowercased' => ['<AAAAAA-aa>', '<aaaaaa-aa></aaaaaa-aa>'];
         yield 'html5lib test1 single start tag' => ['<h>', '<h></h>'];
+        yield 'html5lib test1 start and end tag' => ['<h></h>', '<h></h>'];
         yield 'body pre-scan does not consume NUL-suffixed body tag' => ["<body\0>x</body\0>", "<body\u{FFFD}>x</body\u{FFFD}>"];
         yield 'html5lib test2 less-than in tag name' => ['<a<b>', '<a<b></a<b>'];
         yield 'html5lib test3 exclamation in tag name' => ['<a!>', '<a!></a!>'];
@@ -8196,6 +8205,38 @@ final class SerializeTest extends TestCase
         yield 'html5lib test1 repeated attribute keeps first value' => [
             "<h a='b' a='d'>",
             '<h a="b"></h>',
+        ];
+        yield 'html5lib test1 end tag attributes are ignored' => [
+            "<h></h a='b'>",
+            '<h></h>',
+        ];
+        yield 'html5lib test1 hexadecimal entity in attribute' => [
+            "<h a='&#x3f;'></h>",
+            '<h a="?"></h>',
+        ];
+        yield 'html5lib test1 attribute entity without semicolon ending in x' => [
+            "<h a='&notx'>",
+            '<h a="&amp;notx"></h>',
+        ];
+        yield 'html5lib test1 attribute entity without semicolon ending in 1' => [
+            "<h a='&not1'>",
+            '<h a="&amp;not1"></h>',
+        ];
+        yield 'html5lib test1 attribute entity without semicolon ending in i' => [
+            "<h a='&noti'>",
+            '<h a="&amp;noti"></h>',
+        ];
+        yield 'html5lib test1 attribute entity without semicolon' => [
+            "<h a='&COPY'>",
+            '<h a="©"></h>',
+        ];
+        yield 'html5lib test1 unquoted attribute ending in ampersand' => [
+            '<s o=& t>',
+            '<s o="&amp;" t=""></s>',
+        ];
+        yield 'html5lib test1 unquoted attribute final ampersand before text' => [
+            '<a a=a&>foo',
+            '<a a="a&amp;">foo</a>',
         ];
         yield 'tag_attr.ton #8 legacy query reference without semicolon' => [
             "<div n='/ololo/?arg=1&acirc'>",
