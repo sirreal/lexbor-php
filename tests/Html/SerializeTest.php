@@ -3137,6 +3137,81 @@ final class SerializeTest extends TestCase
             ]],
             false,
         ];
+        yield 'domjs.test CDATA content exact fixture row' => [
+            'foo&#32;]]>',
+            36,
+            'CDATA content',
+            ['CDATA section state'],
+            [['Character', 'foo&#32;']],
+            [],
+            false,
+        ];
+        yield 'domjs.test CDATA followed by HTML content exact fixture row' => [
+            'foo&#32;]]>&#32;',
+            37,
+            'CDATA followed by HTML content',
+            ['CDATA section state'],
+            [['Character', 'foo&#32; ']],
+            [],
+            false,
+        ];
+        yield 'domjs.test CDATA with extra bracket exact fixture row' => [
+            'foo]]]>',
+            38,
+            'CDATA with extra bracket',
+            ['CDATA section state'],
+            [['Character', 'foo]']],
+            [],
+            false,
+        ];
+        yield 'domjs.test CDATA without end marker exact fixture row' => [
+            'foo',
+            39,
+            'CDATA without end marker',
+            ['CDATA section state'],
+            [['Character', 'foo']],
+            [[
+                'code' => 'eof-in-cdata',
+                'line' => 1,
+                'col' => 4,
+            ]],
+            false,
+        ];
+        yield 'domjs.test CDATA with single bracket ending exact fixture row' => [
+            'foo]',
+            40,
+            'CDATA with single bracket ending',
+            ['CDATA section state'],
+            [['Character', 'foo]']],
+            [[
+                'code' => 'eof-in-cdata',
+                'line' => 1,
+                'col' => 5,
+            ]],
+            false,
+        ];
+        yield 'domjs.test CDATA with two brackets ending exact fixture row' => [
+            'foo]]',
+            41,
+            'CDATA with two brackets ending',
+            ['CDATA section state'],
+            [['Character', 'foo]]']],
+            [[
+                'code' => 'eof-in-cdata',
+                'line' => 1,
+                'col' => 6,
+            ]],
+            false,
+        ];
+        yield 'domjs.test HTML tag in script data exact fixture row' => [
+            '<b>hello world</b>',
+            42,
+            'HTML tag in script data',
+            ['Script data state'],
+            [['Character', '<b>hello world</b>']],
+            [],
+            false,
+        ];
     }
 
     /**
