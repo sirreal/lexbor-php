@@ -540,6 +540,19 @@ final class Document extends Node
             return strlen($html);
         }
 
+        if ($element->tagName === 'script') {
+            $close = self::consumeScriptDataEndTag($html, $offset);
+            if ($close === null) {
+                $this->appendText($element, substr($html, $offset), false);
+                return strlen($html);
+            }
+
+            [$closeStart, $closeEnd] = $close;
+            $this->appendText($element, substr($html, $offset, $closeStart - $offset), false);
+
+            return $closeEnd;
+        }
+
         $pattern = sprintf('~<\s*/\s*%s\s*>~i', preg_quote($element->tagName, '~'));
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE, $offset) !== 1) {
@@ -551,6 +564,82 @@ final class Document extends Node
         $this->appendText($element, substr($html, $offset, $closeStart - $offset), $this->shouldDecodeTextOnlyElementContent($element));
 
         return $closeStart + strlen($match[0][0]);
+    }
+
+    /**
+     * @return array{int, int}|null
+     */
+    private static function consumeScriptDataEndTag(string $html, int $offset): ?array
+    {
+        $state = 'data';
+        $length = strlen($html);
+
+        while ($offset < $length) {
+            $scriptEndTagNameEnd = self::consumeScriptEndTagNameAt($html, $offset);
+            if ($state === 'double_escaped' && $scriptEndTagNameEnd !== null) {
+                $state = 'escaped';
+                $offset = $scriptEndTagNameEnd;
+                continue;
+            }
+
+            $endTag = self::consumeTextOnlyEndTagAt($html, $offset, 'script');
+            if ($endTag !== null) {
+                return $endTag;
+            }
+
+            if (($state === 'escaped' || $state === 'double_escaped') && substr($html, $offset, 3) === '-->') {
+                $state = 'data';
+                $offset += 3;
+                continue;
+            }
+
+            if ($state === 'data' && substr($html, $offset, 4) === '<!--') {
+                $state = 'escaped';
+                $offset += 4;
+                continue;
+            }
+
+            $scriptStartTagNameEnd = self::consumeScriptStartTagNameAt($html, $offset);
+            if ($state === 'escaped' && $scriptStartTagNameEnd !== null) {
+                $state = 'double_escaped';
+                $offset = $scriptStartTagNameEnd;
+                continue;
+            }
+
+            $offset++;
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{int, int}|null
+     */
+    private static function consumeTextOnlyEndTagAt(string $html, int $offset, string $tagName): ?array
+    {
+        if (preg_match(sprintf('~^<\s*/\s*%s\s*>~i', preg_quote($tagName, '~')), substr($html, $offset), $match) !== 1) {
+            return null;
+        }
+
+        return [$offset, $offset + strlen($match[0])];
+    }
+
+    private static function consumeScriptStartTagNameAt(string $html, int $offset): ?int
+    {
+        if (preg_match('~^<script(?=[\t\n\f\r />])~i', substr($html, $offset), $match) !== 1) {
+            return null;
+        }
+
+        return $offset + strlen($match[0]);
+    }
+
+    private static function consumeScriptEndTagNameAt(string $html, int $offset): ?int
+    {
+        if (preg_match('~^</script(?=[\t\n\f\r />])~i', substr($html, $offset), $match) !== 1) {
+            return null;
+        }
+
+        return $offset + strlen($match[0]);
     }
 
     /**

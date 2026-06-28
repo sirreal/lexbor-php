@@ -2504,6 +2504,38 @@ final class SerializeTest extends TestCase
             '<script><!--test---></script>',
             '<script><!--test---></script>',
         ];
+        yield 'domjs.test script HTML comment end tag exits script data' => [
+            '<script><!-- </script> --></script>',
+            '<script><!-- </script> --&gt;',
+        ];
+        yield 'domjs.test script HTML comment double escaped end tag stays escaped until final close' => [
+            '<script><!-- <script></script> --></script>',
+            '<script><!-- <script></script> --></script>',
+        ];
+        yield 'domjs.test script HTML comment nested double escaped end tag exits once' => [
+            '<script><!-- <script><script></script></script> --></script>',
+            '<script><!-- <script><script></script></script> --&gt;',
+        ];
+        yield 'domjs.test script HTML comment abrupt double escaped end exits script data' => [
+            '<script><!-- <script>--></script> --></script>',
+            '<script><!-- <script>--></script> --&gt;',
+        ];
+        yield 'domjs.test script HTML comment incomplete start tag before end exits script data' => [
+            '<script><!--<scrip></script>--></script>',
+            '<script><!--<scrip></script>--&gt;',
+        ];
+        yield 'domjs.test script HTML comment unclosed start tag before end exits script data' => [
+            '<script><!--<script</script>--></script>',
+            '<script><!--<script</script>--&gt;',
+        ];
+        yield 'domjs.test script HTML comment incomplete end tag stays text' => [
+            '<script><!--<script></scrip>--></script>',
+            '<script><!--<script></scrip>--></script>',
+        ];
+        yield 'domjs.test script HTML comment unclosed end tag stays text' => [
+            '<script><!--<script></script--></script>',
+            '<script><!--<script></script--></script>',
+        ];
         yield 'domjs.test RCDATA FEFF pass-through' => [
             "<textarea>\u{FEFF}foo\u{FEFF}bar</textarea>",
             "<textarea>\u{FEFF}foo\u{FEFF}bar</textarea>",
