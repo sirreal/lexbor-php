@@ -4046,6 +4046,48 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3AfterSingleQuotedAttributeValueAsciiNonBmpFixtureProvider(): iterable
+    {
+        foreach ([
+            1377 => ["<a a=''0>", "<a a=''0>", [['StartTag', 'a', ['a' => '', '0' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1378 => ["<a a=''1>", "<a a=''1>", [['StartTag', 'a', ['a' => '', '1' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1379 => ["<a a=''9>", "<a a=''9>", [['StartTag', 'a', ['a' => '', '9' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1380 => ["<a a=''<>", "<a a=''<>", [['StartTag', 'a', ['a' => '', '<' => '']]], [['missing-whitespace-between-attributes', 1, 8], ['unexpected-character-in-attribute-name', 1, 8]]],
+            1381 => ["<a a=''=>", "<a a=''=>", [['StartTag', 'a', ['a' => '', '=' => '']]], [['missing-whitespace-between-attributes', 1, 8], ['unexpected-equals-sign-before-attribute-name', 1, 8]]],
+            1382 => ["<a a=''>", "<a a=''>", [['StartTag', 'a', ['a' => '']]], []],
+            1383 => ["<a a=''?>", "<a a=''?>", [['StartTag', 'a', ['a' => '', '?' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1384 => ["<a a=''@>", "<a a=''@>", [['StartTag', 'a', ['a' => '', '@' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1385 => ["<a a=''A>", "<a a=''A>", [['StartTag', 'a', ['a' => '']]], [['missing-whitespace-between-attributes', 1, 8], ['duplicate-attribute', 1, 9]]],
+            1386 => ["<a a=''B>", "<a a=''B>", [['StartTag', 'a', ['a' => '', 'b' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1387 => ["<a a=''Y>", "<a a=''Y>", [['StartTag', 'a', ['a' => '', 'y' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1388 => ["<a a=''Z>", "<a a=''Z>", [['StartTag', 'a', ['a' => '', 'z' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1389 => ["<a a=''`>", "<a a=''`>", [['StartTag', 'a', ['a' => '', '`' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1390 => ["<a a=''a>", "<a a=''a>", [['StartTag', 'a', ['a' => '']]], [['missing-whitespace-between-attributes', 1, 8], ['duplicate-attribute', 1, 9]]],
+            1391 => ["<a a=''b>", "<a a=''b>", [['StartTag', 'a', ['a' => '', 'b' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1392 => ["<a a=''y>", "<a a=''y>", [['StartTag', 'a', ['a' => '', 'y' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1393 => ["<a a=''z>", "<a a=''z>", [['StartTag', 'a', ['a' => '', 'z' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1394 => ["<a a=''{>", "<a a=''{>", [['StartTag', 'a', ['a' => '', '{' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1395 => ["<a a=''\\uDBC0\\uDC00>", "<a a=''\u{100000}>", [['StartTag', 'a', ['a' => '', "\u{100000}" => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description after single-quoted attribute-value ASCII/non-BMP exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -13611,6 +13653,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3AfterSingleQuotedAttributeValueControlPunctuationFixtureProvider')]
     public function testHtml5libTest3AfterSingleQuotedAttributeValueControlPunctuationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3AfterSingleQuotedAttributeValueAsciiNonBmpFixtureProvider')]
+    public function testHtml5libTest3AfterSingleQuotedAttributeValueAsciiNonBmpFixtureRows(
         string $html,
         int $testIndex,
         string $description,
