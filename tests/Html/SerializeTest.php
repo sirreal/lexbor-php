@@ -3719,6 +3719,39 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libUnicodeCharsUnicodeScalarBoundaryFixtureProvider(): iterable
+    {
+        $testIndex = 286;
+        $codePoints = [
+            0xD7FF,
+            0xE000,
+            0xFDCF,
+            0xFDF0,
+            0xFFFD,
+        ];
+
+        foreach (range(1, 0x10) as $plane) {
+            $codePoints[] = $plane << 16;
+            $codePoints[] = ($plane << 16) + 0xFFFD;
+        }
+
+        foreach ($codePoints as $codePoint) {
+            $description = sprintf('Valid Unicode character U+%04X', $codePoint);
+            $html = \Lexbor\Encoding\Utf8::encodeCodePoint($codePoint);
+
+            yield "unicodeChars.test $description exact fixture row" => [
+                $html,
+                $testIndex++,
+                $description,
+                [['Character', $html]],
+                [],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -14911,6 +14944,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libUnicodeCharsRemainingLatin1FixtureProvider')]
     public function testHtml5libUnicodeCharsRemainingLatin1FixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/unicodeChars.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertArrayNotHasKey('errors', $fixture);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libUnicodeCharsUnicodeScalarBoundaryFixtureProvider')]
+    public function testHtml5libUnicodeCharsUnicodeScalarBoundaryFixtureRows(
         string $html,
         int $testIndex,
         string $description,
