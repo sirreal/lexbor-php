@@ -4792,6 +4792,55 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesNotGreaterGreaterNotNestedGreaterGreaterExactFixtureProvider(): iterable
+    {
+        foreach ([
+            640 => ['Bad named entity: NotGreaterGreater without a semi-colon', '&NotGreaterGreater', '&NotGreaterGreater', []],
+            641 => ['Named entity: NotGreaterGreater; with a semi-colon', '&NotGreaterGreater;', "\u{226B}\u{0338}", []],
+            642 => ['Bad named entity: NotGreaterLess without a semi-colon', '&NotGreaterLess', '&NotGreaterLess', []],
+            643 => ['Named entity: NotGreaterLess; with a semi-colon', '&NotGreaterLess;', "\u{2279}", []],
+            644 => ['Bad named entity: NotGreaterSlantEqual without a semi-colon', '&NotGreaterSlantEqual', '&NotGreaterSlantEqual', []],
+            645 => ['Named entity: NotGreaterSlantEqual; with a semi-colon', '&NotGreaterSlantEqual;', "\u{2A7E}\u{0338}", []],
+            646 => ['Bad named entity: NotGreaterTilde without a semi-colon', '&NotGreaterTilde', '&NotGreaterTilde', []],
+            647 => ['Named entity: NotGreaterTilde; with a semi-colon', '&NotGreaterTilde;', "\u{2275}", []],
+            648 => ['Bad named entity: NotHumpDownHump without a semi-colon', '&NotHumpDownHump', '&NotHumpDownHump', []],
+            649 => ['Named entity: NotHumpDownHump; with a semi-colon', '&NotHumpDownHump;', "\u{224E}\u{0338}", []],
+            650 => ['Bad named entity: NotHumpEqual without a semi-colon', '&NotHumpEqual', '&NotHumpEqual', []],
+            651 => ['Named entity: NotHumpEqual; with a semi-colon', '&NotHumpEqual;', "\u{224F}\u{0338}", []],
+            652 => ['Bad named entity: NotLeftTriangle without a semi-colon', '&NotLeftTriangle', '&NotLeftTriangle', []],
+            653 => ['Named entity: NotLeftTriangle; with a semi-colon', '&NotLeftTriangle;', "\u{22EA}", []],
+            654 => ['Bad named entity: NotLeftTriangleBar without a semi-colon', '&NotLeftTriangleBar', '&NotLeftTriangleBar', []],
+            655 => ['Named entity: NotLeftTriangleBar; with a semi-colon', '&NotLeftTriangleBar;', "\u{29CF}\u{0338}", []],
+            656 => ['Bad named entity: NotLeftTriangleEqual without a semi-colon', '&NotLeftTriangleEqual', '&NotLeftTriangleEqual', []],
+            657 => ['Named entity: NotLeftTriangleEqual; with a semi-colon', '&NotLeftTriangleEqual;', "\u{22EC}", []],
+            658 => ['Bad named entity: NotLess without a semi-colon', '&NotLess', '&NotLess', []],
+            659 => ['Named entity: NotLess; with a semi-colon', '&NotLess;', "\u{226E}", []],
+            660 => ['Bad named entity: NotLessEqual without a semi-colon', '&NotLessEqual', '&NotLessEqual', []],
+            661 => ['Named entity: NotLessEqual; with a semi-colon', '&NotLessEqual;', "\u{2270}", []],
+            662 => ['Bad named entity: NotLessGreater without a semi-colon', '&NotLessGreater', '&NotLessGreater', []],
+            663 => ['Named entity: NotLessGreater; with a semi-colon', '&NotLessGreater;', "\u{2278}", []],
+            664 => ['Bad named entity: NotLessLess without a semi-colon', '&NotLessLess', '&NotLessLess', []],
+            665 => ['Named entity: NotLessLess; with a semi-colon', '&NotLessLess;', "\u{226A}\u{0338}", []],
+            666 => ['Bad named entity: NotLessSlantEqual without a semi-colon', '&NotLessSlantEqual', '&NotLessSlantEqual', []],
+            667 => ['Named entity: NotLessSlantEqual; with a semi-colon', '&NotLessSlantEqual;', "\u{2A7D}\u{0338}", []],
+            668 => ['Bad named entity: NotLessTilde without a semi-colon', '&NotLessTilde', '&NotLessTilde', []],
+            669 => ['Named entity: NotLessTilde; with a semi-colon', '&NotLessTilde;', "\u{2274}", []],
+            670 => ['Bad named entity: NotNestedGreaterGreater without a semi-colon', '&NotNestedGreaterGreater', '&NotNestedGreaterGreater', []],
+            671 => ['Named entity: NotNestedGreaterGreater; with a semi-colon', '&NotNestedGreaterGreater;', "\u{2AA2}\u{0338}", []],
+        ] as $testIndex => [$description, $html, $character, $expectedErrors]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -16719,6 +16768,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesNewLineNotGreaterFullEqualExactFixtureProvider')]
     public function testHtml5libNamedEntitiesNewLineNotGreaterFullEqualExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesNotGreaterGreaterNotNestedGreaterGreaterExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesNotGreaterGreaterNotNestedGreaterGreaterExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
