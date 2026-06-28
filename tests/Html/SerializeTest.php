@@ -2851,6 +2851,59 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>, bool}>
+     */
+    public static function html5libDomjsBogusCommentNulFixtureProvider(): iterable
+    {
+        $processingInstructionError = [[
+            'code' => 'unexpected-question-mark-instead-of-tag-name',
+            'line' => 1,
+            'col' => 2,
+        ]];
+
+        yield 'domjs.test CR in bogus comment state exact fixture row' => [
+            "<?\r",
+            0,
+            'CR in bogus comment state',
+            [],
+            [['Comment', "?\n"]],
+            $processingInstructionError,
+            false,
+        ];
+        yield 'domjs.test CRLF in bogus comment state exact fixture row' => [
+            "<?\r\n",
+            1,
+            'CRLF in bogus comment state',
+            [],
+            [['Comment', "?\n"]],
+            $processingInstructionError,
+            false,
+        ];
+        yield 'domjs.test CRLFLF in bogus comment state exact fixture row' => [
+            "<?\r\n\n",
+            2,
+            'CRLFLF in bogus comment state',
+            [],
+            [['Comment', "?\n\n"]],
+            $processingInstructionError,
+            false,
+        ];
+        yield 'domjs.test raw NUL replacement exact fixture row' => [
+            '\u0000',
+            3,
+            'Raw NUL replacement',
+            ['RCDATA state', 'RAWTEXT state', 'PLAINTEXT state', 'Script data state'],
+            [['Character', '\uFFFD']],
+            [[
+                'code' => 'unexpected-null-character',
+                'line' => 1,
+                'col' => 1,
+            ]],
+            true,
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<string>>, string|null}>
      */
     public static function html5libRawtextEndTagFixtureProvider(): iterable
@@ -13943,6 +13996,38 @@ final class SerializeTest extends TestCase
         self::assertSame(Status::Ok, $document->parse('<script>' . $html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libDomjsBogusCommentNulFixtureProvider')]
+    public function testHtml5libDomjsBogusCommentNulFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        bool $doubleEscaped,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/domjs.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($doubleEscaped, $fixture['doubleEscaped'] ?? false);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
     }
 
     /**
