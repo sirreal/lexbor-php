@@ -4278,6 +4278,55 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesGdotHatExactFixtureProvider(): iterable
+    {
+        foreach ([
+            320 => ['Bad named entity: Gdot without a semi-colon', '&Gdot', '&Gdot'],
+            321 => ['Named entity: Gdot; with a semi-colon', '&Gdot;', "\u{0120}"],
+            322 => ['Bad named entity: Gfr without a semi-colon', '&Gfr', '&Gfr'],
+            323 => ['Named entity: Gfr; with a semi-colon', '&Gfr;', "\u{1D50A}"],
+            324 => ['Bad named entity: Gg without a semi-colon', '&Gg', '&Gg'],
+            325 => ['Named entity: Gg; with a semi-colon', '&Gg;', "\u{22D9}"],
+            326 => ['Bad named entity: Gopf without a semi-colon', '&Gopf', '&Gopf'],
+            327 => ['Named entity: Gopf; with a semi-colon', '&Gopf;', "\u{1D53E}"],
+            328 => ['Bad named entity: GreaterEqual without a semi-colon', '&GreaterEqual', '&GreaterEqual'],
+            329 => ['Named entity: GreaterEqual; with a semi-colon', '&GreaterEqual;', "\u{2265}"],
+            330 => ['Bad named entity: GreaterEqualLess without a semi-colon', '&GreaterEqualLess', '&GreaterEqualLess'],
+            331 => ['Named entity: GreaterEqualLess; with a semi-colon', '&GreaterEqualLess;', "\u{22DB}"],
+            332 => ['Bad named entity: GreaterFullEqual without a semi-colon', '&GreaterFullEqual', '&GreaterFullEqual'],
+            333 => ['Named entity: GreaterFullEqual; with a semi-colon', '&GreaterFullEqual;', "\u{2267}"],
+            334 => ['Bad named entity: GreaterGreater without a semi-colon', '&GreaterGreater', '&GreaterGreater'],
+            335 => ['Named entity: GreaterGreater; with a semi-colon', '&GreaterGreater;', "\u{2AA2}"],
+            336 => ['Bad named entity: GreaterLess without a semi-colon', '&GreaterLess', '&GreaterLess'],
+            337 => ['Named entity: GreaterLess; with a semi-colon', '&GreaterLess;', "\u{2277}"],
+            338 => ['Bad named entity: GreaterSlantEqual without a semi-colon', '&GreaterSlantEqual', '&GreaterSlantEqual'],
+            339 => ['Named entity: GreaterSlantEqual; with a semi-colon', '&GreaterSlantEqual;', "\u{2A7E}"],
+            340 => ['Bad named entity: GreaterTilde without a semi-colon', '&GreaterTilde', '&GreaterTilde'],
+            341 => ['Named entity: GreaterTilde; with a semi-colon', '&GreaterTilde;', "\u{2273}"],
+            342 => ['Bad named entity: Gscr without a semi-colon', '&Gscr', '&Gscr'],
+            343 => ['Named entity: Gscr; with a semi-colon', '&Gscr;', "\u{1D4A2}"],
+            344 => ['Bad named entity: Gt without a semi-colon', '&Gt', '&Gt'],
+            345 => ['Named entity: Gt; with a semi-colon', '&Gt;', "\u{226B}"],
+            346 => ['Bad named entity: HARDcy without a semi-colon', '&HARDcy', '&HARDcy'],
+            347 => ['Named entity: HARDcy; with a semi-colon', '&HARDcy;', "\u{042A}"],
+            348 => ['Bad named entity: Hacek without a semi-colon', '&Hacek', '&Hacek'],
+            349 => ['Named entity: Hacek; with a semi-colon', '&Hacek;', "\u{02C7}"],
+            350 => ['Bad named entity: Hat without a semi-colon', '&Hat', '&Hat'],
+            351 => ['Named entity: Hat; with a semi-colon', '&Hat;', '^'],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                [],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -15875,6 +15924,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesFcyGcyExactFixtureProvider')]
     public function testHtml5libNamedEntitiesFcyGcyExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesGdotHatExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesGdotHatExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
