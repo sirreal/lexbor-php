@@ -3153,6 +3153,159 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3TagOpenFixtureProvider(): iterable
+    {
+        foreach ([
+            68 => [
+                '<',
+                '<',
+                [['Character', '<']],
+                [['code' => 'eof-before-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            69 => [
+                '<\\u0000',
+                "<\0",
+                [['Character', "<\0"]],
+                [
+                    ['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2],
+                    ['code' => 'unexpected-null-character', 'line' => 1, 'col' => 2],
+                ],
+            ],
+            70 => [
+                '<\\u0009',
+                "<\t",
+                [['Character', "<\t"]],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            71 => [
+                '<\\u000A',
+                "<\n",
+                [['Character', "<\n"]],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            72 => [
+                '<\\u000B',
+                "<\v",
+                [['Character', "<\v"]],
+                [
+                    ['code' => 'control-character-in-input-stream', 'line' => 1, 'col' => 2],
+                    ['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2],
+                ],
+            ],
+            73 => [
+                '<\\u000C',
+                "<\f",
+                [['Character', "<\f"]],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            74 => [
+                '< ',
+                '< ',
+                [['Character', '< ']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            75 => [
+                '<!',
+                '<!',
+                [['Comment', '']],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            76 => [
+                '<!\\u0000',
+                "<!\0",
+                [['Comment', "\u{FFFD}"]],
+                [
+                    ['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3],
+                    ['code' => 'unexpected-null-character', 'line' => 1, 'col' => 3],
+                ],
+            ],
+            77 => [
+                '<!\\u0009',
+                "<!\t",
+                [['Comment', "\t"]],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            78 => [
+                '<!\\u000A',
+                "<!\n",
+                [['Comment', "\n"]],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            79 => [
+                '<!\\u000B',
+                "<!\v",
+                [['Comment', "\v"]],
+                [
+                    ['code' => 'control-character-in-input-stream', 'line' => 1, 'col' => 3],
+                    ['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3],
+                ],
+            ],
+            80 => [
+                '<!\\u000C',
+                "<!\f",
+                [['Comment', "\f"]],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            81 => [
+                '<! ',
+                '<! ',
+                [['Comment', ' ']],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            82 => [
+                '<! \\u0000',
+                "<! \0",
+                [['Comment', " \u{FFFD}"]],
+                [
+                    ['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3],
+                    ['code' => 'unexpected-null-character', 'line' => 1, 'col' => 4],
+                ],
+            ],
+            83 => [
+                '<!!',
+                '<!!',
+                [['Comment', '!']],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            84 => [
+                '<!"',
+                '<!"',
+                [['Comment', '"']],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            85 => [
+                '<!&',
+                '<!&',
+                [['Comment', '&']],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            86 => [
+                "<!'",
+                "<!'",
+                [['Comment', "'"]],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+            87 => [
+                '<!-',
+                '<!-',
+                [['Comment', '-']],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test3.test $description tag-open exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -9790,6 +9943,36 @@ final class SerializeTest extends TestCase
         self::assertSame($initialStates, $fixture['initialStates'] ?? []);
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3TagOpenFixtureProvider')]
+    public function testHtml5libTest3TagOpenFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
     }
 
     #[DataProvider('html5libRcdataStateProvider')]
