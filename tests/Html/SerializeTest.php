@@ -333,6 +333,46 @@ final class SerializeTest extends TestCase
             "<html><head></head><body>&lt;!DOCTYPE html&gt;<p>x</p></body></html>",
             true,
         ];
+        yield 'html5lib test4 mixed-case public doctype keyword preserves identifiers #1' => [
+            '<!DoCtYpE HtMl PuBlIc "AbC" "XyZ">',
+            '<!DOCTYPE html PUBLIC "AbC" "XyZ"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test4 mixed-case public doctype keyword preserves identifiers #2' => [
+            '<!dOcTyPe hTmL pUbLiC "aBc" "xYz">',
+            '<!DOCTYPE html PUBLIC "aBc" "xYz"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test4 mixed-case system doctype keyword preserves identifier #1' => [
+            '<!DoCtYpE HtMl SyStEm "XyZ">',
+            '<!DOCTYPE html SYSTEM "XyZ"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test4 mixed-case system doctype keyword preserves identifier #2' => [
+            '<!dOcTyPe hTmL sYsTeM "xYz">',
+            '<!DOCTYPE html SYSTEM "xYz"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test4 invalid publik keyword after doctype name' => [
+            '<!DOCTYPE html PUBLIK "AbC" "XyZ">',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test4 EOF in invalid publi keyword after doctype name' => [
+            '<!DOCTYPE html PUBLI',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test4 invalid sistem keyword after doctype name' => [
+            '<!DOCTYPE html SISTEM "AbC">',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test4 EOF in invalid sys keyword after doctype name' => [
+            '<!DOCTYPE html SYS',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
         yield 'html5lib test4 invalid sequence after doctype name' => [
             '<!DOCTYPE html x>text',
             '<!DOCTYPE html><html><head></head><body>text</body></html>',
