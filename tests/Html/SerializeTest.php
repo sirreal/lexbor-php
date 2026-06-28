@@ -4489,6 +4489,52 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
+    public static function html5libTest3FinalLiteralCdataFixtureProvider(): iterable
+    {
+        $textStates = ['Data state', 'PLAINTEXT state', 'RCDATA state', 'RAWTEXT state', 'Script data state'];
+        $cdataState = ['CDATA section state'];
+
+        foreach ([
+            1560 => ['=', '=', 2],
+            1562 => ['>', '>', 2],
+            1564 => ['?', '?', 2],
+            1566 => ['@', '@', 2],
+            1568 => ['A', 'A', 2],
+            1570 => ['B', 'B', 2],
+            1572 => ['Y', 'Y', 2],
+            1574 => ['Z', 'Z', 2],
+            1576 => ['`', '`', 2],
+            1578 => ['a', 'a', 2],
+            1580 => ['b', 'b', 2],
+            1582 => ['y', 'y', 2],
+            1584 => ['z', 'z', 2],
+            1586 => ['{', '{', 2],
+            1588 => ["\u{100000}", '\\uDBC0\\uDC00', 3],
+        ] as $textIndex => [$html, $description, $cdataErrorColumn]) {
+            yield "test3.test $textIndex $description final text-mode exact fixture row" => [
+                $html,
+                $textIndex,
+                $description,
+                $textStates,
+                [['Character', $html]],
+                [],
+            ];
+
+            $cdataIndex = $textIndex + 1;
+            yield "test3.test $cdataIndex $description final CDATA exact fixture row" => [
+                $html,
+                $cdataIndex,
+                $description,
+                $cdataState,
+                [['Character', $html]],
+                [['code' => 'eof-in-cdata', 'line' => 1, 'col' => $cdataErrorColumn]],
+            ];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
     {
         foreach ([
@@ -14382,6 +14428,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3TagOpenTailFixtureProvider')]
     public function testHtml5libTest3TagOpenTailFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3FinalLiteralCdataFixtureProvider')]
+    public function testHtml5libTest3FinalLiteralCdataFixtureRows(
         string $html,
         int $testIndex,
         string $description,
