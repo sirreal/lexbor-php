@@ -3306,6 +3306,164 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3CommentStartFixtureProvider(): iterable
+    {
+        foreach ([
+            88 => [
+                '<!--',
+                '<!--',
+                '',
+                [['eof-in-comment', 1, 5]],
+            ],
+            89 => [
+                '<!--\\u0000',
+                "<!--\0",
+                "\u{FFFD}",
+                [
+                    ['unexpected-null-character', 1, 5],
+                    ['eof-in-comment', 1, 6],
+                ],
+            ],
+            90 => [
+                '<!--\\u0009',
+                "<!--\t",
+                "\t",
+                [['eof-in-comment', 1, 6]],
+            ],
+            91 => [
+                '<!--\\u000A',
+                "<!--\n",
+                "\n",
+                [['eof-in-comment', 2, 1]],
+            ],
+            92 => [
+                '<!--\\u000B',
+                "<!--\v",
+                "\v",
+                [
+                    ['control-character-in-input-stream', 1, 5],
+                    ['eof-in-comment', 1, 6],
+                ],
+            ],
+            93 => [
+                '<!--\\u000C',
+                "<!--\f",
+                "\f",
+                [['eof-in-comment', 1, 6]],
+            ],
+            94 => [
+                '<!-- ',
+                '<!-- ',
+                ' ',
+                [['eof-in-comment', 1, 6]],
+            ],
+            95 => [
+                '<!-- \\u0000',
+                "<!-- \0",
+                " \u{FFFD}",
+                [
+                    ['unexpected-null-character', 1, 6],
+                    ['eof-in-comment', 1, 7],
+                ],
+            ],
+            96 => [
+                '<!-- \\u0009',
+                "<!-- \t",
+                " \t",
+                [['eof-in-comment', 1, 7]],
+            ],
+            97 => [
+                '<!-- \\u000A',
+                "<!-- \n",
+                " \n",
+                [['eof-in-comment', 2, 1]],
+            ],
+            98 => [
+                '<!-- \\u000B',
+                "<!-- \v",
+                " \v",
+                [
+                    ['control-character-in-input-stream', 1, 6],
+                    ['eof-in-comment', 1, 7],
+                ],
+            ],
+            99 => [
+                '<!-- \\u000C',
+                "<!-- \f",
+                " \f",
+                [['eof-in-comment', 1, 7]],
+            ],
+            100 => [
+                '<!--  ',
+                '<!--  ',
+                '  ',
+                [['eof-in-comment', 1, 7]],
+            ],
+            101 => [
+                '<!-- !',
+                '<!-- !',
+                ' !',
+                [['eof-in-comment', 1, 7]],
+            ],
+            102 => [
+                '<!-- "',
+                '<!-- "',
+                ' "',
+                [['eof-in-comment', 1, 7]],
+            ],
+            103 => [
+                '<!-- &',
+                '<!-- &',
+                ' &',
+                [['eof-in-comment', 1, 7]],
+            ],
+            104 => [
+                "<!-- '",
+                "<!-- '",
+                " '",
+                [['eof-in-comment', 1, 7]],
+            ],
+            105 => [
+                '<!-- ,',
+                '<!-- ,',
+                ' ,',
+                [['eof-in-comment', 1, 7]],
+            ],
+            106 => [
+                '<!-- -',
+                '<!-- -',
+                ' ',
+                [['eof-in-comment', 1, 7]],
+            ],
+            107 => [
+                '<!-- -\\u0000',
+                "<!-- -\0",
+                " -\u{FFFD}",
+                [
+                    ['unexpected-null-character', 1, 7],
+                    ['eof-in-comment', 1, 8],
+                ],
+            ],
+        ] as $testIndex => [$description, $html, $comment, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description comment-start exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Comment', $comment]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -9952,6 +10110,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3TagOpenFixtureProvider')]
     public function testHtml5libTest3TagOpenFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3CommentStartFixtureProvider')]
+    public function testHtml5libTest3CommentStartFixtureRows(
         string $html,
         int $testIndex,
         string $description,
