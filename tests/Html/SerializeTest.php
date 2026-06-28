@@ -3218,6 +3218,43 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest1TextCharacterReferenceFixtureProvider(): iterable
+    {
+        foreach ([
+            46 => ['Ampersand EOF', '&', '&', []],
+            47 => ['Ampersand ampersand EOF', '&&', '&&', []],
+            48 => ['Ampersand space EOF', '& ', '& ', []],
+            49 => ['Unfinished entity', '&f', '&f', []],
+            50 => ['Ampersand, number sign', '&#', '&#', [['absence-of-digits-in-numeric-character-reference', 1, 3]]],
+            51 => ['Unfinished numeric entity', '&#x', '&#x', [['absence-of-digits-in-numeric-character-reference', 1, 4]]],
+            52 => ['Entity with trailing semicolon (1)', "I'm &not;it", "I'm \u{00AC}it", []],
+            53 => ['Entity with trailing semicolon (2)', "I'm &notin;", "I'm \u{2209}", []],
+            54 => ['Entity without trailing semicolon (1)', "I'm &notit", "I'm \u{00AC}it", [['missing-semicolon-after-character-reference', 1, 9]]],
+            55 => ['Entity without trailing semicolon (2)', "I'm &notin", "I'm \u{00AC}in", [['missing-semicolon-after-character-reference', 1, 9]]],
+            56 => ['Partial entity match at end of file', "I'm &no", "I'm &no", []],
+            57 => ['Non-ASCII character reference name', "&\u{00AC};", "&\u{00AC};", []],
+            58 => ['ASCII decimal entity', '&#0036;', '$', []],
+            59 => ['ASCII hexadecimal entity', '&#x3f;', '?', []],
+        ] as $testIndex => [$description, $html, $text, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test1.test $testIndex $description text character-reference exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Character', $text]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -13718,6 +13755,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest1ScriptDataFixtureProvider')]
     public function testHtml5libTest1ScriptDataFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test1.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest1TextCharacterReferenceFixtureProvider')]
+    public function testHtml5libTest1TextCharacterReferenceFixtureRows(
         string $html,
         int $testIndex,
         string $description,
