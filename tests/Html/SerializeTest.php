@@ -4416,6 +4416,49 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3TagNameAsciiNonBmpFixtureProvider(): iterable
+    {
+        foreach ([
+            1535 => ['<a0>', '<a0>', [['StartTag', 'a0', []]], []],
+            1536 => ['<a1>', '<a1>', [['StartTag', 'a1', []]], []],
+            1537 => ['<a9>', '<a9>', [['StartTag', 'a9', []]], []],
+            1538 => ['<a<>', '<a<>', [['StartTag', 'a<', []]], []],
+            1539 => ['<a=>', '<a=>', [['StartTag', 'a=', []]], []],
+            1540 => ['<a>', '<a>', [['StartTag', 'a', []]], []],
+            1541 => ['<a?>', '<a?>', [['StartTag', 'a?', []]], []],
+            1542 => ['<a@>', '<a@>', [['StartTag', 'a@', []]], []],
+            1543 => ['<aA>', '<aA>', [['StartTag', 'aa', []]], []],
+            1544 => ['<aB>', '<aB>', [['StartTag', 'ab', []]], []],
+            1545 => ['<aY>', '<aY>', [['StartTag', 'ay', []]], []],
+            1546 => ['<aZ>', '<aZ>', [['StartTag', 'az', []]], []],
+            1547 => ['<a[>', '<a[>', [['StartTag', 'a[', []]], []],
+            1548 => ['<a`>', '<a`>', [['StartTag', 'a`', []]], []],
+            1549 => ['<aa>', '<aa>', [['StartTag', 'aa', []]], []],
+            1550 => ['<ab>', '<ab>', [['StartTag', 'ab', []]], []],
+            1551 => ['<ay>', '<ay>', [['StartTag', 'ay', []]], []],
+            1552 => ['<az>', '<az>', [['StartTag', 'az', []]], []],
+            1553 => ['<a{>', '<a{>', [['StartTag', 'a{', []]], []],
+            1554 => ['<a\\uDBC0\\uDC00>', "<a\u{100000}>", [['StartTag', "a\u{100000}", []]], []],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description tag-name ASCII/non-BMP exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -14251,6 +14294,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3UnexpectedSolidusAsciiNonBmpFixtureProvider')]
     public function testHtml5libTest3UnexpectedSolidusAsciiNonBmpFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3TagNameAsciiNonBmpFixtureProvider')]
+    public function testHtml5libTest3TagNameAsciiNonBmpFixtureRows(
         string $html,
         int $testIndex,
         string $description,
