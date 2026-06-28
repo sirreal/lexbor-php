@@ -4712,6 +4712,71 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeNameInvalidContinuationFixtureProvider(): iterable
+    {
+        foreach ([
+            636 => ['<!DOCTYPE a Y', '<!DOCTYPE a Y', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            637 => ['<!DOCTYPE a Z', '<!DOCTYPE a Z', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            638 => ['<!DOCTYPE a `', '<!DOCTYPE a `', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            639 => ['<!DOCTYPE a a', '<!DOCTYPE a a', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            640 => ['<!DOCTYPE a a\\u0000', "<!DOCTYPE a a\0", 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13], ['unexpected-null-character', 1, 14]]],
+            641 => ['<!DOCTYPE a a\\u0009', "<!DOCTYPE a a\t", 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            642 => ['<!DOCTYPE a a\\u000A', "<!DOCTYPE a a\n", 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            643 => ['<!DOCTYPE a a\\u000B', "<!DOCTYPE a a\v", 'a', false, [['control-character-in-input-stream', 1, 14], ['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            644 => ['<!DOCTYPE a a\\u000C', "<!DOCTYPE a a\f", 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            645 => ['<!DOCTYPE a a ', '<!DOCTYPE a a ', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            646 => ['<!DOCTYPE a a!', '<!DOCTYPE a a!', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            647 => ['<!DOCTYPE a a"', '<!DOCTYPE a a"', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            648 => ['<!DOCTYPE a a&', '<!DOCTYPE a a&', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            649 => ['<!DOCTYPE a a\'', "<!DOCTYPE a a'", 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            650 => ['<!DOCTYPE a a-', '<!DOCTYPE a a-', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            651 => ['<!DOCTYPE a a/', '<!DOCTYPE a a/', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            652 => ['<!DOCTYPE a a0', '<!DOCTYPE a a0', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            653 => ['<!DOCTYPE a a1', '<!DOCTYPE a a1', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            654 => ['<!DOCTYPE a a9', '<!DOCTYPE a a9', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            655 => ['<!DOCTYPE a a<', '<!DOCTYPE a a<', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            656 => ['<!DOCTYPE a a=', '<!DOCTYPE a a=', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            657 => ['<!DOCTYPE a a>', '<!DOCTYPE a a>', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            658 => ['<!DOCTYPE a a?', '<!DOCTYPE a a?', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            659 => ['<!DOCTYPE a a@', '<!DOCTYPE a a@', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            660 => ['<!DOCTYPE a aA', '<!DOCTYPE a aA', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            661 => ['<!DOCTYPE a aB', '<!DOCTYPE a aB', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            662 => ['<!DOCTYPE a aY', '<!DOCTYPE a aY', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            663 => ['<!DOCTYPE a aZ', '<!DOCTYPE a aZ', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            664 => ['<!DOCTYPE a a`', '<!DOCTYPE a a`', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            665 => ['<!DOCTYPE a aa', '<!DOCTYPE a aa', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            666 => ['<!DOCTYPE a ab', '<!DOCTYPE a ab', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            667 => ['<!DOCTYPE a ay', '<!DOCTYPE a ay', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            668 => ['<!DOCTYPE a az', '<!DOCTYPE a az', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            669 => ['<!DOCTYPE a a{', '<!DOCTYPE a a{', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            670 => ['<!DOCTYPE a a\\uDBC0\\uDC00', "<!DOCTYPE a a\u{100000}", 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            671 => ['<!DOCTYPE a b', '<!DOCTYPE a b', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            672 => ['<!DOCTYPE a y', '<!DOCTYPE a y', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            673 => ['<!DOCTYPE a z', '<!DOCTYPE a z', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            674 => ['<!DOCTYPE a {', '<!DOCTYPE a {', 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            675 => ['<!DOCTYPE a \\uDBC0\\uDC00', "<!DOCTYPE a \u{100000}", 'a', false, [['invalid-character-sequence-after-doctype-name', 1, 13]]],
+        ] as $testIndex => [$description, $html, $name, $forceQuirks, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description doctype-name invalid continuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', $name, null, null, $forceQuirks]],
+                $expectedErrors,
+                '<!DOCTYPE ' . $name . '><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -12137,6 +12202,49 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeSystemPrintableIdentifierBoundaryFixtureProvider')]
     public function testHtml5libTest3DoctypeSystemPrintableIdentifierBoundaryFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeNameInvalidContinuationFixtureProvider')]
+    public function testHtml5libTest3DoctypeNameInvalidContinuationFixtureRows(
         string $html,
         int $testIndex,
         string $description,
