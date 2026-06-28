@@ -7205,6 +7205,32 @@ final class SerializeTest extends TestCase
         ] as $label => $case) {
             yield "html5lib numericEntities $label" => $case;
         }
+        yield 'html5lib test4 zero hex numeric entity is replaced' => ['&#x0', '�'];
+        yield 'html5lib test4 zero decimal numeric entity is replaced' => ['&#0', '�'];
+        yield 'html5lib test4 zero-prefixed hex numeric entity resolves to A' => [
+            '&#x000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000041;',
+            'A',
+        ];
+        yield 'html5lib test4 zero-prefixed decimal numeric entity resolves to A' => [
+            '&#000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000065;',
+            'A',
+        ];
+        yield 'html5lib test4 empty hex numeric entities remain literal' => ['&#x &#X ', '&amp;#x &amp;#X '];
+        yield 'html5lib test4 invalid hex digit remains literal' => ['&#xZ', '&amp;#xZ'];
+        yield 'html5lib test4 empty decimal numeric entities remain literal' => ['&# &#; ', '&amp;# &amp;#; '];
+        yield 'html5lib test4 invalid decimal digit remains literal' => ['&#A', '&amp;#A'];
+        yield 'html5lib test4 non-BMP numeric entity' => ['&#x10000;', "\u{10000}"];
+        yield 'html5lib test4 maximum non-BMP numeric entity' => ['&#X10FFFF;', "\u{10FFFF}"];
+        yield 'html5lib test4 above maximum numeric entity is replaced' => ['&#x110000;', '�'];
+        yield 'html5lib test4 32-bit hex numeric entity is replaced' => ['&#x80000041;', '�'];
+        yield 'html5lib test4 33-bit hex numeric entity is replaced' => ['&#x100000041;', '�'];
+        yield 'html5lib test4 33-bit decimal numeric entity is replaced' => ['&#4294967361;', '�'];
+        yield 'html5lib test4 65-bit hex numeric entity is replaced' => ['&#x10000000000000041;', '�'];
+        yield 'html5lib test4 65-bit decimal numeric entity is replaced' => ['&#18446744073709551681;', '�'];
+        yield 'html5lib test4 surrogate code point edge cases' => [
+            '&#xD7FF;&#xD800;&#xD801;&#xDFFE;&#xDFFF;&#xE000;',
+            "\u{D7FF}����\u{E000}",
+        ];
         yield 'char_ref.ton #39 decimal Cyrillic reference' => ['&#1024', 'Ѐ'];
         yield 'char_ref.ton #40 invalid decimal reference remains literal' => ['&#j', '&amp;#j'];
         yield 'char_ref.ton #41 invalid decimal reference before text remains literal' => ['&#jgf', '&amp;#jgf'];
