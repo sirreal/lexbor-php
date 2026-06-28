@@ -4064,6 +4064,55 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesDoubleLongLeftRightArrowDownRightTeeVectorExactFixtureProvider(): iterable
+    {
+        foreach ([
+            192 => ['Bad named entity: DoubleLongLeftRightArrow without a semi-colon', '&DoubleLongLeftRightArrow', '&DoubleLongLeftRightArrow'],
+            193 => ['Named entity: DoubleLongLeftRightArrow; with a semi-colon', '&DoubleLongLeftRightArrow;', "\u{27FA}"],
+            194 => ['Bad named entity: DoubleLongRightArrow without a semi-colon', '&DoubleLongRightArrow', '&DoubleLongRightArrow'],
+            195 => ['Named entity: DoubleLongRightArrow; with a semi-colon', '&DoubleLongRightArrow;', "\u{27F9}"],
+            196 => ['Bad named entity: DoubleRightArrow without a semi-colon', '&DoubleRightArrow', '&DoubleRightArrow'],
+            197 => ['Named entity: DoubleRightArrow; with a semi-colon', '&DoubleRightArrow;', "\u{21D2}"],
+            198 => ['Bad named entity: DoubleRightTee without a semi-colon', '&DoubleRightTee', '&DoubleRightTee'],
+            199 => ['Named entity: DoubleRightTee; with a semi-colon', '&DoubleRightTee;', "\u{22A8}"],
+            200 => ['Bad named entity: DoubleUpArrow without a semi-colon', '&DoubleUpArrow', '&DoubleUpArrow'],
+            201 => ['Named entity: DoubleUpArrow; with a semi-colon', '&DoubleUpArrow;', "\u{21D1}"],
+            202 => ['Bad named entity: DoubleUpDownArrow without a semi-colon', '&DoubleUpDownArrow', '&DoubleUpDownArrow'],
+            203 => ['Named entity: DoubleUpDownArrow; with a semi-colon', '&DoubleUpDownArrow;', "\u{21D5}"],
+            204 => ['Bad named entity: DoubleVerticalBar without a semi-colon', '&DoubleVerticalBar', '&DoubleVerticalBar'],
+            205 => ['Named entity: DoubleVerticalBar; with a semi-colon', '&DoubleVerticalBar;', "\u{2225}"],
+            206 => ['Bad named entity: DownArrow without a semi-colon', '&DownArrow', '&DownArrow'],
+            207 => ['Named entity: DownArrow; with a semi-colon', '&DownArrow;', "\u{2193}"],
+            208 => ['Bad named entity: DownArrowBar without a semi-colon', '&DownArrowBar', '&DownArrowBar'],
+            209 => ['Named entity: DownArrowBar; with a semi-colon', '&DownArrowBar;', "\u{2913}"],
+            210 => ['Bad named entity: DownArrowUpArrow without a semi-colon', '&DownArrowUpArrow', '&DownArrowUpArrow'],
+            211 => ['Named entity: DownArrowUpArrow; with a semi-colon', '&DownArrowUpArrow;', "\u{21F5}"],
+            212 => ['Bad named entity: DownBreve without a semi-colon', '&DownBreve', '&DownBreve'],
+            213 => ['Named entity: DownBreve; with a semi-colon', '&DownBreve;', "\u{0311}"],
+            214 => ['Bad named entity: DownLeftRightVector without a semi-colon', '&DownLeftRightVector', '&DownLeftRightVector'],
+            215 => ['Named entity: DownLeftRightVector; with a semi-colon', '&DownLeftRightVector;', "\u{2950}"],
+            216 => ['Bad named entity: DownLeftTeeVector without a semi-colon', '&DownLeftTeeVector', '&DownLeftTeeVector'],
+            217 => ['Named entity: DownLeftTeeVector; with a semi-colon', '&DownLeftTeeVector;', "\u{295E}"],
+            218 => ['Bad named entity: DownLeftVector without a semi-colon', '&DownLeftVector', '&DownLeftVector'],
+            219 => ['Named entity: DownLeftVector; with a semi-colon', '&DownLeftVector;', "\u{21BD}"],
+            220 => ['Bad named entity: DownLeftVectorBar without a semi-colon', '&DownLeftVectorBar', '&DownLeftVectorBar'],
+            221 => ['Named entity: DownLeftVectorBar; with a semi-colon', '&DownLeftVectorBar;', "\u{2956}"],
+            222 => ['Bad named entity: DownRightTeeVector without a semi-colon', '&DownRightTeeVector', '&DownRightTeeVector'],
+            223 => ['Named entity: DownRightTeeVector; with a semi-colon', '&DownRightTeeVector;', "\u{295F}"],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                [],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -15529,6 +15578,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesDiacriticalDoubleAcuteDoubleLongLeftArrowExactFixtureProvider')]
     public function testHtml5libNamedEntitiesDiacriticalDoubleAcuteDoubleLongLeftArrowExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesDoubleLongLeftRightArrowDownRightTeeVectorExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesDoubleLongLeftRightArrowDownRightTeeVectorExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
