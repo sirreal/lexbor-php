@@ -2853,7 +2853,7 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>, bool}>
      */
-    public static function html5libDomjsBogusCommentNulFixtureProvider(): iterable
+    public static function html5libDomjsFixtureProvider(): iterable
     {
         $processingInstructionError = [[
             'code' => 'unexpected-question-mark-instead-of-tag-name',
@@ -2962,6 +2962,45 @@ final class SerializeTest extends TestCase
             $doubleEscapedScriptCommentNulErrors,
             true,
         ];
+
+        foreach ([
+            7 => ['EOF in script HTML comment', '<!--test', 9],
+            8 => ['EOF in script HTML comment after dash', '<!--test-', 10],
+            9 => ['EOF in script HTML comment after dash dash', '<!--test--', 11],
+            10 => ['EOF in script HTML comment double escaped after dash', '<!--<script>-', 14],
+            11 => ['EOF in script HTML comment double escaped after dash dash', '<!--<script>--', 15],
+            12 => ['EOF in script HTML comment - double escaped', '<!--<script>', 13],
+        ] as $testIndex => [$description, $html, $errorColumn]) {
+            yield "domjs.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                ['Script data state'],
+                [['Character', $html]],
+                [[
+                    'code' => 'eof-in-script-html-comment-like-text',
+                    'line' => 1,
+                    'col' => $errorColumn,
+                ]],
+                false,
+            ];
+        }
+
+        foreach ([
+            13 => ['Dash in script HTML comment', '<!-- - -->'],
+            14 => ['Dash less-than in script HTML comment', '<!-- -< -->'],
+            15 => ['Dash at end of script HTML comment', '<!--test--->'],
+        ] as $testIndex => [$description, $html]) {
+            yield "domjs.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                ['Script data state'],
+                [['Character', $html]],
+                [],
+                false,
+            ];
+        }
     }
 
     /**
@@ -14064,8 +14103,8 @@ final class SerializeTest extends TestCase
      * @param list<list<string>> $expectedOutput
      * @param list<array{code: string, line: int, col: int}> $expectedErrors
      */
-    #[DataProvider('html5libDomjsBogusCommentNulFixtureProvider')]
-    public function testHtml5libDomjsBogusCommentNulFixtureRows(
+    #[DataProvider('html5libDomjsFixtureProvider')]
+    public function testHtml5libDomjsFixtureRows(
         string $html,
         int $testIndex,
         string $description,
