@@ -4238,41 +4238,53 @@ final class SerializeTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
     {
         $textStates = ['Data state', 'PLAINTEXT state', 'RCDATA state', 'RAWTEXT state', 'Script data state'];
         $cdataState = ['CDATA section state'];
+        $eofInCdata = static fn (int $line, int $col): array => [[
+            'code' => 'eof-in-cdata',
+            'line' => $line,
+            'col' => $col,
+        ]];
+        $verticalTabError = [[
+            'code' => 'control-character-in-input-stream',
+            'line' => 1,
+            'col' => 1,
+        ]];
 
-        yield 'test3.test empty text-mode exact fixture row' => ['', 0, '[empty]', $textStates, []];
-        yield 'test3.test empty CDATA exact fixture row' => ['', 1, '[empty]', $cdataState, []];
-        yield 'test3.test form feed text-mode exact fixture row' => ["\f", 8, '\u000C', $textStates, [['Character', "\f"]]];
-        yield 'test3.test form feed CDATA exact fixture row' => ["\f", 9, '\u000C', $cdataState, [['Character', "\f"]]];
+        yield 'test3.test empty text-mode exact fixture row' => ['', 0, '[empty]', $textStates, [], []];
+        yield 'test3.test empty CDATA exact fixture row' => ['', 1, '[empty]', $cdataState, [], $eofInCdata(1, 1)];
 
         foreach ([
-            38 => [';=', ';='],
-            40 => [';>', ';>'],
-            42 => [';?', ';?'],
-            44 => [';@', ';@'],
-            46 => [';A', ';A'],
-            48 => [';B', ';B'],
-            50 => [';Y', ';Y'],
-            52 => [';Z', ';Z'],
-            54 => [';`', ';`'],
-            56 => [';a', ';a'],
-            58 => [';b', ';b'],
-            60 => [';y', ';y'],
-            62 => [';z', ';z'],
-            64 => [';{', ';{'],
-            66 => [";\u{100000}", ';\uDBC0\uDC00'],
-        ] as $textIndex => [$input, $description]) {
+            2 => ["\t", '\u0009', [], $eofInCdata(1, 2)],
+            4 => ["\n", '\u000A', [], $eofInCdata(2, 1)],
+            6 => ["\u{000B}", '\u000B', $verticalTabError, $eofInCdata(1, 2)],
+            8 => ["\f", '\u000C', [], $eofInCdata(1, 2)],
+            10 => [' ', ' ', [], $eofInCdata(1, 2)],
+            12 => ['!', '!', [], $eofInCdata(1, 2)],
+            14 => ['"', '"', [], $eofInCdata(1, 2)],
+            16 => ['%', '%', [], $eofInCdata(1, 2)],
+            18 => ['&', '&', [], $eofInCdata(1, 2)],
+            20 => ["'", "'", [], $eofInCdata(1, 2)],
+            22 => [',', ',', [], $eofInCdata(1, 2)],
+            24 => ['-', '-', [], $eofInCdata(1, 2)],
+            26 => ['.', '.', [], $eofInCdata(1, 2)],
+            28 => ['/', '/', [], $eofInCdata(1, 2)],
+            30 => ['0', '0', [], $eofInCdata(1, 2)],
+            32 => ['1', '1', [], $eofInCdata(1, 2)],
+            34 => ['9', '9', [], $eofInCdata(1, 2)],
+            36 => [';', ';', [], $eofInCdata(1, 2)],
+        ] as $textIndex => [$input, $description, $textErrors, $cdataErrors]) {
             yield "test3.test $description text-mode exact fixture row" => [
                 $input,
                 $textIndex,
                 $description,
                 $textStates,
                 [['Character', $input]],
+                $textErrors,
             ];
             yield "test3.test $description CDATA exact fixture row" => [
                 $input,
@@ -4280,6 +4292,42 @@ final class SerializeTest extends TestCase
                 $description,
                 $cdataState,
                 [['Character', $input]],
+                [...$textErrors, ...$cdataErrors],
+            ];
+        }
+
+        foreach ([
+            38 => [';=', ';=', $eofInCdata(1, 3)],
+            40 => [';>', ';>', $eofInCdata(1, 3)],
+            42 => [';?', ';?', $eofInCdata(1, 3)],
+            44 => [';@', ';@', $eofInCdata(1, 3)],
+            46 => [';A', ';A', $eofInCdata(1, 3)],
+            48 => [';B', ';B', $eofInCdata(1, 3)],
+            50 => [';Y', ';Y', $eofInCdata(1, 3)],
+            52 => [';Z', ';Z', $eofInCdata(1, 3)],
+            54 => [';`', ';`', $eofInCdata(1, 3)],
+            56 => [';a', ';a', $eofInCdata(1, 3)],
+            58 => [';b', ';b', $eofInCdata(1, 3)],
+            60 => [';y', ';y', $eofInCdata(1, 3)],
+            62 => [';z', ';z', $eofInCdata(1, 3)],
+            64 => [';{', ';{', $eofInCdata(1, 3)],
+            66 => [";\u{100000}", ';\uDBC0\uDC00', $eofInCdata(1, 4)],
+        ] as $textIndex => [$input, $description, $cdataErrors]) {
+            yield "test3.test $description text-mode exact fixture row" => [
+                $input,
+                $textIndex,
+                $description,
+                $textStates,
+                [['Character', $input]],
+                [],
+            ];
+            yield "test3.test $description CDATA exact fixture row" => [
+                $input,
+                $textIndex + 1,
+                $description,
+                $cdataState,
+                [['Character', $input]],
+                $cdataErrors,
             ];
         }
     }
@@ -15473,6 +15521,7 @@ final class SerializeTest extends TestCase
     /**
      * @param list<string> $initialStates
      * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
      */
     #[DataProvider('html5libTest3LiteralFixtureProvider')]
     public function testHtml5libTest3LiteralFixtureRows(
@@ -15481,6 +15530,7 @@ final class SerializeTest extends TestCase
         string $description,
         array $initialStates,
         array $expectedOutput,
+        array $expectedErrors,
     ): void
     {
         $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
@@ -15495,6 +15545,11 @@ final class SerializeTest extends TestCase
         self::assertSame($initialStates, $fixture['initialStates'] ?? []);
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
     }
 
     /**
