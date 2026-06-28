@@ -4833,6 +4833,60 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeMissingWhitespaceNameEofControlFixtureProvider(): iterable
+    {
+        foreach ([
+            707 => ['<!DOCTYPE!', '<!DOCTYPE!', '!', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            708 => ['<!DOCTYPE"', '<!DOCTYPE"', '"', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            709 => ['<!DOCTYPE&', '<!DOCTYPE&', '&', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            710 => ['<!DOCTYPE\'', "<!DOCTYPE'", "'", false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            711 => ['<!DOCTYPE-', '<!DOCTYPE-', '-', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            712 => ['<!DOCTYPE/', '<!DOCTYPE/', '/', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            713 => ['<!DOCTYPE0', '<!DOCTYPE0', '0', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            714 => ['<!DOCTYPE1', '<!DOCTYPE1', '1', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            715 => ['<!DOCTYPE9', '<!DOCTYPE9', '9', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            716 => ['<!DOCTYPE<', '<!DOCTYPE<', '<', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            717 => ['<!DOCTYPE=', '<!DOCTYPE=', '=', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            718 => ['<!DOCTYPE>', '<!DOCTYPE>', null, false, [['missing-doctype-name', 1, 10]]],
+            719 => ['<!DOCTYPE?', '<!DOCTYPE?', '?', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            720 => ['<!DOCTYPE@', '<!DOCTYPE@', '@', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            721 => ['<!DOCTYPEA', '<!DOCTYPEA', 'a', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            722 => ['<!DOCTYPEB', '<!DOCTYPEB', 'b', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            723 => ['<!DOCTYPEY', '<!DOCTYPEY', 'y', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            724 => ['<!DOCTYPEZ', '<!DOCTYPEZ', 'z', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            725 => ['<!DOCTYPE`', '<!DOCTYPE`', '`', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            726 => ['<!DOCTYPEa', '<!DOCTYPEa', 'a', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]]],
+            727 => ['<!DOCTYPEa\\u0000', "<!DOCTYPEa\0", "a\u{FFFD}", false, [['missing-whitespace-before-doctype-name', 1, 10], ['unexpected-null-character', 1, 11], ['eof-in-doctype', 1, 12]]],
+            728 => ['<!DOCTYPEa\\u0008', "<!DOCTYPEa\x08", "a\x08", false, [['control-character-in-input-stream', 1, 11], ['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 12]]],
+            729 => ['<!DOCTYPEa\\u0009', "<!DOCTYPEa\t", 'a', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 12]]],
+            730 => ['<!DOCTYPEa\\u000A', "<!DOCTYPEa\n", 'a', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 2, 1]]],
+            731 => ['<!DOCTYPEa\\u000B', "<!DOCTYPEa\v", "a\v", false, [['control-character-in-input-stream', 1, 11], ['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 12]]],
+            732 => ['<!DOCTYPEa\\u000C', "<!DOCTYPEa\f", 'a', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 12]]],
+            733 => ['<!DOCTYPEa\\u000D', "<!DOCTYPEa\r", 'a', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 2, 1]]],
+            734 => ['<!DOCTYPEa\\u001F', "<!DOCTYPEa\x1F", "a\x1F", false, [['control-character-in-input-stream', 1, 11], ['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 12]]],
+            735 => ['<!DOCTYPEa ', '<!DOCTYPEa ', 'a', false, [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 12]]],
+        ] as $testIndex => [$description, $html, $name, $tokenForceQuirks, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description missing-whitespace doctype-name EOF/control exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', $name, null, null, $tokenForceQuirks]],
+                $expectedErrors,
+                '<!DOCTYPE ' . $name . '><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -12344,6 +12398,49 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeNameContinuationPrintableEofFixtureProvider')]
     public function testHtml5libTest3DoctypeNameContinuationPrintableEofFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeMissingWhitespaceNameEofControlFixtureProvider')]
+    public function testHtml5libTest3DoctypeMissingWhitespaceNameEofControlFixtureRows(
         string $html,
         int $testIndex,
         string $description,
