@@ -4937,6 +4937,42 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeMissingWhitespacePublicKeywordBoundaryFixtureProvider(): iterable
+    {
+        foreach ([
+            761 => ['<!DOCTYPEa PUBLIC', '<!DOCTYPEa PUBLIC', [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 18]]],
+            762 => ['<!DOCTYPEa PUBLIC\\u0000', "<!DOCTYPEa PUBLIC\0", [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18], ['unexpected-null-character', 1, 18]]],
+            763 => ['<!DOCTYPEa PUBLIC\\u0008', "<!DOCTYPEa PUBLIC\x08", [['control-character-in-input-stream', 1, 18], ['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            764 => ['<!DOCTYPEa PUBLIC\\u0009', "<!DOCTYPEa PUBLIC\t", [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 19]]],
+            765 => ['<!DOCTYPEa PUBLIC\\u000A', "<!DOCTYPEa PUBLIC\n", [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 2, 1]]],
+            766 => ['<!DOCTYPEa PUBLIC\\u000B', "<!DOCTYPEa PUBLIC\v", [['control-character-in-input-stream', 1, 18], ['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            767 => ['<!DOCTYPEa PUBLIC\\u000C', "<!DOCTYPEa PUBLIC\f", [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 19]]],
+            768 => ['<!DOCTYPEa PUBLIC\\u000D', "<!DOCTYPEa PUBLIC\r", [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 2, 1]]],
+            769 => ['<!DOCTYPEa PUBLIC\\u001F', "<!DOCTYPEa PUBLIC\x1F", [['control-character-in-input-stream', 1, 18], ['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            770 => ['<!DOCTYPEa PUBLIC ', '<!DOCTYPEa PUBLIC ', [['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 19]]],
+            771 => ['<!DOCTYPEa PUBLIC!', '<!DOCTYPEa PUBLIC!', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+        ] as $testIndex => [$description, $html, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description missing-whitespace PUBLIC keyword boundary exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', 'a', null, null, false]],
+                $expectedErrors,
+                '<!DOCTYPE a><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -12534,6 +12570,49 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeMissingWhitespaceNameInvalidSequenceFixtureProvider')]
     public function testHtml5libTest3DoctypeMissingWhitespaceNameInvalidSequenceFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeMissingWhitespacePublicKeywordBoundaryFixtureProvider')]
+    public function testHtml5libTest3DoctypeMissingWhitespacePublicKeywordBoundaryFixtureRows(
         string $html,
         int $testIndex,
         string $description,
