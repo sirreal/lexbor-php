@@ -4339,6 +4339,46 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3UnexpectedSolidusControlPunctuationFixtureProvider(): iterable
+    {
+        foreach ([
+            1504 => ['<a/\\u0000>', "<a/\0>", [['StartTag', 'a', ["\u{FFFD}" => '']]], [['unexpected-solidus-in-tag', 1, 4], ['unexpected-null-character', 1, 4]]],
+            1505 => ['<a/\\u0009>', "<a/\t>", [['StartTag', 'a', []]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1506 => ['<a/\\u000A>', "<a/\n>", [['StartTag', 'a', []]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1507 => ['<a/\\u000B>', "<a/\v>", [['StartTag', 'a', ["\v" => '']]], [['control-character-in-input-stream', 1, 4], ['unexpected-solidus-in-tag', 1, 4]]],
+            1508 => ['<a/\\u000C>', "<a/\f>", [['StartTag', 'a', []]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1509 => ['<a/ >', '<a/ >', [['StartTag', 'a', []]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1510 => ['<a/!>', '<a/!>', [['StartTag', 'a', ['!' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1511 => ['<a/">', '<a/">', [['StartTag', 'a', ['"' => '']]], [['unexpected-solidus-in-tag', 1, 4], ['unexpected-character-in-attribute-name', 1, 4]]],
+            1512 => ['<a/&>', '<a/&>', [['StartTag', 'a', ['&' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1513 => ["<a/'>", "<a/'>", [['StartTag', 'a', ["'" => '']]], [['unexpected-solidus-in-tag', 1, 4], ['unexpected-character-in-attribute-name', 1, 4]]],
+            1514 => ['<a/->', '<a/->', [['StartTag', 'a', ['-' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1515 => ['<a//>', '<a//>', [['StartTag', 'a', [], true]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1516 => ['<a/0>', '<a/0>', [['StartTag', 'a', ['']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1517 => ['<a/1>', '<a/1>', [['StartTag', 'a', ['1' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1518 => ['<a/9>', '<a/9>', [['StartTag', 'a', ['9' => '']]], [['unexpected-solidus-in-tag', 1, 4]]],
+            1519 => ['<a/<>', '<a/<>', [['StartTag', 'a', ['<' => '']]], [['unexpected-solidus-in-tag', 1, 4], ['unexpected-character-in-attribute-name', 1, 4]]],
+            1520 => ['<a/=>', '<a/=>', [['StartTag', 'a', ['=' => '']]], [['unexpected-solidus-in-tag', 1, 4], ['unexpected-equals-sign-before-attribute-name', 1, 4]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description unexpected-solidus control/punctuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -14114,6 +14154,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3TagNamePunctuationSlashFixtureProvider')]
     public function testHtml5libTest3TagNamePunctuationSlashFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3UnexpectedSolidusControlPunctuationFixtureProvider')]
+    public function testHtml5libTest3UnexpectedSolidusControlPunctuationFixtureRows(
         string $html,
         int $testIndex,
         string $description,
