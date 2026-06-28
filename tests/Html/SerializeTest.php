@@ -7457,6 +7457,7 @@ final class SerializeTest extends TestCase
         yield 'html5lib test2 hexadecimal surrogate pair references' => ['&#xD869;&#xDED6;', '��'];
         yield 'html5lib test2 mixed-case hexadecimal character reference' => ['&#xaBcD;', "\u{ABCD}"];
         yield 'html5lib test2 entity without a name' => ['&;', '&amp;;'];
+        yield 'html5lib test2 entity plus newline' => ["\nx\n&gt;\n", "\nx\n&gt;\n"];
         yield 'html5lib entities undefined double-quoted attribute entity remains literal' => [
             '<h a="&noti;">',
             '<h a="&amp;noti;"></h>',
@@ -8003,6 +8004,8 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 processing instruction lowercase z' => ['<?z', '<!--?z-->'];
         yield 'html5lib test3 processing instruction opening brace' => ['<?{', '<!--?{-->'];
         yield 'html5lib test3 processing instruction non-BMP' => ["<?\u{100000}", "<!--?\u{100000}-->"];
+        yield 'html5lib test2 simili processing instruction' => ['<?namespace>', '<!--?namespace-->'];
+        yield 'html5lib test2 bogus comment stops at greater-than after dashes' => ['<?foo-->', '<!--?foo---->'];
         foreach ([
             'uppercase Y' => ['<!Y', '<!--Y-->'],
             'uppercase Z' => ['<!Z', '<!--Z-->'],
