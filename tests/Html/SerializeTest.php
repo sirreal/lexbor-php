@@ -2740,6 +2740,37 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function html5libScriptDataEndTagTransitionProvider(): iterable
+    {
+        yield 'domjs.test script HTML comment end tag exact initial state' => [
+            '<!-- </script> --></script>',
+            '<script><!-- </script> --&gt;',
+        ];
+        yield 'domjs.test script HTML comment double escaped end tag exact initial state' => [
+            '<!-- <script></script> --></script>',
+            '<script><!-- <script></script> --></script>',
+        ];
+        yield 'domjs.test script HTML comment nested double escaped end tag exact initial state' => [
+            '<!-- <script><script></script></script> --></script>',
+            '<script><!-- <script><script></script></script> --&gt;',
+        ];
+        yield 'domjs.test script HTML comment abrupt double escaped end exact initial state' => [
+            '<!-- <script>--></script> --></script>',
+            '<script><!-- <script>--></script> --&gt;',
+        ];
+        yield 'domjs.test script HTML comment incomplete start tag exact initial state' => [
+            '<!--<scrip></script>-->',
+            '<script><!--<scrip></script>--&gt;',
+        ];
+        yield 'domjs.test script HTML comment unclosed start tag exact initial state' => [
+            '<!--<script</script>-->',
+            '<script><!--<script</script>--&gt;',
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -9247,6 +9278,15 @@ final class SerializeTest extends TestCase
         self::assertInstanceOf(Text::class, $fragment->firstChild);
         self::assertNull($fragment->firstChild->next);
         self::assertSame($expected, $fragment->firstChild->data);
+    }
+
+    #[DataProvider('html5libScriptDataEndTagTransitionProvider')]
+    public function testHtml5libScriptDataEndTagTransitions(string $html, string $expected): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<script>' . $html));
+
+        self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
     }
 
     #[DataProvider('html5libRcdataStateProvider')]
