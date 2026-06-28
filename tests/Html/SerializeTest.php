@@ -3464,6 +3464,224 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3CommentEndDashFixtureProvider(): iterable
+    {
+        foreach ([
+            108 => [
+                '<!-- -\\u0009',
+                "<!-- -\t",
+                " -\t",
+                [['eof-in-comment', 1, 8]],
+            ],
+            109 => [
+                '<!-- -\\u000A',
+                "<!-- -\n",
+                " -\n",
+                [['eof-in-comment', 2, 1]],
+            ],
+            110 => [
+                '<!-- -\\u000B',
+                "<!-- -\v",
+                " -\v",
+                [
+                    ['control-character-in-input-stream', 1, 7],
+                    ['eof-in-comment', 1, 8],
+                ],
+            ],
+            111 => [
+                '<!-- -\\u000C',
+                "<!-- -\f",
+                " -\f",
+                [['eof-in-comment', 1, 8]],
+            ],
+            112 => [
+                '<!-- - ',
+                '<!-- - ',
+                ' - ',
+                [['eof-in-comment', 1, 8]],
+            ],
+            113 => [
+                '<!-- -!',
+                '<!-- -!',
+                ' -!',
+                [['eof-in-comment', 1, 8]],
+            ],
+            114 => [
+                '<!-- -"',
+                '<!-- -"',
+                ' -"',
+                [['eof-in-comment', 1, 8]],
+            ],
+            115 => [
+                '<!-- -&',
+                '<!-- -&',
+                ' -&',
+                [['eof-in-comment', 1, 8]],
+            ],
+            116 => [
+                "<!-- -'",
+                "<!-- -'",
+                " -'",
+                [['eof-in-comment', 1, 8]],
+            ],
+            117 => [
+                '<!-- -,',
+                '<!-- -,',
+                ' -,',
+                [['eof-in-comment', 1, 8]],
+            ],
+            118 => [
+                '<!-- --',
+                '<!-- --',
+                ' ',
+                [['eof-in-comment', 1, 8]],
+            ],
+            119 => [
+                '<!-- -.',
+                '<!-- -.',
+                ' -.',
+                [['eof-in-comment', 1, 8]],
+            ],
+            120 => [
+                '<!-- -/',
+                '<!-- -/',
+                ' -/',
+                [['eof-in-comment', 1, 8]],
+            ],
+            121 => [
+                '<!-- -0',
+                '<!-- -0',
+                ' -0',
+                [['eof-in-comment', 1, 8]],
+            ],
+            122 => [
+                '<!-- -1',
+                '<!-- -1',
+                ' -1',
+                [['eof-in-comment', 1, 8]],
+            ],
+            123 => [
+                '<!-- -9',
+                '<!-- -9',
+                ' -9',
+                [['eof-in-comment', 1, 8]],
+            ],
+            124 => [
+                '<!-- -<',
+                '<!-- -<',
+                ' -<',
+                [['eof-in-comment', 1, 8]],
+            ],
+            125 => [
+                '<!-- -=',
+                '<!-- -=',
+                ' -=',
+                [['eof-in-comment', 1, 8]],
+            ],
+            126 => [
+                '<!-- ->',
+                '<!-- ->',
+                ' ->',
+                [['eof-in-comment', 1, 8]],
+            ],
+            127 => [
+                '<!-- -?',
+                '<!-- -?',
+                ' -?',
+                [['eof-in-comment', 1, 8]],
+            ],
+            128 => [
+                '<!-- -@',
+                '<!-- -@',
+                ' -@',
+                [['eof-in-comment', 1, 8]],
+            ],
+            129 => [
+                '<!-- -A',
+                '<!-- -A',
+                ' -A',
+                [['eof-in-comment', 1, 8]],
+            ],
+            130 => [
+                '<!-- -B',
+                '<!-- -B',
+                ' -B',
+                [['eof-in-comment', 1, 8]],
+            ],
+            131 => [
+                '<!-- -Y',
+                '<!-- -Y',
+                ' -Y',
+                [['eof-in-comment', 1, 8]],
+            ],
+            132 => [
+                '<!-- -Z',
+                '<!-- -Z',
+                ' -Z',
+                [['eof-in-comment', 1, 8]],
+            ],
+            133 => [
+                '<!-- -`',
+                '<!-- -`',
+                ' -`',
+                [['eof-in-comment', 1, 8]],
+            ],
+            134 => [
+                '<!-- -a',
+                '<!-- -a',
+                ' -a',
+                [['eof-in-comment', 1, 8]],
+            ],
+            135 => [
+                '<!-- -b',
+                '<!-- -b',
+                ' -b',
+                [['eof-in-comment', 1, 8]],
+            ],
+            136 => [
+                '<!-- -y',
+                '<!-- -y',
+                ' -y',
+                [['eof-in-comment', 1, 8]],
+            ],
+            137 => [
+                '<!-- -z',
+                '<!-- -z',
+                ' -z',
+                [['eof-in-comment', 1, 8]],
+            ],
+            138 => [
+                '<!-- -{',
+                '<!-- -{',
+                ' -{',
+                [['eof-in-comment', 1, 8]],
+            ],
+            139 => [
+                '<!-- -\\uDBC0\\uDC00',
+                "<!-- -\u{100000}",
+                " -\u{100000}",
+                [['eof-in-comment', 1, 9]],
+            ],
+        ] as $testIndex => [$description, $html, $comment, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description comment end-dash exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Comment', $comment]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -10140,6 +10358,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3CommentStartFixtureProvider')]
     public function testHtml5libTest3CommentStartFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3CommentEndDashFixtureProvider')]
+    public function testHtml5libTest3CommentEndDashFixtureRows(
         string $html,
         int $testIndex,
         string $description,
