@@ -3864,6 +3864,50 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3CommentDoubleDashContinuationFixtureProvider(): iterable
+    {
+        foreach ([
+            203 => ['<!----"', '<!----"', '--"', 8, true],
+            204 => ['<!----&', '<!----&', '--&', 8, true],
+            205 => ["<!----'", "<!----'", "--'", 8, true],
+            206 => ['<!----,', '<!----,', '--,', 8, true],
+            207 => ['<!-----', '<!-----', '-', 8, true],
+            208 => ['<!----.', '<!----.', '--.', 8, true],
+            209 => ['<!----/', '<!----/', '--/', 8, true],
+            210 => ['<!----0', '<!----0', '--0', 8, true],
+            211 => ['<!----1', '<!----1', '--1', 8, true],
+            212 => ['<!----9', '<!----9', '--9', 8, true],
+            213 => ['<!----<', '<!----<', '--<', 8, true],
+            214 => ['<!----=', '<!----=', '--=', 8, true],
+            215 => ['<!---->', '<!---->', '', 8, false],
+            216 => ['<!----?', '<!----?', '--?', 8, true],
+            217 => ['<!----@', '<!----@', '--@', 8, true],
+            218 => ['<!----A', '<!----A', '--A', 8, true],
+            219 => ['<!----B', '<!----B', '--B', 8, true],
+            220 => ['<!----Y', '<!----Y', '--Y', 8, true],
+            221 => ['<!----Z', '<!----Z', '--Z', 8, true],
+            222 => ['<!----`', '<!----`', '--`', 8, true],
+            223 => ['<!----a', '<!----a', '--a', 8, true],
+            224 => ['<!----b', '<!----b', '--b', 8, true],
+            225 => ['<!----y', '<!----y', '--y', 8, true],
+            226 => ['<!----z', '<!----z', '--z', 8, true],
+            227 => ['<!----{', '<!----{', '--{', 8, true],
+            228 => ['<!----\\uDBC0\\uDC00', "<!----\u{100000}", "--\u{100000}", 9, true],
+        ] as $testIndex => [$description, $html, $comment, $errorColumn, $expectsEofError]) {
+            yield "test3.test $description comment double-dash continuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Comment', $comment]],
+                $expectsEofError ? [['code' => 'eof-in-comment', 'line' => 1, 'col' => $errorColumn]] : [],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -10690,6 +10734,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3IncorrectlyClosedCommentFixtureProvider')]
     public function testHtml5libTest3IncorrectlyClosedCommentFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3CommentDoubleDashContinuationFixtureProvider')]
+    public function testHtml5libTest3CommentDoubleDashContinuationFixtureRows(
         string $html,
         int $testIndex,
         string $description,
