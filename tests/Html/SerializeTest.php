@@ -4890,6 +4890,61 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesNotSucceedsSlantEqualOcyExactFixtureProvider(): iterable
+    {
+        $missingSemicolon = static fn (int $col): array => [[
+            'code' => 'missing-semicolon-after-character-reference',
+            'line' => 1,
+            'col' => $col,
+        ]];
+
+        foreach ([
+            704 => ['Bad named entity: NotSucceedsSlantEqual without a semi-colon', '&NotSucceedsSlantEqual', '&NotSucceedsSlantEqual', []],
+            705 => ['Named entity: NotSucceedsSlantEqual; with a semi-colon', '&NotSucceedsSlantEqual;', "\u{22E1}", []],
+            706 => ['Bad named entity: NotSucceedsTilde without a semi-colon', '&NotSucceedsTilde', '&NotSucceedsTilde', []],
+            707 => ['Named entity: NotSucceedsTilde; with a semi-colon', '&NotSucceedsTilde;', "\u{227F}\u{0338}", []],
+            708 => ['Bad named entity: NotSuperset without a semi-colon', '&NotSuperset', '&NotSuperset', []],
+            709 => ['Named entity: NotSuperset; with a semi-colon', '&NotSuperset;', "\u{2283}\u{20D2}", []],
+            710 => ['Bad named entity: NotSupersetEqual without a semi-colon', '&NotSupersetEqual', '&NotSupersetEqual', []],
+            711 => ['Named entity: NotSupersetEqual; with a semi-colon', '&NotSupersetEqual;', "\u{2289}", []],
+            712 => ['Bad named entity: NotTilde without a semi-colon', '&NotTilde', '&NotTilde', []],
+            713 => ['Named entity: NotTilde; with a semi-colon', '&NotTilde;', "\u{2241}", []],
+            714 => ['Bad named entity: NotTildeEqual without a semi-colon', '&NotTildeEqual', '&NotTildeEqual', []],
+            715 => ['Named entity: NotTildeEqual; with a semi-colon', '&NotTildeEqual;', "\u{2244}", []],
+            716 => ['Bad named entity: NotTildeFullEqual without a semi-colon', '&NotTildeFullEqual', '&NotTildeFullEqual', []],
+            717 => ['Named entity: NotTildeFullEqual; with a semi-colon', '&NotTildeFullEqual;', "\u{2247}", []],
+            718 => ['Bad named entity: NotTildeTilde without a semi-colon', '&NotTildeTilde', '&NotTildeTilde', []],
+            719 => ['Named entity: NotTildeTilde; with a semi-colon', '&NotTildeTilde;', "\u{2249}", []],
+            720 => ['Bad named entity: NotVerticalBar without a semi-colon', '&NotVerticalBar', '&NotVerticalBar', []],
+            721 => ['Named entity: NotVerticalBar; with a semi-colon', '&NotVerticalBar;', "\u{2224}", []],
+            722 => ['Bad named entity: Nscr without a semi-colon', '&Nscr', '&Nscr', []],
+            723 => ['Named entity: Nscr; with a semi-colon', '&Nscr;', "\u{1D4A9}", []],
+            724 => ['Named entity: Ntilde without a semi-colon', '&Ntilde', "\u{00D1}", $missingSemicolon(8)],
+            725 => ['Named entity: Ntilde; with a semi-colon', '&Ntilde;', "\u{00D1}", []],
+            726 => ['Bad named entity: Nu without a semi-colon', '&Nu', '&Nu', []],
+            727 => ['Named entity: Nu; with a semi-colon', '&Nu;', "\u{039D}", []],
+            728 => ['Bad named entity: OElig without a semi-colon', '&OElig', '&OElig', []],
+            729 => ['Named entity: OElig; with a semi-colon', '&OElig;', "\u{0152}", []],
+            730 => ['Named entity: Oacute without a semi-colon', '&Oacute', "\u{00D3}", $missingSemicolon(8)],
+            731 => ['Named entity: Oacute; with a semi-colon', '&Oacute;', "\u{00D3}", []],
+            732 => ['Named entity: Ocirc without a semi-colon', '&Ocirc', "\u{00D4}", $missingSemicolon(7)],
+            733 => ['Named entity: Ocirc; with a semi-colon', '&Ocirc;', "\u{00D4}", []],
+            734 => ['Bad named entity: Ocy without a semi-colon', '&Ocy', '&Ocy', []],
+            735 => ['Named entity: Ocy; with a semi-colon', '&Ocy;', "\u{041E}", []],
+        ] as $testIndex => [$description, $html, $character, $expectedErrors]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -16883,6 +16938,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesNotNestedLessLessNotSucceedsEqualExactFixtureProvider')]
     public function testHtml5libNamedEntitiesNotNestedLessLessNotSucceedsEqualExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesNotSucceedsSlantEqualOcyExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesNotSucceedsSlantEqualOcyExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
