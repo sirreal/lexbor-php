@@ -8196,6 +8196,10 @@ final class SerializeTest extends TestCase
             "<a \x1F>",
             "<a \x1F=\"\"></a>",
         ];
+        yield 'html5lib xmlViolation form feed separates attributes' => [
+            "<a b=''\fc=''>",
+            '<a b="" c=""></a>',
+        ];
         yield 'html5lib test3 repeated before attribute name space boundary' => ['<a  >', '<a></a>'];
         yield 'html5lib test3 before attribute name exclamation' => ['<a !>', '<a !=""></a>'];
         yield 'html5lib test3 before attribute name double quote' => ['<a ">', '<a &quot;=""></a>'];
@@ -8623,6 +8627,10 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 unquoted attribute value uppercase Y after character' => ['<a a=aY>', '<a a="aY"></a>'];
         yield 'html5lib test3 unquoted attribute value uppercase Z after character' => ['<a a=aZ>', '<a a="aZ"></a>'];
         yield 'html5lib test3 unquoted attribute value backtick after character' => ['<a a=a`>', '<a a="a`"></a>'];
+        yield 'html5lib test4 unquoted attribute value grave accent after characters' => [
+            '<a a=aa`>',
+            '<a a="aa`"></a>',
+        ];
         yield 'html5lib test3 unquoted attribute value lowercase a after character' => ['<a a=aa>', '<a a="aa"></a>'];
         yield 'html5lib test3 unquoted attribute value lowercase b after character' => ['<a a=ab>', '<a a="ab"></a>'];
         yield 'html5lib test3 unquoted attribute value lowercase y after character' => ['<a a=ay>', '<a a="ay"></a>'];
