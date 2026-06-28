@@ -2750,7 +2750,18 @@ final class SerializeTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return iterable<string, array{string, string, 2?: bool}>
+     */
+    public static function html5libRcdataStateProvider(): iterable
+    {
+        yield 'domjs.test RCDATA bad character reference remains literal initial state' => [
+            '&NotEqualTild;',
+            '&NotEqualTild;',
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, string, 2?: bool}>
      */
     public static function tokenizerCharacterReferenceProvider(): iterable
     {
@@ -2772,9 +2783,9 @@ final class SerializeTest extends TestCase
         yield 'char_ref.ton #16 multi-codepoint named reference' => ['&nLt;', '≪⃒'];
         yield 'char_ref.ton #17 multi-codepoint named reference before text' => ['&nLt;a', '≪⃒a'];
         yield 'char_ref.ton #18 text before multi-codepoint named reference' => ['b&nLt;a', 'b≪⃒a'];
-        yield 'domjs.test data state FEFF pass-through' => ["\u{FEFF}foo\u{FEFF}bar", "\u{FEFF}foo\u{FEFF}bar"];
+        yield 'domjs.test data state FEFF pass-through' => ['\uFEFFfoo\uFEFFbar', '\uFEFFfoo\uFEFFbar', true];
         yield 'domjs.test attribute non-BMP character reference' => [
-            '<p id="&NotEqualTilde;"></p>',
+            '<p id="&NotEqualTilde;">',
             "<p id=\"\u{2242}\u{0338}\"></p>",
         ];
         foreach ([
@@ -7990,7 +8001,7 @@ final class SerializeTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{string, string}>
+     * @return iterable<string, array{string, string, 2?: bool}>
      */
     public static function tokenizerCommentProvider(): iterable
     {
@@ -8090,7 +8101,11 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 unfinished four-dash comment' => ['<!----', '<!--' . '' . '-->'];
         yield 'html5lib test3 incorrectly closed empty comment' => ['<!----!>', '<!--' . '' . '-->'];
         yield 'html5lib test3 incorrectly closed comment with data' => ['<!----!-->', '<!--' . '--!' . '-->'];
-        yield 'html5lib domjs incorrectly closed comment NUL replacement' => ["<!----!\0-->", "<!----!\u{FFFD}-->"];
+        yield 'html5lib domjs incorrectly closed comment NUL replacement' => [
+            '<!----!\u0000-->',
+            '<!----!\uFFFD-->',
+            true,
+        ];
         yield 'html5lib pendingSpecChanges unfinished four-dash comment with space' => ['<!---- >', '<!--' . '-- >' . '-->'];
     }
 
@@ -9193,6 +9208,23 @@ final class SerializeTest extends TestCase
         self::assertSame($expected, $fragment->firstChild->data);
     }
 
+    #[DataProvider('html5libRcdataStateProvider')]
+    public function testHtml5libRcdataStateFragments(string $html, string $expected, bool $decodeEscaped = false): void
+    {
+        $document = new Document();
+        $textarea = $document->createElement('textarea');
+        if ($decodeEscaped) {
+            $html = self::decodeHtml5libEscapedCodePoints($html);
+            $expected = self::decodeHtml5libEscapedCodePoints($expected);
+        }
+
+        $fragment = $document->createFragmentForElement($textarea, $html);
+
+        self::assertInstanceOf(Text::class, $fragment->firstChild);
+        self::assertNull($fragment->firstChild->next);
+        self::assertSame($expected, $fragment->firstChild->data);
+    }
+
     #[DataProvider('html5libTextOnlyNulProvider')]
     public function testHtml5libTextOnlyNulFragments(
         string $html,
@@ -9225,18 +9257,32 @@ final class SerializeTest extends TestCase
     }
 
     #[DataProvider('tokenizerCharacterReferenceProvider')]
-    public function testTokenizerCharacterReferenceRegressions(string $html, string $expected): void
+    public function testTokenizerCharacterReferenceRegressions(
+        string $html,
+        string $expected,
+        bool $decodeEscaped = false,
+    ): void
     {
         $document = new Document();
+        if ($decodeEscaped) {
+            $html = self::decodeHtml5libEscapedCodePoints($html);
+            $expected = self::decodeHtml5libEscapedCodePoints($expected);
+        }
+
         self::assertSame(Status::Ok, $document->parse($html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
     }
 
     #[DataProvider('tokenizerCommentProvider')]
-    public function testTokenizerCommentRegressions(string $html, string $expected): void
+    public function testTokenizerCommentRegressions(string $html, string $expected, bool $decodeEscaped = false): void
     {
         $document = new Document();
+        if ($decodeEscaped) {
+            $html = self::decodeHtml5libEscapedCodePoints($html);
+            $expected = self::decodeHtml5libEscapedCodePoints($expected);
+        }
+
         self::assertSame(Status::Ok, $document->parse($html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
