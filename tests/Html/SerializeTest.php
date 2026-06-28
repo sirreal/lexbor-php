@@ -3255,6 +3255,38 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest1AttributePlaintextFixtureProvider(): iterable
+    {
+        foreach ([
+            60 => ['Hexadecimal entity in attribute', "<h a='&#x3f;'></h>", [['StartTag', 'h', ['a' => '?']], ['EndTag', 'h']], []],
+            61 => ['Entity in attribute without semicolon ending in x', "<h a='&notx'>", [['StartTag', 'h', ['a' => '&notx']]], []],
+            62 => ['Entity in attribute without semicolon ending in 1', "<h a='&not1'>", [['StartTag', 'h', ['a' => '&not1']]], []],
+            63 => ['Entity in attribute without semicolon ending in i', "<h a='&noti'>", [['StartTag', 'h', ['a' => '&noti']]], []],
+            64 => ['Entity in attribute without semicolon', "<h a='&COPY'>", [['StartTag', 'h', ['a' => "\u{00A9}"]]], [['missing-semicolon-after-character-reference', 1, 12]]],
+            65 => ['Unquoted attribute ending in ampersand', '<s o=& t>', [['StartTag', 's', ['o' => '&', 't' => '']]], []],
+            66 => ['Unquoted attribute at end of tag with final character of &, with tag followed by characters', '<a a=a&>foo', [['StartTag', 'a', ['a' => 'a&']], ['Character', 'foo']], []],
+            67 => ['plaintext element', '<plaintext>foobar', [['StartTag', 'plaintext', []], ['Character', 'foobar']], []],
+            68 => ['Open angled bracket in unquoted attribute value state', '<a a=f<>', [['StartTag', 'a', ['a' => 'f<']]], [['unexpected-character-in-unquoted-attribute-value', 1, 7]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test1.test $testIndex $description attribute/plaintext exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -13785,6 +13817,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest1TextCharacterReferenceFixtureProvider')]
     public function testHtml5libTest1TextCharacterReferenceFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test1.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest1AttributePlaintextFixtureProvider')]
+    public function testHtml5libTest1AttributePlaintextFixtureRows(
         string $html,
         int $testIndex,
         string $description,
