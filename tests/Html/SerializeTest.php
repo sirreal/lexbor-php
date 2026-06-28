@@ -6,6 +6,7 @@ namespace Lexbor\Tests\Html;
 
 use Lexbor\Core\Status;
 use Lexbor\Dom\Comment;
+use Lexbor\Dom\Element;
 use Lexbor\Dom\Text;
 use Lexbor\Html\Document;
 use Lexbor\Html\Serializer;
@@ -8117,6 +8118,10 @@ final class SerializeTest extends TestCase
         yield 'tests21.ton #1 SVG CDATA is text' => ['<svg><![CDATA[foo]]>', '<svg>foo</svg>'];
         yield 'tests21.ton #2 Math CDATA is text' => ['<math><![CDATA[foo]]>', '<math>foo</math>'];
         yield 'tests21.ton #3 HTML CDATA is bogus comment' => ['<div><![CDATA[foo]]>', '<div><!--[CDATA[foo]]--></div>'];
+        yield 'domjs.test CDATA in HTML content exact input is bogus comment' => [
+            '<![CDATA[foo]]>',
+            '<!--[CDATA[foo]]-->',
+        ];
         yield 'tests21.ton #14 foreignObject HTML child CDATA is bogus comment' => [
             '<svg><foreignObject><div><![CDATA[foo]]></div></foreignObject></svg>',
             '<svg><foreignobject><div><!--[CDATA[foo]]--></div></foreignobject></svg>',
@@ -8149,6 +8154,37 @@ final class SerializeTest extends TestCase
         yield 'domjs.test CDATA with two brackets ending ends at EOF' => [
             '<svg><![CDATA[foo]]',
             '<svg>foo]]</svg>',
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function html5libCdataSectionStateProvider(): iterable
+    {
+        yield 'domjs.test CDATA content keeps character reference text initial state' => [
+            'foo&#32;]]>',
+            'foo&amp;#32;',
+        ];
+        yield 'domjs.test CDATA followed by HTML content decodes following reference initial state' => [
+            'foo&#32;]]>&#32;',
+            'foo&amp;#32; ',
+        ];
+        yield 'domjs.test CDATA extra bracket keeps one bracket initial state' => [
+            'foo]]]>',
+            'foo]',
+        ];
+        yield 'domjs.test CDATA without end marker ends at EOF initial state' => [
+            'foo',
+            'foo',
+        ];
+        yield 'domjs.test CDATA with single bracket ending ends at EOF initial state' => [
+            'foo]',
+            'foo]',
+        ];
+        yield 'domjs.test CDATA with two brackets ending ends at EOF initial state' => [
+            'foo]]',
+            'foo]]',
         ];
     }
 
@@ -9295,6 +9331,17 @@ final class SerializeTest extends TestCase
         self::assertSame(Status::Ok, $document->parse($html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('html5libCdataSectionStateProvider')]
+    public function testHtml5libCdataSectionStateFragments(string $html, string $expected): void
+    {
+        $document = new Document();
+        $svg = $document->createElement('svg', Element::NAMESPACE_SVG);
+
+        $fragment = $document->createFragmentForElement($svg, '<![CDATA[' . $html);
+
+        self::assertSame($expected, Serializer::serializeDeep($fragment));
     }
 
     #[DataProvider('tokenizerTagNameProvider')]
