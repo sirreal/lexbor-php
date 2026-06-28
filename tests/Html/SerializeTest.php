@@ -8034,6 +8034,7 @@ final class SerializeTest extends TestCase
         yield 'tag_name.ton #6 uppercase ASCII is lowercased' => ['<AAAAAA-aa>', '<aaaaaa-aa></aaaaaa-aa>'];
         yield 'html5lib test1 single start tag' => ['<h>', '<h></h>'];
         yield 'html5lib test1 start and end tag' => ['<h></h>', '<h></h>'];
+        yield 'html5lib test1 two unclosed start tags' => ['<p>One<p>Two', '<p>One</p><p>Two</p>'];
         yield 'body pre-scan does not consume NUL-suffixed body tag' => ["<body\0>x</body\0>", "<body\u{FFFD}>x</body\u{FFFD}>"];
         yield 'html5lib test2 less-than in tag name' => ['<a<b>', '<a<b></a<b>'];
         yield 'html5lib test3 exclamation in tag name' => ['<a!>', '<a!></a!>'];

@@ -230,6 +230,11 @@ final class Document extends Node
                 continue;
             }
 
+            if ($tagName === 'p') {
+                $this->closeElement($stack, 'p');
+                $parent = $stack[count($stack) - 1];
+            }
+
             $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             $element = $this->createElement($tagName, $this->namespaceForElement($namespaceParent, $tagName));
             foreach ($this->parseAttributes($attributeSource) as $attribute) {
