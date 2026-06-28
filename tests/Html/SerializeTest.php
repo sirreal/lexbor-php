@@ -3071,6 +3071,41 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, int}>
+     */
+    public static function html5libProblematicUnicodeFixtureProvider(): iterable
+    {
+        yield 'unicodeCharsProblematic.test low surrogate exact fixture row' => [
+            '\uDFFF',
+            0,
+            'Invalid Unicode character U+DFFF',
+            [['Character', '\uDFFF']],
+            1,
+        ];
+        yield 'unicodeCharsProblematic.test high surrogate exact fixture row' => [
+            '\uD800',
+            1,
+            'Invalid Unicode character U+D800',
+            [['Character', '\uD800']],
+            1,
+        ];
+        yield 'unicodeCharsProblematic.test low surrogate after character exact fixture row' => [
+            'a\uDFFF',
+            2,
+            'Invalid Unicode character U+DFFF with valid preceding character',
+            [['Character', 'a\uDFFF']],
+            2,
+        ];
+        yield 'unicodeCharsProblematic.test high surrogate before character exact fixture row' => [
+            '\uD800a',
+            3,
+            'Invalid Unicode character U+D800 with valid following character',
+            [['Character', '\uD800a']],
+            1,
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -9650,6 +9685,37 @@ final class SerializeTest extends TestCase
         self::assertSame($lastStartTag, $fixture['lastStartTag']);
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libProblematicUnicodeFixtureProvider')]
+    public function testHtml5libProblematicUnicodeFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        int $errorColumn,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/unicodeCharsProblematic.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertTrue($fixture['doubleEscaped']);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame([[
+            'code' => 'surrogate-in-input-stream',
+            'line' => 1,
+            'col' => $errorColumn,
+        ]], $fixture['errors']);
     }
 
     #[DataProvider('html5libRcdataStateProvider')]
