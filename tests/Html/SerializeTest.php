@@ -2504,6 +2504,30 @@ final class SerializeTest extends TestCase
             '<script><!--test---></script>',
             '<script><!--test---></script>',
         ];
+        yield 'domjs.test RCDATA FEFF pass-through' => [
+            "<textarea>\u{FEFF}foo\u{FEFF}bar</textarea>",
+            "<textarea>\u{FEFF}foo\u{FEFF}bar</textarea>",
+        ];
+        yield 'domjs.test RAWTEXT FEFF pass-through' => [
+            "<xmp>\u{FEFF}foo\u{FEFF}bar</xmp>",
+            "<xmp>\u{FEFF}foo\u{FEFF}bar</xmp>",
+        ];
+        yield 'domjs.test script data FEFF pass-through' => [
+            "<script>\u{FEFF}foo\u{FEFF}bar</script>",
+            "<script>\u{FEFF}foo\u{FEFF}bar</script>",
+        ];
+        yield 'domjs.test RCDATA non-BMP character reference' => [
+            '<textarea>&NotEqualTilde;</textarea>',
+            "<textarea>\u{2242}\u{0338}</textarea>",
+        ];
+        yield 'domjs.test RCDATA bad character reference remains literal' => [
+            '<textarea>&NotEqualTild;</textarea>',
+            '<textarea>&amp;NotEqualTild;</textarea>',
+        ];
+        yield 'domjs.test script data treats HTML tag as text' => [
+            '<script><b>hello world</b></script>',
+            '<script><b>hello world</b></script>',
+        ];
     }
 
     /**
@@ -2529,6 +2553,11 @@ final class SerializeTest extends TestCase
         yield 'char_ref.ton #16 multi-codepoint named reference' => ['&nLt;', '≪⃒'];
         yield 'char_ref.ton #17 multi-codepoint named reference before text' => ['&nLt;a', '≪⃒a'];
         yield 'char_ref.ton #18 text before multi-codepoint named reference' => ['b&nLt;a', 'b≪⃒a'];
+        yield 'domjs.test data state FEFF pass-through' => ["\u{FEFF}foo\u{FEFF}bar", "\u{FEFF}foo\u{FEFF}bar"];
+        yield 'domjs.test attribute non-BMP character reference' => [
+            '<p id="&NotEqualTilde;"></p>',
+            "<p id=\"\u{2242}\u{0338}\"></p>",
+        ];
         foreach ([
             'AElig without semicolon' => ['&AElig', 'Æ'],
             'AElig with semicolon' => ['&AElig;', 'Æ'],
