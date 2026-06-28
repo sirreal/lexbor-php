@@ -4535,6 +4535,21 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
+    public static function html5libPendingSpecChangesFixtureProvider(): iterable
+    {
+        yield 'pendingSpecChanges.test unfinished four-dash comment with space exact fixture row' => [
+            '<!---- >',
+            0,
+            '<!---- >',
+            [],
+            [['Comment', '-- >']],
+            [['code' => 'eof-in-comment', 'line' => 1, 'col' => 9]],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
     {
         foreach ([
@@ -14467,6 +14482,36 @@ final class SerializeTest extends TestCase
     ): void
     {
         $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libPendingSpecChangesFixtureProvider')]
+    public function testHtml5libPendingSpecChangesFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/pendingSpecChanges.test');
         self::assertIsString($contents);
 
         $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
