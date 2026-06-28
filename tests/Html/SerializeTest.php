@@ -3106,6 +3106,51 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libProblematicUnicodeCrNullFixtureProvider(): iterable
+    {
+        yield 'unicodeCharsProblematic.test CR followed by NUL exact fixture row' => [
+            "\r\0",
+            4,
+            'CR followed by U+0000',
+            [['Character', "\n\0"]],
+            [['code' => 'unexpected-null-character', 'line' => 2, 'col' => 1]],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, int, string, list<list<mixed>>}>
+     */
+    public static function html5libXmlViolationFixtureProvider(): iterable
+    {
+        yield 'xmlViolation.test non-XML character exact fixture row' => [
+            "a\u{FFFF}b",
+            0,
+            'Non-XML character',
+            [['Character', "a\u{FFFD}b"]],
+        ];
+        yield 'xmlViolation.test non-XML space exact fixture row' => [
+            "a\fb",
+            1,
+            'Non-XML space',
+            [['Character', 'a b']],
+        ];
+        yield 'xmlViolation.test double hyphen in comment exact fixture row' => [
+            '<!-- foo -- bar -->',
+            2,
+            'Double hyphen in comment',
+            [['Comment', ' foo - - bar ']],
+        ];
+        yield 'xmlViolation.test form feed between attributes exact fixture row' => [
+            "<a b=''\fc=''>",
+            3,
+            'FF between attributes',
+            [['StartTag', 'a', ['b' => '', 'c' => '']]],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest1DoctypeTagCommentFixtureProvider(): iterable
@@ -13992,6 +14037,58 @@ final class SerializeTest extends TestCase
             'line' => 1,
             'col' => $errorColumn,
         ]], $fixture['errors']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libProblematicUnicodeCrNullFixtureProvider')]
+    public function testHtml5libProblematicUnicodeCrNullFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/unicodeCharsProblematic.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<list<mixed>> $expectedOutput
+     */
+    #[DataProvider('html5libXmlViolationFixtureProvider')]
+    public function testHtml5libXmlViolationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/xmlViolation.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['xmlViolationTests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
     }
 
     /**
