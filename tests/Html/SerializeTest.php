@@ -3551,6 +3551,38 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3BeforeAttributeNameControlWhitespaceFixtureProvider(): iterable
+    {
+        foreach ([
+            1208 => ['<a \\u0000>', "<a \0>", [['StartTag', 'a', ["\u{FFFD}" => '']]], [['unexpected-null-character', 1, 4]]],
+            1209 => ['<a \\u0008>', "<a \x08>", [['StartTag', 'a', ["\x08" => '']]], [['control-character-in-input-stream', 1, 4]]],
+            1210 => ['<a \\u0009>', "<a \t>", [['StartTag', 'a', []]], []],
+            1211 => ['<a \\u000A>', "<a \n>", [['StartTag', 'a', []]], []],
+            1212 => ['<a \\u000B>', "<a \v>", [['StartTag', 'a', ["\v" => '']]], [['control-character-in-input-stream', 1, 4]]],
+            1213 => ['<a \\u000C>', "<a \f>", [['StartTag', 'a', []]], []],
+            1214 => ['<a \\u000D>', "<a \r>", [['StartTag', 'a', []]], []],
+            1215 => ['<a \\u001F>', "<a \x1F>", [['StartTag', 'a', ["\x1F" => '']]], [['control-character-in-input-stream', 1, 4]]],
+            1216 => ['<a  >', '<a  >', [['StartTag', 'a', []]], []],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description before-attribute-name control/whitespace exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -12696,6 +12728,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3TagNameControlWhitespaceFixtureProvider')]
     public function testHtml5libTest3TagNameControlWhitespaceFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3BeforeAttributeNameControlWhitespaceFixtureProvider')]
+    public function testHtml5libTest3BeforeAttributeNameControlWhitespaceFixtureRows(
         string $html,
         int $testIndex,
         string $description,
