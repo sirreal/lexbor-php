@@ -3792,6 +3792,43 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3AttributeNameContinuationPrintableFixtureProvider(): iterable
+    {
+        foreach ([
+            1288 => ['<a a!>', '<a a!>', [['StartTag', 'a', ['a!' => '']]], []],
+            1289 => ['<a a">', '<a a">', [['StartTag', 'a', ['a"' => '']]], [['unexpected-character-in-attribute-name', 1, 5]]],
+            1290 => ['<a a#>', '<a a#>', [['StartTag', 'a', ['a#' => '']]], []],
+            1291 => ['<a a&>', '<a a&>', [['StartTag', 'a', ['a&' => '']]], []],
+            1292 => ["<a a'>", "<a a'>", [['StartTag', 'a', ["a'" => '']]], [['unexpected-character-in-attribute-name', 1, 5]]],
+            1293 => ['<a a(>', '<a a(>', [['StartTag', 'a', ['a(' => '']]], []],
+            1294 => ['<a a->', '<a a->', [['StartTag', 'a', ['a-' => '']]], []],
+            1295 => ['<a a.>', '<a a.>', [['StartTag', 'a', ['a.' => '']]], []],
+            1296 => ['<a a/>', '<a a/>', [['StartTag', 'a', ['a' => ''], true]], []],
+            1297 => ['<a a0>', '<a a0>', [['StartTag', 'a', ['a0' => '']]], []],
+            1298 => ['<a a1>', '<a a1>', [['StartTag', 'a', ['a1' => '']]], []],
+            1299 => ['<a a9>', '<a a9>', [['StartTag', 'a', ['a9' => '']]], []],
+            1300 => ['<a a<>', '<a a<>', [['StartTag', 'a', ['a<' => '']]], [['unexpected-character-in-attribute-name', 1, 5]]],
+            1301 => ['<a a=>', '<a a=>', [['StartTag', 'a', ['a' => '']]], [['missing-attribute-value', 1, 6]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description attribute-name continuation printable exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -13147,6 +13184,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3AfterAttributeNameAsciiNonBmpFixtureProvider')]
     public function testHtml5libTest3AfterAttributeNameAsciiNonBmpFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3AttributeNameContinuationPrintableFixtureProvider')]
+    public function testHtml5libTest3AttributeNameContinuationPrintableFixtureRows(
         string $html,
         int $testIndex,
         string $description,
