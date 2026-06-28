@@ -3583,6 +3583,38 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3BeforeAttributeNamePrintableFixtureProvider(): iterable
+    {
+        foreach ([
+            1217 => ['<a !>', '<a !>', [['StartTag', 'a', ['!' => '']]], []],
+            1218 => ['<a ">', '<a ">', [['StartTag', 'a', ['"' => '']]], [['unexpected-character-in-attribute-name', 1, 4]]],
+            1219 => ['<a #>', '<a #>', [['StartTag', 'a', ['#' => '']]], []],
+            1220 => ['<a &>', '<a &>', [['StartTag', 'a', ['&' => '']]], []],
+            1221 => ["<a '>", "<a '>", [['StartTag', 'a', ["'" => '']]], [['unexpected-character-in-attribute-name', 1, 4]]],
+            1222 => ['<a (>', '<a (>', [['StartTag', 'a', ['(' => '']]], []],
+            1223 => ['<a ->', '<a ->', [['StartTag', 'a', ['-' => '']]], []],
+            1224 => ['<a .>', '<a .>', [['StartTag', 'a', ['.' => '']]], []],
+            1225 => ['<a />', '<a />', [['StartTag', 'a', [], true]], []],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description before-attribute-name printable exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -12758,6 +12790,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3BeforeAttributeNameControlWhitespaceFixtureProvider')]
     public function testHtml5libTest3BeforeAttributeNameControlWhitespaceFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3BeforeAttributeNamePrintableFixtureProvider')]
+    public function testHtml5libTest3BeforeAttributeNamePrintableFixtureRows(
         string $html,
         int $testIndex,
         string $description,
