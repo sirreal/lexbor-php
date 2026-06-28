@@ -4000,6 +4000,15 @@ final class SerializeTest extends TestCase
             277 => ['<!@', '<!@', '@'],
             278 => ['<!A', '<!A', 'A'],
             279 => ['<!B', '<!B', 'B'],
+            1104 => ['<!Y', '<!Y', 'Y'],
+            1105 => ['<!Z', '<!Z', 'Z'],
+            1106 => ['<!`', '<!`', '`'],
+            1107 => ['<!a', '<!a', 'a'],
+            1108 => ['<!b', '<!b', 'b'],
+            1109 => ['<!y', '<!y', 'y'],
+            1110 => ['<!z', '<!z', 'z'],
+            1111 => ['<!{', '<!{', '{'],
+            1112 => ['<!\\uDBC0\\uDC00', "<!\u{100000}", "\u{100000}"],
         ] as $testIndex => [$description, $html, $comment]) {
             yield "test3.test $description bogus-comment continuation exact fixture row" => [
                 $html,
@@ -12643,6 +12652,10 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors']);
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame('<!--' . $expectedOutput[0][1] . '-->', Serializer::serializeDeep($document->bodyElement()));
     }
 
     /**
