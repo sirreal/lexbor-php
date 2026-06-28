@@ -2528,6 +2528,22 @@ final class SerializeTest extends TestCase
             '<script><b>hello world</b></script>',
             '<script><b>hello world</b></script>',
         ];
+        yield 'domjs.test RAWTEXT xmp uppercase end tag closes' => [
+            '<xmp></XMP>',
+            '<xmp></xmp>',
+        ];
+        yield 'domjs.test RAWTEXT bad end tag not matching stays text' => [
+            '<xmp></xm></xmp>',
+            '<xmp></xm></xmp>',
+        ];
+        yield 'domjs.test RAWTEXT bad end tag without close bracket stays text' => [
+            '<xmp></xm </xmp>',
+            '<xmp></xm </xmp>',
+        ];
+        yield 'domjs.test RAWTEXT bad end tag trailing solidus stays text' => [
+            '<xmp></xm/</xmp>',
+            '<xmp></xm/</xmp>',
+        ];
     }
 
     /**
