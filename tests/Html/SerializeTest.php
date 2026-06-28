@@ -3106,6 +3106,50 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest1DoctypeTagCommentFixtureProvider(): iterable
+    {
+        foreach ([
+            0 => ['Correct Doctype lowercase', '<!DOCTYPE html>', [['DOCTYPE', 'html', null, null, true]], []],
+            1 => ['Correct Doctype uppercase', '<!DOCTYPE HTML>', [['DOCTYPE', 'html', null, null, true]], []],
+            2 => ['Correct Doctype mixed case', '<!DOCTYPE HtMl>', [['DOCTYPE', 'html', null, null, true]], []],
+            3 => ['Correct Doctype case with EOF', '<!DOCTYPE HtMl', [['DOCTYPE', 'html', null, null, false]], [['eof-in-doctype', 1, 15]]],
+            4 => ['Truncated doctype start', '<!DOC>', [['Comment', 'DOC']], [['incorrectly-opened-comment', 1, 3]]],
+            5 => ['Doctype in error', '<!DOCTYPE foo>', [['DOCTYPE', 'foo', null, null, true]], []],
+            6 => ['Single Start Tag', '<h>', [['StartTag', 'h', []]], []],
+            7 => ['Empty end tag', '</>', [], [['missing-end-tag-name', 1, 3]]],
+            8 => ['Empty start tag', '<>', [['Character', '<>']], [['invalid-first-character-of-tag-name', 1, 2]]],
+            9 => ["Start Tag w/attribute", "<h a='b'>", [['StartTag', 'h', ['a' => 'b']]], []],
+            10 => ['Start Tag w/attribute no quotes', '<h a=b>', [['StartTag', 'h', ['a' => 'b']]], []],
+            11 => ['Start/End Tag', '<h></h>', [['StartTag', 'h', []], ['EndTag', 'h']], []],
+            12 => ['Two unclosed start tags', '<p>One<p>Two', [['StartTag', 'p', []], ['Character', 'One'], ['StartTag', 'p', []], ['Character', 'Two']], []],
+            13 => ["End Tag w/attribute", "<h></h a='b'>", [['StartTag', 'h', []], ['EndTag', 'h']], [['end-tag-with-attributes', 1, 13]]],
+            14 => ["Multiple atts", "<h a='b' c='d'>", [['StartTag', 'h', ['a' => 'b', 'c' => 'd']]], []],
+            15 => ["Multiple atts no space", "<h a='b'c='d'>", [['StartTag', 'h', ['a' => 'b', 'c' => 'd']]], [['missing-whitespace-between-attributes', 1, 9]]],
+            16 => ["Repeated attr", "<h a='b' a='d'>", [['StartTag', 'h', ['a' => 'b']]], [['duplicate-attribute', 1, 11]]],
+            17 => ['Simple comment', '<!--comment-->', [['Comment', 'comment']], []],
+            18 => ['Comment, Central dash no space', '<!----->', [['Comment', '-']], []],
+            19 => ['Comment, two central dashes', '<!-- --comment -->', [['Comment', ' --comment ']], []],
+            20 => ['Comment, central less-than bang', '<!--<!-->', [['Comment', '<!']], []],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test1.test $testIndex $description doctype/tag/comment exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -13537,6 +13581,36 @@ final class SerializeTest extends TestCase
             'line' => 1,
             'col' => $errorColumn,
         ]], $fixture['errors']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest1DoctypeTagCommentFixtureProvider')]
+    public function testHtml5libTest1DoctypeTagCommentFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test1.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
     }
 
     /**
