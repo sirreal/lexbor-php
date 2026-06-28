@@ -178,10 +178,30 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html><html><head></head><body></body></html>',
             false,
         ];
+        yield 'html5lib test1 uppercase html doctype' => [
+            '<!DOCTYPE HTML>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test1 mixed-case html doctype' => [
+            '<!DOCTYPE HtMl>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test1 mixed-case html doctype at EOF' => [
+            '<!DOCTYPE HtMl',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test1 non-html doctype forces quirks' => [
+            '<!DOCTYPE foo>',
+            '<!DOCTYPE foo><html><head></head><body></body></html>',
+            true,
+        ];
         yield 'domjs.test doctype EOF after name whitespace' => [
             '<!DOCTYPE html ',
             '<!DOCTYPE html><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'doctype.ton #5 public identifier with double quotes' => [
             '<!DOCTYPE html PUBLIC "test public">',
@@ -7374,6 +7394,11 @@ final class SerializeTest extends TestCase
         yield 'char_ref.ton #21 failed short named reference ac remains literal' => ['&ac', '&amp;ac'];
         yield 'char_ref.ton #22 failed short named reference a remains literal' => ['&a', '&amp;a'];
         yield 'char_ref.ton #23 bare ampersand remains literal' => ['&', '&amp;'];
+        yield 'html5lib test1 ampersand ampersand EOF' => ['&&', '&amp;&amp;'];
+        yield 'html5lib test1 ampersand space EOF' => ['& ', '&amp; '];
+        yield 'html5lib test1 unfinished entity' => ['&f', '&amp;f'];
+        yield 'html5lib test1 ampersand number sign' => ['&#', '&amp;#'];
+        yield 'html5lib test1 unfinished numeric entity' => ['&#x', '&amp;#x'];
         yield 'html5lib entities undefined double-quoted attribute entity remains literal' => [
             '<h a="&noti;">',
             '<h a="&amp;noti;"></h>',

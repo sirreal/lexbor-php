@@ -1366,6 +1366,17 @@ REGEX;
                 ];
             }
 
+            $eofNamePattern = '~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"\']+)[ \t\n\f\r]*$~i';
+            if (preg_match($eofNamePattern, $html, $eofMatch, PREG_OFFSET_CAPTURE) === 1) {
+                return [
+                    'name' => self::normalizeDoctypeToken($eofMatch['name'][0]),
+                    'publicId' => null,
+                    'systemId' => null,
+                    'offset' => strlen($eofMatch[0][0]),
+                    'forceQuirks' => true,
+                ];
+            }
+
             $noWhitespaceInvalidAfterNamePattern = '~^[ \t\n\f\r]*<!doctype(?<name>[^ \t\n\f\r>"\']+)[^>]*(?:>|$)~i';
             if (preg_match($noWhitespaceInvalidAfterNamePattern, $html, $noWhitespaceInvalidAfterNameMatch, PREG_OFFSET_CAPTURE) === 1) {
                 return [
@@ -1386,17 +1397,7 @@ REGEX;
                 ];
             }
 
-            $eofNamePattern = '~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"\']+)[ \t\n\f\r]*$~i';
-            if (preg_match($eofNamePattern, $html, $eofMatch, PREG_OFFSET_CAPTURE) !== 1) {
-                return null;
-            }
-
-            return [
-                'name' => self::normalizeDoctypeToken($eofMatch['name'][0]),
-                'publicId' => null,
-                'systemId' => null,
-                'offset' => strlen($eofMatch[0][0]),
-            ];
+            return null;
         }
 
         $publicId = $match['publicIdDouble'][0] ?? $match['publicIdSingle'][0] ?? null;
