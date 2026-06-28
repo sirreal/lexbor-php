@@ -271,7 +271,7 @@ final class SerializeTest extends TestCase
         ];
         yield 'html5lib test2 doctype without name' => [
             '<!DOCTYPE>',
-            '<html><head></head><body></body></html>',
+            '<!DOCTYPE ><html><head></head><body></body></html>',
             true,
         ];
         yield 'html5lib test2 doctype without space before html name' => [
@@ -4008,6 +4008,50 @@ final class SerializeTest extends TestCase
                 [],
                 [['Comment', $comment]],
                 [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeKeywordEofControlFixtureProvider(): iterable
+    {
+        foreach ([
+            280 => ['<!DOCTYPE', '<!DOCTYPE', [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 1, 10]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            281 => ['<!DOCTYPE\\u0000', "<!DOCTYPE\0", [['DOCTYPE', "\u{FFFD}", null, null, false]], [['missing-whitespace-before-doctype-name', 1, 10], ['unexpected-null-character', 1, 10], ['eof-in-doctype', 1, 11]], "<!DOCTYPE \u{FFFD}><html><head></head><body></body></html>"],
+            282 => ['<!DOCTYPE\\u0008', "<!DOCTYPE\x08", [['DOCTYPE', "\x08", null, null, false]], [['control-character-in-input-stream', 1, 10], ['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]], "<!DOCTYPE \x08><html><head></head><body></body></html>"],
+            283 => ['<!DOCTYPE\\u0009', "<!DOCTYPE\t", [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 1, 11]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            284 => ['<!DOCTYPE\\u000A', "<!DOCTYPE\n", [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 2, 1]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            285 => ['<!DOCTYPE\\u000B', "<!DOCTYPE\v", [['DOCTYPE', "\v", null, null, false]], [['control-character-in-input-stream', 1, 10], ['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]], "<!DOCTYPE \v><html><head></head><body></body></html>"],
+            286 => ['<!DOCTYPE\\u000C', "<!DOCTYPE\f", [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 1, 11]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            287 => ['<!DOCTYPE\\u000D', "<!DOCTYPE\r", [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 2, 1]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            288 => ['<!DOCTYPE\\u001F', "<!DOCTYPE\x1F", [['DOCTYPE', "\x1F", null, null, false]], [['control-character-in-input-stream', 1, 10], ['missing-whitespace-before-doctype-name', 1, 10], ['eof-in-doctype', 1, 11]], "<!DOCTYPE \x1F><html><head></head><body></body></html>"],
+            289 => ['<!DOCTYPE ', '<!DOCTYPE ', [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 1, 11]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            290 => ['<!DOCTYPE \\u0000', "<!DOCTYPE \0", [['DOCTYPE', "\u{FFFD}", null, null, false]], [['unexpected-null-character', 1, 11], ['eof-in-doctype', 1, 12]], "<!DOCTYPE \u{FFFD}><html><head></head><body></body></html>"],
+            291 => ['<!DOCTYPE \\u0008', "<!DOCTYPE \x08", [['DOCTYPE', "\x08", null, null, false]], [['control-character-in-input-stream', 1, 11], ['eof-in-doctype', 1, 12]], "<!DOCTYPE \x08><html><head></head><body></body></html>"],
+            292 => ['<!DOCTYPE \\u0009', "<!DOCTYPE \t", [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 1, 12]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            293 => ['<!DOCTYPE \\u000A', "<!DOCTYPE \n", [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 2, 1]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            294 => ['<!DOCTYPE \\u000B', "<!DOCTYPE \v", [['DOCTYPE', "\v", null, null, false]], [['control-character-in-input-stream', 1, 11], ['eof-in-doctype', 1, 12]], "<!DOCTYPE \v><html><head></head><body></body></html>"],
+            295 => ['<!DOCTYPE \\u000C', "<!DOCTYPE \f", [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 1, 12]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            296 => ['<!DOCTYPE \\u000D', "<!DOCTYPE \r", [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 2, 1]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+            297 => ['<!DOCTYPE \\u001F', "<!DOCTYPE \x1F", [['DOCTYPE', "\x1F", null, null, false]], [['control-character-in-input-stream', 1, 11], ['eof-in-doctype', 1, 12]], "<!DOCTYPE \x1F><html><head></head><body></body></html>"],
+            298 => ['<!DOCTYPE  ', '<!DOCTYPE  ', [['DOCTYPE', null, null, null, false]], [['eof-in-doctype', 1, 12]], '<!DOCTYPE ><html><head></head><body></body></html>'],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors, $expectedSerialization]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description doctype keyword EOF/control exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+                $expectedSerialization,
+                true,
             ];
         }
     }
@@ -10980,6 +11024,43 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeKeywordEofControlFixtureProvider')]
+    public function testHtml5libTest3DoctypeKeywordEofControlFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
     }
 
     #[DataProvider('html5libRcdataStateProvider')]

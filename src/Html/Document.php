@@ -815,6 +815,17 @@ final class Document extends Node
      */
     private function parseLeadingDoctype(string $html): ?array
     {
+        $missingNamePattern = '~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]*(?:>|$)~i';
+        if (preg_match($missingNamePattern, $html, $missingNameMatch, PREG_OFFSET_CAPTURE) === 1) {
+            return [
+                'name' => '',
+                'publicId' => null,
+                'systemId' => null,
+                'offset' => strlen($missingNameMatch[0][0]),
+                'forceQuirks' => true,
+            ];
+        }
+
         $verticalTabAfterDoctypeKeywordPattern = <<<'REGEX'
 ~^[ \t\n\f\r]*<!doctype[ \t\n\f\r]+(?<name>[^ \t\n\f\r>"']+)[ \t\n\f\r]+(?:PUBLIC|SYSTEM)[ \t\n\f\r]*\x0B[^>]*(?:>|$)~is
 REGEX;
