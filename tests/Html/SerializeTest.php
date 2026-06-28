@@ -4103,6 +4103,49 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeNameContinuationEofFixtureProvider(): iterable
+    {
+        foreach ([
+            320 => ['<!DOCTYPE a\\u0000', "<!DOCTYPE a\0", "a\u{FFFD}", [['unexpected-null-character', 1, 12], ['eof-in-doctype', 1, 13]]],
+            321 => ['<!DOCTYPE a\\u0008', "<!DOCTYPE a\x08", "a\x08", [['control-character-in-input-stream', 1, 12], ['eof-in-doctype', 1, 13]]],
+            322 => ['<!DOCTYPE a\\u0009', "<!DOCTYPE a\t", 'a', [['eof-in-doctype', 1, 13]]],
+            323 => ['<!DOCTYPE a\\u000A', "<!DOCTYPE a\n", 'a', [['eof-in-doctype', 2, 1]]],
+            324 => ['<!DOCTYPE a\\u000B', "<!DOCTYPE a\v", "a\v", [['control-character-in-input-stream', 1, 12], ['eof-in-doctype', 1, 13]]],
+            325 => ['<!DOCTYPE a\\u000C', "<!DOCTYPE a\f", 'a', [['eof-in-doctype', 1, 13]]],
+            326 => ['<!DOCTYPE a\\u000D', "<!DOCTYPE a\r", 'a', [['eof-in-doctype', 2, 1]]],
+            327 => ['<!DOCTYPE a\\u001F', "<!DOCTYPE a\x1F", "a\x1F", [['control-character-in-input-stream', 1, 12], ['eof-in-doctype', 1, 13]]],
+            328 => ['<!DOCTYPE a ', '<!DOCTYPE a ', 'a', [['eof-in-doctype', 1, 13]]],
+            329 => ['<!DOCTYPE a \\u0000', "<!DOCTYPE a \0", 'a', [['invalid-character-sequence-after-doctype-name', 1, 13], ['unexpected-null-character', 1, 13]]],
+            330 => ['<!DOCTYPE a \\u0008', "<!DOCTYPE a \x08", 'a', [['control-character-in-input-stream', 1, 13], ['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            331 => ['<!DOCTYPE a \\u0009', "<!DOCTYPE a \t", 'a', [['eof-in-doctype', 1, 14]]],
+            332 => ['<!DOCTYPE a \\u000A', "<!DOCTYPE a \n", 'a', [['eof-in-doctype', 2, 1]]],
+            333 => ['<!DOCTYPE a \\u000B', "<!DOCTYPE a \v", 'a', [['control-character-in-input-stream', 1, 13], ['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            334 => ['<!DOCTYPE a \\u000C', "<!DOCTYPE a \f", 'a', [['eof-in-doctype', 1, 14]]],
+            335 => ['<!DOCTYPE a \\u000D', "<!DOCTYPE a \r", 'a', [['eof-in-doctype', 2, 1]]],
+            336 => ['<!DOCTYPE a \\u001F', "<!DOCTYPE a \x1F", 'a', [['control-character-in-input-stream', 1, 13], ['invalid-character-sequence-after-doctype-name', 1, 13]]],
+            337 => ['<!DOCTYPE a  ', '<!DOCTYPE a  ', 'a', [['eof-in-doctype', 1, 14]]],
+        ] as $testIndex => [$description, $html, $name, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description doctype-name EOF/control exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', $name, null, null, false]],
+                $expectedErrors,
+                '<!DOCTYPE ' . $name . '><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -11116,6 +11159,43 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypePrintableNameEofFixtureProvider')]
     public function testHtml5libTest3DoctypePrintableNameEofFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeNameContinuationEofFixtureProvider')]
+    public function testHtml5libTest3DoctypeNameContinuationEofFixtureRows(
         string $html,
         int $testIndex,
         string $description,
