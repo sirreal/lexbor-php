@@ -3150,6 +3150,41 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest1CommentContinuationFixtureProvider(): iterable
+    {
+        foreach ([
+            21 => ['Unfinished comment', '<!--comment', [['Comment', 'comment']], [['eof-in-comment', 1, 12]]],
+            22 => ['Unfinished comment after start of nested comment', '<!-- <!--', [['Comment', ' <!']], [['eof-in-comment', 1, 10]]],
+            23 => ['Start of a comment', '<!-', [['Comment', '-']], [['incorrectly-opened-comment', 1, 3]]],
+            24 => ['Short comment', '<!-->', [['Comment', '']], [['abrupt-closing-of-empty-comment', 1, 5]]],
+            25 => ['Short comment two', '<!--->', [['Comment', '']], [['abrupt-closing-of-empty-comment', 1, 6]]],
+            26 => ['Short comment three', '<!---->', [['Comment', '']], []],
+            27 => ['< in comment', '<!-- <test-->', [['Comment', ' <test']], []],
+            28 => ['<< in comment', '<!--<<-->', [['Comment', '<<']], []],
+            29 => ['<! in comment', '<!-- <!test-->', [['Comment', ' <!test']], []],
+            30 => ['<!- in comment', '<!-- <!-test-->', [['Comment', ' <!-test']], []],
+            31 => ['Nested comment', '<!-- <!--test-->', [['Comment', ' <!--test']], [['nested-comment', 1, 10]]],
+            32 => ['Nested comment with extra <', '<!-- <<!--test-->', [['Comment', ' <<!--test']], [['nested-comment', 1, 11]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test1.test $testIndex $description comment continuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -13590,6 +13625,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest1DoctypeTagCommentFixtureProvider')]
     public function testHtml5libTest1DoctypeTagCommentFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test1.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest1CommentContinuationFixtureProvider')]
+    public function testHtml5libTest1CommentContinuationFixtureRows(
         string $html,
         int $testIndex,
         string $description,
