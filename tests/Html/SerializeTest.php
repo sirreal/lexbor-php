@@ -3511,6 +3511,56 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest4FinalFixtureProvider(): iterable
+    {
+        foreach ([
+            53 => ['Doctype public case-sensitivity (1)', '<!DoCtYpE HtMl PuBlIc "AbC" "XyZ">', [['DOCTYPE', 'html', 'AbC', 'XyZ', true]], []],
+            54 => ['Doctype public case-sensitivity (2)', '<!dOcTyPe hTmL pUbLiC "aBc" "xYz">', [['DOCTYPE', 'html', 'aBc', 'xYz', true]], []],
+            55 => ['Doctype system case-sensitivity (1)', '<!DoCtYpE HtMl SyStEm "XyZ">', [['DOCTYPE', 'html', null, 'XyZ', true]], []],
+            56 => ['Doctype system case-sensitivity (2)', '<!dOcTyPe hTmL sYsTeM "xYz">', [['DOCTYPE', 'html', null, 'xYz', true]], []],
+            57 => ['U+0000 in lookahead region after non-matching character', "<!doc>\0", [['Comment', 'doc'], ['Character', "\0"]], [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3], ['code' => 'unexpected-null-character', 'line' => 1, 'col' => 7]]],
+            58 => ['U+0000 in lookahead region', "<!doc\0", [['Comment', "doc\u{FFFD}"]], [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3], ['code' => 'unexpected-null-character', 'line' => 1, 'col' => 6]]],
+            59 => ['U+0080 in lookahead region', "<!doc\u{0080}", [['Comment', "doc\u{0080}"]], [['code' => 'control-character-in-input-stream', 'line' => 1, 'col' => 6], ['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]]],
+            60 => ['U+FDD1 in lookahead region', "<!doc\u{FDD1}", [['Comment', "doc\u{FDD1}"]], [['code' => 'noncharacter-in-input-stream', 'line' => 1, 'col' => 6], ['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]]],
+            61 => ['U+1FFFF in lookahead region', "<!doc\u{1FFFF}", [['Comment', "doc\u{1FFFF}"]], [['code' => 'noncharacter-in-input-stream', 'line' => 1, 'col' => 6], ['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]]],
+            62 => ['CR followed by non-LF', "\r?", [['Character', "\n?"]], []],
+            63 => ['CR at EOF', "\r", [['Character', "\n"]], []],
+            64 => ['LF at EOF', "\n", [['Character', "\n"]], []],
+            65 => ['CR LF', "\r\n", [['Character', "\n"]], []],
+            66 => ['CR CR', "\r\r", [['Character', "\n\n"]], []],
+            67 => ['LF LF', "\n\n", [['Character', "\n\n"]], []],
+            68 => ['LF CR', "\n\r", [['Character', "\n\n"]], []],
+            69 => ['text CR CR CR text', "text\r\r\rtext", [['Character', "text\n\n\ntext"]], []],
+            70 => ['Doctype publik', '<!DOCTYPE html PUBLIK "AbC" "XyZ">', [['DOCTYPE', 'html', null, null, false]], [['code' => 'invalid-character-sequence-after-doctype-name', 'line' => 1, 'col' => 16]]],
+            71 => ['Doctype publi', '<!DOCTYPE html PUBLI', [['DOCTYPE', 'html', null, null, false]], [['code' => 'invalid-character-sequence-after-doctype-name', 'line' => 1, 'col' => 16]]],
+            72 => ['Doctype sistem', '<!DOCTYPE html SISTEM "AbC">', [['DOCTYPE', 'html', null, null, false]], [['code' => 'invalid-character-sequence-after-doctype-name', 'line' => 1, 'col' => 16]]],
+            73 => ['Doctype sys', '<!DOCTYPE html SYS', [['DOCTYPE', 'html', null, null, false]], [['code' => 'invalid-character-sequence-after-doctype-name', 'line' => 1, 'col' => 16]]],
+            74 => ['Doctype html x>text', '<!DOCTYPE html x>text', [['DOCTYPE', 'html', null, null, false], ['Character', 'text']], [['code' => 'invalid-character-sequence-after-doctype-name', 'line' => 1, 'col' => 16]]],
+            75 => ['Grave accent in unquoted attribute', '<a a=aa`>', [['StartTag', 'a', ['a' => 'aa`']]], [['code' => 'unexpected-character-in-unquoted-attribute-value', 'line' => 1, 'col' => 8]]],
+            76 => ['EOF in tag name state ', '<a', [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 3]]],
+            77 => ['EOF in before attribute name state', '<a ', [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 4]]],
+            78 => ['EOF in attribute name state', '<a a', [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 5]]],
+            79 => ['EOF in after attribute name state', '<a a ', [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 6]]],
+            80 => ['EOF in before attribute value state', '<a a =', [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 7]]],
+            81 => ['EOF in attribute value (double quoted) state', '<a a ="a', [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 9]]],
+            82 => ['EOF in attribute value (single quoted) state', "<a a ='a", [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 9]]],
+            83 => ['EOF in attribute value (unquoted) state', '<a a =a', [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 8]]],
+            84 => ['EOF in after attribute value state', "<a a ='a'", [], [['code' => 'eof-in-tag', 'line' => 1, 'col' => 10]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test4.test $testIndex $description final exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -14281,6 +14331,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest4TagCaseSlashFixtureProvider')]
     public function testHtml5libTest4TagCaseSlashFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test4.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest4FinalFixtureProvider')]
+    public function testHtml5libTest4FinalFixtureRows(
         string $html,
         int $testIndex,
         string $description,
