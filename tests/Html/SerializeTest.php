@@ -4175,6 +4175,48 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3UnquotedAttributeValueContinuationControlPunctuationFixtureProvider(): iterable
+    {
+        foreach ([
+            1435 => ['<a a=a\\u0000>', "<a a=a\0>", "a\u{FFFD}", [['unexpected-null-character', 1, 7]]],
+            1436 => ['<a a=a\\u0008>', "<a a=a\x08>", "a\x08", [['control-character-in-input-stream', 1, 7]]],
+            1437 => ['<a a=a\\u0009>', "<a a=a\t>", 'a', []],
+            1438 => ['<a a=a\\u000A>', "<a a=a\n>", 'a', []],
+            1439 => ['<a a=a\\u000B>', "<a a=a\v>", "a\v", [['control-character-in-input-stream', 1, 7]]],
+            1440 => ['<a a=a\\u000C>', "<a a=a\f>", 'a', []],
+            1441 => ['<a a=a\\u000D>', "<a a=a\r>", 'a', []],
+            1442 => ['<a a=a\\u001F>', "<a a=a\x1F>", "a\x1F", [['control-character-in-input-stream', 1, 7]]],
+            1443 => ['<a a=a >', '<a a=a >', 'a', []],
+            1444 => ['<a a=a!>', '<a a=a!>', 'a!', []],
+            1445 => ['<a a=a">', '<a a=a">', 'a"', [['unexpected-character-in-unquoted-attribute-value', 1, 7]]],
+            1446 => ['<a a=a#>', '<a a=a#>', 'a#', []],
+            1447 => ['<a a=a%>', '<a a=a%>', 'a%', []],
+            1448 => ['<a a=a&>', '<a a=a&>', 'a&', []],
+            1449 => ["<a a=a'>", "<a a=a'>", "a'", [['unexpected-character-in-unquoted-attribute-value', 1, 7]]],
+            1450 => ['<a a=a(>', '<a a=a(>', 'a(', []],
+            1451 => ['<a a=a->', '<a a=a->', 'a-', []],
+            1452 => ['<a a=a/>', '<a a=a/>', 'a/', []],
+        ] as $testIndex => [$description, $html, $value, $errors]) {
+            $expectedOutput = [['StartTag', 'a', ['a' => $value]]];
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description unquoted attribute-value continuation control/punctuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -13830,6 +13872,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3UnquotedAttributeValueAsciiFixtureProvider')]
     public function testHtml5libTest3UnquotedAttributeValueAsciiFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3UnquotedAttributeValueContinuationControlPunctuationFixtureProvider')]
+    public function testHtml5libTest3UnquotedAttributeValueContinuationControlPunctuationFixtureRows(
         string $html,
         int $testIndex,
         string $description,
