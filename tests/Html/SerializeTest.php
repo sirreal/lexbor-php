@@ -3984,6 +3984,35 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3BogusCommentContinuationFixtureProvider(): iterable
+    {
+        foreach ([
+            269 => ['<!/', '<!/', '/'],
+            270 => ['<!0', '<!0', '0'],
+            271 => ['<!1', '<!1', '1'],
+            272 => ['<!9', '<!9', '9'],
+            273 => ['<!<', '<!<', '<'],
+            274 => ['<!=', '<!=', '='],
+            275 => ['<!>', '<!>', ''],
+            276 => ['<!?', '<!?', '?'],
+            277 => ['<!@', '<!@', '@'],
+            278 => ['<!A', '<!A', 'A'],
+            279 => ['<!B', '<!B', 'B'],
+        ] as $testIndex => [$description, $html, $comment]) {
+            yield "test3.test $description bogus-comment continuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Comment', $comment]],
+                [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -10900,6 +10929,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3CommentDataNoSpaceFixtureProvider')]
     public function testHtml5libTest3CommentDataNoSpaceFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3BogusCommentContinuationFixtureProvider')]
+    public function testHtml5libTest3BogusCommentContinuationFixtureRows(
         string $html,
         int $testIndex,
         string $description,
