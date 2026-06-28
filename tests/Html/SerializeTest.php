@@ -5000,6 +5000,55 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesOverBracePrecedesTildeExactFixtureProvider(): iterable
+    {
+        foreach ([
+            768 => ['Bad named entity: OverBrace without a semi-colon', '&OverBrace', '&OverBrace'],
+            769 => ['Named entity: OverBrace; with a semi-colon', '&OverBrace;', "\u{23DE}"],
+            770 => ['Bad named entity: OverBracket without a semi-colon', '&OverBracket', '&OverBracket'],
+            771 => ['Named entity: OverBracket; with a semi-colon', '&OverBracket;', "\u{23B4}"],
+            772 => ['Bad named entity: OverParenthesis without a semi-colon', '&OverParenthesis', '&OverParenthesis'],
+            773 => ['Named entity: OverParenthesis; with a semi-colon', '&OverParenthesis;', "\u{23DC}"],
+            774 => ['Bad named entity: PartialD without a semi-colon', '&PartialD', '&PartialD'],
+            775 => ['Named entity: PartialD; with a semi-colon', '&PartialD;', "\u{2202}"],
+            776 => ['Bad named entity: Pcy without a semi-colon', '&Pcy', '&Pcy'],
+            777 => ['Named entity: Pcy; with a semi-colon', '&Pcy;', "\u{041F}"],
+            778 => ['Bad named entity: Pfr without a semi-colon', '&Pfr', '&Pfr'],
+            779 => ['Named entity: Pfr; with a semi-colon', '&Pfr;', "\u{1D513}"],
+            780 => ['Bad named entity: Phi without a semi-colon', '&Phi', '&Phi'],
+            781 => ['Named entity: Phi; with a semi-colon', '&Phi;', "\u{03A6}"],
+            782 => ['Bad named entity: Pi without a semi-colon', '&Pi', '&Pi'],
+            783 => ['Named entity: Pi; with a semi-colon', '&Pi;', "\u{03A0}"],
+            784 => ['Bad named entity: PlusMinus without a semi-colon', '&PlusMinus', '&PlusMinus'],
+            785 => ['Named entity: PlusMinus; with a semi-colon', '&PlusMinus;', "\u{00B1}"],
+            786 => ['Bad named entity: Poincareplane without a semi-colon', '&Poincareplane', '&Poincareplane'],
+            787 => ['Named entity: Poincareplane; with a semi-colon', '&Poincareplane;', "\u{210C}"],
+            788 => ['Bad named entity: Popf without a semi-colon', '&Popf', '&Popf'],
+            789 => ['Named entity: Popf; with a semi-colon', '&Popf;', "\u{2119}"],
+            790 => ['Bad named entity: Pr without a semi-colon', '&Pr', '&Pr'],
+            791 => ['Named entity: Pr; with a semi-colon', '&Pr;', "\u{2ABB}"],
+            792 => ['Bad named entity: Precedes without a semi-colon', '&Precedes', '&Precedes'],
+            793 => ['Named entity: Precedes; with a semi-colon', '&Precedes;', "\u{227A}"],
+            794 => ['Bad named entity: PrecedesEqual without a semi-colon', '&PrecedesEqual', '&PrecedesEqual'],
+            795 => ['Named entity: PrecedesEqual; with a semi-colon', '&PrecedesEqual;', "\u{2AAF}"],
+            796 => ['Bad named entity: PrecedesSlantEqual without a semi-colon', '&PrecedesSlantEqual', '&PrecedesSlantEqual'],
+            797 => ['Named entity: PrecedesSlantEqual; with a semi-colon', '&PrecedesSlantEqual;', "\u{227C}"],
+            798 => ['Bad named entity: PrecedesTilde without a semi-colon', '&PrecedesTilde', '&PrecedesTilde'],
+            799 => ['Named entity: PrecedesTilde; with a semi-colon', '&PrecedesTilde;', "\u{227E}"],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                [],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -17059,6 +17108,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesOdblacOverBarExactFixtureProvider')]
     public function testHtml5libNamedEntitiesOdblacOverBarExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesOverBracePrecedesTildeExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesOverBracePrecedesTildeExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
