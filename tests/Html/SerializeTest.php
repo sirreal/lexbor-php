@@ -4007,6 +4007,45 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3AfterSingleQuotedAttributeValueControlPunctuationFixtureProvider(): iterable
+    {
+        foreach ([
+            1361 => ["<a a=''\\u0000>", "<a a=''\0>", [['StartTag', 'a', ['a' => '', "\u{FFFD}" => '']]], [['missing-whitespace-between-attributes', 1, 8], ['unexpected-null-character', 1, 8]]],
+            1362 => ["<a a=''\\u0008>", "<a a=''\x08>", [['StartTag', 'a', ['a' => '', "\x08" => '']]], [['control-character-in-input-stream', 1, 8], ['missing-whitespace-between-attributes', 1, 8]]],
+            1363 => ["<a a=''\\u0009>", "<a a=''\t>", [['StartTag', 'a', ['a' => '']]], []],
+            1364 => ["<a a=''\\u000A>", "<a a=''\n>", [['StartTag', 'a', ['a' => '']]], []],
+            1365 => ["<a a=''\\u000B>", "<a a=''\v>", [['StartTag', 'a', ['a' => '', "\v" => '']]], [['control-character-in-input-stream', 1, 8], ['missing-whitespace-between-attributes', 1, 8]]],
+            1366 => ["<a a=''\\u000C>", "<a a=''\f>", [['StartTag', 'a', ['a' => '']]], []],
+            1367 => ["<a a=''\\u000D>", "<a a=''\r>", [['StartTag', 'a', ['a' => '']]], []],
+            1368 => ["<a a=''\\u001F>", "<a a=''\x1F>", [['StartTag', 'a', ['a' => '', "\x1F" => '']]], [['control-character-in-input-stream', 1, 8], ['missing-whitespace-between-attributes', 1, 8]]],
+            1369 => ["<a a='' >", "<a a='' >", [['StartTag', 'a', ['a' => '']]], []],
+            1370 => ["<a a=''!>", "<a a=''!>", [['StartTag', 'a', ['a' => '', '!' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1371 => ["<a a=''\">", "<a a=''\">", [['StartTag', 'a', ['a' => '', '"' => '']]], [['missing-whitespace-between-attributes', 1, 8], ['unexpected-character-in-attribute-name', 1, 8]]],
+            1372 => ["<a a=''&>", "<a a=''&>", [['StartTag', 'a', ['a' => '', '&' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1373 => ["<a a='''>", "<a a='''>", [['StartTag', 'a', ['a' => '', "'" => '']]], [['missing-whitespace-between-attributes', 1, 8], ['unexpected-character-in-attribute-name', 1, 8]]],
+            1374 => ["<a a=''->", "<a a=''->", [['StartTag', 'a', ['a' => '', '-' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1375 => ["<a a=''.>", "<a a=''.>", [['StartTag', 'a', ['a' => '', '.' => '']]], [['missing-whitespace-between-attributes', 1, 8]]],
+            1376 => ["<a a=''/>", "<a a=''/>", [['StartTag', 'a', ['a' => ''], true]], []],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description after single-quoted attribute-value control/punctuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -13542,6 +13581,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3SingleQuotedAttributeValueBasicFixtureProvider')]
     public function testHtml5libTest3SingleQuotedAttributeValueBasicFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3AfterSingleQuotedAttributeValueControlPunctuationFixtureProvider')]
+    public function testHtml5libTest3AfterSingleQuotedAttributeValueControlPunctuationFixtureRows(
         string $html,
         int $testIndex,
         string $description,
