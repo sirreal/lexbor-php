@@ -2448,6 +2448,26 @@ final class SerializeTest extends TestCase
             '<textarea>&lt;</textarea>',
             '<textarea>&lt;</textarea>',
         ];
+        yield 'escapeFlag.test RAWTEXT xmp commented close tag closes' => [
+            '<xmp>foo<!--</xmp>--></xmp>',
+            '<xmp>foo<!--</xmp>--&gt;',
+        ];
+        yield 'escapeFlag.test RAWTEXT xmp bogus comment opener remains text' => [
+            '<xmp>foo<!-->baz</xmp>',
+            '<xmp>foo<!-->baz</xmp>',
+        ];
+        yield 'escapeFlag.test RAWTEXT xmp close before bogus comment' => [
+            '<xmp>foo<!--></xmp><!-->baz</xmp>',
+            '<xmp>foo<!--></xmp><!---->baz',
+        ];
+        yield 'escapeFlag.test RCDATA textarea commented entities decode' => [
+            '<textarea> &amp; <!-- &amp; --> &amp; </textarea>',
+            '<textarea> &amp; &lt;!-- &amp; --&gt; &amp; </textarea>',
+        ];
+        yield 'escapeFlag.test RAWTEXT xmp incorrect comment endings remain text' => [
+            '<xmp>foo<!-- x --x>x-- >x--!>x--<></xmp>',
+            '<xmp>foo<!-- x --x>x-- >x--!>x--<></xmp>',
+        ];
     }
 
     /**
