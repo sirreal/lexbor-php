@@ -3057,6 +3057,38 @@ final class SerializeTest extends TestCase
                 false,
             ];
         }
+
+        yield 'domjs.test FEFF pass-through exact fixture row' => [
+            '\uFEFFfoo\uFEFFbar',
+            24,
+            'leading U+FEFF must pass through',
+            ['Data state', 'RCDATA state', 'RAWTEXT state', 'Script data state'],
+            [['Character', '\uFEFFfoo\uFEFFbar']],
+            [],
+            true,
+        ];
+        yield 'domjs.test RCDATA non-BMP character reference exact fixture row' => [
+            '&NotEqualTilde;',
+            25,
+            'Non BMP-charref in RCDATA',
+            ['RCDATA state'],
+            [['Character', "\u{2242}\u{0338}"]],
+            [],
+            false,
+        ];
+        yield 'domjs.test RCDATA bad character reference exact fixture row' => [
+            '&NotEqualTild;',
+            26,
+            'Bad charref in RCDATA',
+            ['RCDATA state'],
+            [['Character', '&NotEqualTild;']],
+            [[
+                'code' => 'unknown-named-character-reference',
+                'line' => 1,
+                'col' => 14,
+            ]],
+            false,
+        ];
     }
 
     /**
