@@ -2468,6 +2468,42 @@ final class SerializeTest extends TestCase
             '<xmp>foo<!-- x --x>x-- >x--!>x--<></xmp>',
             '<xmp>foo<!-- x --x>x-- >x--!>x--<></xmp>',
         ];
+        yield 'domjs.test script HTML comment EOF' => [
+            '<script><!--test',
+            '<script><!--test</script>',
+        ];
+        yield 'domjs.test script HTML comment EOF after dash' => [
+            '<script><!--test-',
+            '<script><!--test-</script>',
+        ];
+        yield 'domjs.test script HTML comment EOF after dash dash' => [
+            '<script><!--test--',
+            '<script><!--test--</script>',
+        ];
+        yield 'domjs.test script HTML comment double escaped EOF after dash' => [
+            '<script><!--<script>-',
+            '<script><!--<script>-</script>',
+        ];
+        yield 'domjs.test script HTML comment double escaped EOF after dash dash' => [
+            '<script><!--<script>--',
+            '<script><!--<script>--</script>',
+        ];
+        yield 'domjs.test script HTML comment double escaped EOF' => [
+            '<script><!--<script>',
+            '<script><!--<script></script>',
+        ];
+        yield 'domjs.test script HTML comment dash' => [
+            '<script><!-- - --></script>',
+            '<script><!-- - --></script>',
+        ];
+        yield 'domjs.test script HTML comment dash less-than' => [
+            '<script><!-- -< --></script>',
+            '<script><!-- -< --></script>',
+        ];
+        yield 'domjs.test script HTML comment dash at end' => [
+            '<script><!--test---></script>',
+            '<script><!--test---></script>',
+        ];
     }
 
     /**
