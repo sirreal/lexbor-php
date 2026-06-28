@@ -3374,6 +3374,36 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest2TailFixtureProvider(): iterable
+    {
+        foreach ([
+            33 => ['Unescaped <', 'foo < bar', [['Character', 'foo < bar']], [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 6]]],
+            34 => ['Null Byte Replacement', "\0", [['Character', "\0"]], [['code' => 'unexpected-null-character', 'line' => 1, 'col' => 1]]],
+            35 => ['Comment with dash', '<!---x', [['Comment', '-x']], [['code' => 'eof-in-comment', 'line' => 1, 'col' => 7]]],
+            36 => ['Entity + newline', "\nx\n&gt;\n", [['Character', "\nx\n>\n"]], []],
+            37 => ['Start tag with no attributes but space before the greater-than sign', '<h >', [['StartTag', 'h', []]], []],
+            38 => ['Empty attribute followed by uppercase attribute', "<h a B=''>", [['StartTag', 'h', ['a' => '', 'b' => '']]], []],
+            39 => ['Double-quote after attribute name', '<h a ">', [['StartTag', 'h', ['a' => '', '"' => '']]], [['code' => 'unexpected-character-in-attribute-name', 'line' => 1, 'col' => 6]]],
+            40 => ['Single-quote after attribute name', "<h a '>", [['StartTag', 'h', ['a' => '', '\'' => '']]], [['code' => 'unexpected-character-in-attribute-name', 'line' => 1, 'col' => 6]]],
+            41 => ['Empty end tag with following characters', 'a</>bc', [['Character', 'abc']], [['code' => 'missing-end-tag-name', 'line' => 1, 'col' => 4]]],
+            42 => ['Empty end tag with following tag', 'a</><b>c', [['Character', 'a'], ['StartTag', 'b', []], ['Character', 'c']], [['code' => 'missing-end-tag-name', 'line' => 1, 'col' => 4]]],
+            43 => ['Empty end tag with following comment', 'a</><!--b-->c', [['Character', 'a'], ['Comment', 'b'], ['Character', 'c']], [['code' => 'missing-end-tag-name', 'line' => 1, 'col' => 4]]],
+            44 => ['Empty end tag with following end tag', 'a</></b>c', [['Character', 'a'], ['EndTag', 'b'], ['Character', 'c']], [['code' => 'missing-end-tag-name', 'line' => 1, 'col' => 4]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test2.test $testIndex $description tail exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -14024,6 +14054,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest2TagBogusCommentFixtureProvider')]
     public function testHtml5libTest2TagBogusCommentFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test2.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest2TailFixtureProvider')]
+    public function testHtml5libTest2TailFixtureRows(
         string $html,
         int $testIndex,
         string $description,
