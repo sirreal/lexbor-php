@@ -559,6 +559,14 @@ final class Document extends Node
         $pattern = sprintf('~</%s\s*>~i', preg_quote($element->tagName, '~'));
 
         if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE, $offset) !== 1) {
+            $incompleteClose = self::consumeIncompleteTextOnlyEndTagAtEof($html, $offset, $element->tagName);
+            if ($incompleteClose !== null) {
+                [$closeStart, $closeEnd] = $incompleteClose;
+                $this->appendTextOnlyElementData($element, substr($html, $offset, $closeStart - $offset));
+
+                return $closeEnd;
+            }
+
             $this->appendTextOnlyElementData($element, substr($html, $offset));
             return strlen($html);
         }
@@ -606,6 +614,11 @@ final class Document extends Node
                 return $endTag;
             }
 
+            $incompleteEndTag = self::consumeIncompleteTextOnlyEndTagAtCurrentOffsetAtEof($html, $offset, 'script');
+            if ($incompleteEndTag !== null) {
+                return $incompleteEndTag;
+            }
+
             if (($state === 'escaped' || $state === 'double_escaped') && substr($html, $offset, 3) === '-->') {
                 $state = 'data';
                 $offset += 3;
@@ -641,6 +654,30 @@ final class Document extends Node
         }
 
         return [$offset, $offset + strlen($match[0])];
+    }
+
+    /**
+     * @return array{int, int}|null
+     */
+    private static function consumeIncompleteTextOnlyEndTagAtEof(string $html, int $offset, string $tagName): ?array
+    {
+        if (preg_match(sprintf('~</%s(?:[\t\n\f\r ]*/[\t\n\f\r ]*|[\t\n\f\r ]+)\z~i', preg_quote($tagName, '~')), $html, $match, PREG_OFFSET_CAPTURE, $offset) !== 1) {
+            return null;
+        }
+
+        return [$match[0][1], strlen($html)];
+    }
+
+    /**
+     * @return array{int, int}|null
+     */
+    private static function consumeIncompleteTextOnlyEndTagAtCurrentOffsetAtEof(string $html, int $offset, string $tagName): ?array
+    {
+        if (preg_match(sprintf('~^</%s(?:[\t\n\f\r ]*/[\t\n\f\r ]*|[\t\n\f\r ]+)\z~i', preg_quote($tagName, '~')), substr($html, $offset)) !== 1) {
+            return null;
+        }
+
+        return [$offset, strlen($html)];
     }
 
     private static function consumeScriptStartTagNameAt(string $html, int $offset): ?int

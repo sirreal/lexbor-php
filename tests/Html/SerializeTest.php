@@ -2519,9 +2519,29 @@ final class SerializeTest extends TestCase
             '<xmp>foo</xMp>',
             '<xmp>foo</xmp>',
         ];
+        yield 'contentModelFlags.test RAWTEXT xmp EOF end tag ending with space drops partial tag' => [
+            '<xmp>foo</xmp ',
+            '<xmp>foo</xmp>',
+        ];
         yield 'contentModelFlags.test RAWTEXT xmp EOF partial end tag remains text' => [
             '<xmp>foo</xmp',
             '<xmp>foo</xmp</xmp>',
+        ];
+        yield 'contentModelFlags.test RAWTEXT xmp EOF end tag ending with slash drops partial tag' => [
+            '<xmp>foo</xmp/',
+            '<xmp>foo</xmp>',
+        ];
+        yield 'html5lib RAWTEXT xmp EOF end tag ending with space slash drops partial tag' => [
+            '<xmp>foo</xmp /',
+            '<xmp>foo</xmp>',
+        ];
+        yield 'html5lib RAWTEXT xmp EOF end tag ending with slash space drops partial tag' => [
+            '<xmp>foo</xmp/ ',
+            '<xmp>foo</xmp>',
+        ];
+        yield 'html5lib RAWTEXT xmp EOF end tag ending with space slash space drops partial tag' => [
+            '<xmp>foo</xmp / ',
+            '<xmp>foo</xmp>',
         ];
         yield 'contentModelFlags.test RAWTEXT xmp angle after partial end tag remains text' => [
             '<xmp>foo</xmp<',
@@ -2553,6 +2573,26 @@ final class SerializeTest extends TestCase
         ];
         yield 'contentModelFlags.test RCDATA textarea end tag is case-insensitive' => [
             '<textarea>foo</tExTaReA>',
+            '<textarea>foo</textarea>',
+        ];
+        yield 'contentModelFlags.test RCDATA textarea EOF end tag ending with space drops partial tag' => [
+            '<textarea>foo</textarea ',
+            '<textarea>foo</textarea>',
+        ];
+        yield 'contentModelFlags.test RCDATA textarea EOF end tag ending with slash drops partial tag' => [
+            '<textarea>foo</textarea/',
+            '<textarea>foo</textarea>',
+        ];
+        yield 'html5lib RCDATA textarea EOF end tag ending with space slash drops partial tag' => [
+            '<textarea>foo</textarea /',
+            '<textarea>foo</textarea>',
+        ];
+        yield 'html5lib RCDATA textarea EOF end tag ending with slash space drops partial tag' => [
+            '<textarea>foo</textarea/ ',
+            '<textarea>foo</textarea>',
+        ];
+        yield 'html5lib RCDATA textarea EOF end tag ending with space slash space drops partial tag' => [
+            '<textarea>foo</textarea / ',
             '<textarea>foo</textarea>',
         ];
         yield 'contentModelFlags.test RCDATA textarea decodes character reference' => [
@@ -2678,6 +2718,46 @@ final class SerializeTest extends TestCase
         yield 'domjs.test script data treats HTML tag as text' => [
             '<script><b>hello world</b></script>',
             '<script><b>hello world</b></script>',
+        ];
+        yield 'html5lib script data EOF end tag ending with space drops partial tag' => [
+            '<script>foo</script ',
+            '<script>foo</script>',
+        ];
+        yield 'html5lib script data EOF end tag ending with slash drops partial tag' => [
+            '<script>foo</script/',
+            '<script>foo</script>',
+        ];
+        yield 'html5lib script data EOF end tag ending with space slash drops partial tag' => [
+            '<script>foo</script /',
+            '<script>foo</script>',
+        ];
+        yield 'html5lib script data EOF end tag ending with slash space drops partial tag' => [
+            '<script>foo</script/ ',
+            '<script>foo</script>',
+        ];
+        yield 'html5lib script data EOF end tag ending with space slash space drops partial tag' => [
+            '<script>foo</script / ',
+            '<script>foo</script>',
+        ];
+        yield 'html5lib script data EOF delimiter does not skip earlier complete close' => [
+            '<script>foo</script><p>bar</p></script ',
+            '<script>foo</script><p>bar</p>',
+        ];
+        yield 'html5lib double-escaped script EOF end tag ending with space stays text' => [
+            '<script><!--<script></script ',
+            '<script><!--<script></script </script>',
+        ];
+        yield 'html5lib double-escaped script EOF end tag ending with slash stays text' => [
+            '<script><!--<script></script/',
+            '<script><!--<script></script/</script>',
+        ];
+        yield 'html5lib spaced double-escaped script EOF end tag ending with space stays text' => [
+            '<script><!-- <script></script ',
+            '<script><!-- <script></script </script>',
+        ];
+        yield 'html5lib spaced double-escaped script EOF end tag ending with slash stays text' => [
+            '<script><!-- <script></script/',
+            '<script><!-- <script></script/</script>',
         ];
         yield 'domjs.test RAWTEXT xmp uppercase end tag closes' => [
             '<xmp></XMP>',
@@ -2809,6 +2889,184 @@ final class SerializeTest extends TestCase
             'bad endtag (trailing solidus)',
             [['Character', '</xm/']],
             null,
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{string, string, int, string, list<string>, string, list<list<string>>}>
+     */
+    public static function html5libTextModeFixtureProvider(): iterable
+    {
+        yield 'contentModelFlags.test plaintext content model exact fixture row' => [
+            '<head>&body;',
+            'contentModelFlags.test',
+            0,
+            'PLAINTEXT content model flag',
+            ['PLAINTEXT state'],
+            'plaintext',
+            [['Character', '<head>&body;']],
+        ];
+        yield 'contentModelFlags.test plaintext seeming close tag exact fixture row' => [
+            '</plaintext>&body;',
+            'contentModelFlags.test',
+            1,
+            'PLAINTEXT with seeming close tag',
+            ['PLAINTEXT state'],
+            'plaintext',
+            [['Character', '</plaintext>&body;']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext close exact fixture row' => [
+            'foo</xmp>',
+            'contentModelFlags.test',
+            2,
+            'End tag closing RCDATA or RAWTEXT',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo'], ['EndTag', 'xmp']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext case-insensitive close exact fixture row' => [
+            'foo</xMp>',
+            'contentModelFlags.test',
+            3,
+            'End tag closing RCDATA or RAWTEXT (case-insensitivity)',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo'], ['EndTag', 'xmp']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext ending with space exact fixture row' => [
+            'foo</xmp ',
+            'contentModelFlags.test',
+            4,
+            'End tag closing RCDATA or RAWTEXT (ending with space)',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext ending with EOF exact fixture row' => [
+            'foo</xmp',
+            'contentModelFlags.test',
+            5,
+            'End tag closing RCDATA or RAWTEXT (ending with EOF)',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo</xmp']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext ending with slash exact fixture row' => [
+            'foo</xmp/',
+            'contentModelFlags.test',
+            6,
+            'End tag closing RCDATA or RAWTEXT (ending with slash)',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext ending with less-than exact fixture row' => [
+            'foo</xmp<',
+            'contentModelFlags.test',
+            7,
+            'End tag not closing RCDATA or RAWTEXT (ending with left-angle-bracket)',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo</xmp<']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext incorrect name exact fixture row' => [
+            '</foo>bar</xmp>',
+            'contentModelFlags.test',
+            8,
+            'End tag with incorrect name in RCDATA or RAWTEXT',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', '</foo>bar'], ['EndTag', 'xmp']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext chained partial tags exact fixture row' => [
+            '</xmp</xmp</xmp>',
+            'contentModelFlags.test',
+            9,
+            'Partial end tags leading straight into partial end tags',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', '</xmp</xmp'], ['EndTag', 'xmp']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext prefixed incorrect name exact fixture row' => [
+            '</foo>bar</xmpaar>',
+            'contentModelFlags.test',
+            10,
+            'End tag with incorrect name in RCDATA or RAWTEXT (starting like correct name)',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', '</foo>bar</xmpaar>']],
+        ];
+        yield 'contentModelFlags.test rcdata rawtext returns to data state exact fixture row' => [
+            'foo</xmp></baz>',
+            'contentModelFlags.test',
+            11,
+            'End tag closing RCDATA or RAWTEXT, switching back to PCDATA',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo'], ['EndTag', 'xmp'], ['EndTag', 'baz']],
+        ];
+        yield 'contentModelFlags.test rawtext entity-like text exact fixture row' => [
+            '&foo;',
+            'contentModelFlags.test',
+            12,
+            'RAWTEXT w/ something looking like an entity',
+            ['RAWTEXT state'],
+            'xmp',
+            [['Character', '&foo;']],
+        ];
+        yield 'contentModelFlags.test rcdata entity exact fixture row' => [
+            '&lt;',
+            'contentModelFlags.test',
+            13,
+            'RCDATA w/ an entity',
+            ['RCDATA state'],
+            'textarea',
+            [['Character', '<']],
+        ];
+        yield 'escapeFlag.test commented close tag exact fixture row' => [
+            'foo<!--</xmp>--></xmp>',
+            'escapeFlag.test',
+            0,
+            'Commented close tag in RCDATA or RAWTEXT',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo<!--'], ['EndTag', 'xmp'], ['Character', '-->'], ['EndTag', 'xmp']],
+        ];
+        yield 'escapeFlag.test bogus comment exact fixture row' => [
+            'foo<!-->baz</xmp>',
+            'escapeFlag.test',
+            1,
+            'Bogus comment in RCDATA or RAWTEXT',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo<!-->baz'], ['EndTag', 'xmp']],
+        ];
+        yield 'escapeFlag.test end tag surrounded by bogus comment exact fixture row' => [
+            'foo<!--></xmp><!-->baz</xmp>',
+            'escapeFlag.test',
+            2,
+            'End tag surrounded by bogus comment in RCDATA or RAWTEXT',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo<!-->'], ['EndTag', 'xmp'], ['Comment', ''], ['Character', 'baz'], ['EndTag', 'xmp']],
+        ];
+        yield 'escapeFlag.test commented entities in RCDATA exact fixture row' => [
+            ' &amp; <!-- &amp; --> &amp; </xmp>',
+            'escapeFlag.test',
+            3,
+            'Commented entities in RCDATA',
+            ['RCDATA state'],
+            'xmp',
+            [['Character', ' & <!-- & --> & '], ['EndTag', 'xmp']],
+        ];
+        yield 'escapeFlag.test incorrect comment ending sequences exact fixture row' => [
+            'foo<!-- x --x>x-- >x--!>x--<></xmp>',
+            'escapeFlag.test',
+            4,
+            'Incorrect comment ending sequences in RCDATA or RAWTEXT',
+            ['RCDATA state', 'RAWTEXT state'],
+            'xmp',
+            [['Character', 'foo<!-- x --x>x-- >x--!>x--<>'], ['EndTag', 'xmp']],
         ];
     }
 
@@ -9362,6 +9620,36 @@ final class SerializeTest extends TestCase
             self::assertSame(Status::Ok, $document->parse('<xmp>' . $html . '</xmp>'));
             self::assertSame($expectedSerialization, Serializer::serializeDeep($document->bodyElement()));
         }
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libTextModeFixtureProvider')]
+    public function testHtml5libTextModeFixtureRows(
+        string $html,
+        string $fileName,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        string $lastStartTag,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/' . $fileName);
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates']);
+        self::assertSame($lastStartTag, $fixture['lastStartTag']);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
     }
 
     #[DataProvider('html5libRcdataStateProvider')]
