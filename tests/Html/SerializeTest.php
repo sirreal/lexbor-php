@@ -3752,6 +3752,61 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesAExactFixtureProvider(): iterable
+    {
+        $missingSemicolon = static fn (int $col): array => [[
+            'code' => 'missing-semicolon-after-character-reference',
+            'line' => 1,
+            'col' => $col,
+        ]];
+
+        foreach ([
+            0 => ['Named entity: AElig without a semi-colon', '&AElig', "\u{00C6}", $missingSemicolon(7)],
+            1 => ['Named entity: AElig; with a semi-colon', '&AElig;', "\u{00C6}", []],
+            2 => ['Named entity: AMP without a semi-colon', '&AMP', '&', $missingSemicolon(5)],
+            3 => ['Named entity: AMP; with a semi-colon', '&AMP;', '&', []],
+            4 => ['Named entity: Aacute without a semi-colon', '&Aacute', "\u{00C1}", $missingSemicolon(8)],
+            5 => ['Named entity: Aacute; with a semi-colon', '&Aacute;', "\u{00C1}", []],
+            6 => ['Bad named entity: Abreve without a semi-colon', '&Abreve', '&Abreve', []],
+            7 => ['Named entity: Abreve; with a semi-colon', '&Abreve;', "\u{0102}", []],
+            8 => ['Named entity: Acirc without a semi-colon', '&Acirc', "\u{00C2}", $missingSemicolon(7)],
+            9 => ['Named entity: Acirc; with a semi-colon', '&Acirc;', "\u{00C2}", []],
+            10 => ['Bad named entity: Acy without a semi-colon', '&Acy', '&Acy', []],
+            11 => ['Named entity: Acy; with a semi-colon', '&Acy;', "\u{0410}", []],
+            12 => ['Bad named entity: Afr without a semi-colon', '&Afr', '&Afr', []],
+            13 => ['Named entity: Afr; with a semi-colon', '&Afr;', "\u{1D504}", []],
+            14 => ['Named entity: Agrave without a semi-colon', '&Agrave', "\u{00C0}", $missingSemicolon(8)],
+            15 => ['Named entity: Agrave; with a semi-colon', '&Agrave;', "\u{00C0}", []],
+            16 => ['Bad named entity: Alpha without a semi-colon', '&Alpha', '&Alpha', []],
+            17 => ['Named entity: Alpha; with a semi-colon', '&Alpha;', "\u{0391}", []],
+            18 => ['Bad named entity: Amacr without a semi-colon', '&Amacr', '&Amacr', []],
+            19 => ['Named entity: Amacr; with a semi-colon', '&Amacr;', "\u{0100}", []],
+            20 => ['Bad named entity: And without a semi-colon', '&And', '&And', []],
+            21 => ['Named entity: And; with a semi-colon', '&And;', "\u{2A53}", []],
+            22 => ['Bad named entity: Aogon without a semi-colon', '&Aogon', '&Aogon', []],
+            23 => ['Named entity: Aogon; with a semi-colon', '&Aogon;', "\u{0104}", []],
+            24 => ['Bad named entity: Aopf without a semi-colon', '&Aopf', '&Aopf', []],
+            25 => ['Named entity: Aopf; with a semi-colon', '&Aopf;', "\u{1D538}", []],
+            26 => ['Bad named entity: ApplyFunction without a semi-colon', '&ApplyFunction', '&ApplyFunction', []],
+            27 => ['Named entity: ApplyFunction; with a semi-colon', '&ApplyFunction;', "\u{2061}", []],
+            28 => ['Named entity: Aring without a semi-colon', '&Aring', "\u{00C5}", $missingSemicolon(7)],
+            29 => ['Named entity: Aring; with a semi-colon', '&Aring;', "\u{00C5}", []],
+            30 => ['Bad named entity: Ascr without a semi-colon', '&Ascr', '&Ascr', []],
+            31 => ['Named entity: Ascr; with a semi-colon', '&Ascr;', "\u{1D49C}", []],
+        ] as $testIndex => [$description, $html, $character, $expectedErrors]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -15044,6 +15099,39 @@ final class SerializeTest extends TestCase
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertArrayNotHasKey('errors', $fixture);
         self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesAExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesAExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
     }
 
     /**
