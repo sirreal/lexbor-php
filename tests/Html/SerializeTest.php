@@ -2771,6 +2771,48 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, string|null}>
+     */
+    public static function html5libRawtextEndTagFixtureProvider(): iterable
+    {
+        yield 'domjs.test RAWTEXT uppercase xmp end tag exact fixture row' => [
+            '</XMP>',
+            27,
+            'lowercase endtags',
+            [['EndTag', 'xmp']],
+            null,
+        ];
+        yield 'domjs.test RAWTEXT spaced bad end tag exact fixture row' => [
+            '</ XMP>',
+            28,
+            'bad endtag (space before name)',
+            [['Character', '</ XMP>']],
+            '<xmp></ XMP></xmp>',
+        ];
+        yield 'domjs.test RAWTEXT bad end tag not matching exact fixture row' => [
+            '</xm>',
+            29,
+            'bad endtag (not matching last start tag)',
+            [['Character', '</xm>']],
+            null,
+        ];
+        yield 'domjs.test RAWTEXT bad end tag without close bracket exact fixture row' => [
+            '</xm ',
+            30,
+            'bad endtag (without close bracket)',
+            [['Character', '</xm ']],
+            null,
+        ];
+        yield 'domjs.test RAWTEXT bad end tag trailing solidus exact fixture row' => [
+            '</xm/',
+            31,
+            'bad endtag (trailing solidus)',
+            [['Character', '</xm/']],
+            null,
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -9287,6 +9329,39 @@ final class SerializeTest extends TestCase
         self::assertSame(Status::Ok, $document->parse('<script>' . $html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libRawtextEndTagFixtureProvider')]
+    public function testHtml5libRawtextEndTagFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        ?string $expectedSerialization,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/domjs.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame(['RCDATA state', 'RAWTEXT state', 'Script data state'], $fixture['initialStates']);
+        self::assertSame('xmp', $fixture['lastStartTag']);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+
+        if ($expectedSerialization !== null) {
+            $document = new Document();
+            self::assertSame(Status::Ok, $document->parse('<xmp>' . $html . '</xmp>'));
+            self::assertSame($expectedSerialization, Serializer::serializeDeep($document->bodyElement()));
+        }
     }
 
     #[DataProvider('html5libRcdataStateProvider')]
