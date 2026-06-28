@@ -3106,6 +3106,53 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
+     */
+    public static function html5libTest3LiteralFixtureProvider(): iterable
+    {
+        $textStates = ['Data state', 'PLAINTEXT state', 'RCDATA state', 'RAWTEXT state', 'Script data state'];
+        $cdataState = ['CDATA section state'];
+
+        yield 'test3.test empty text-mode exact fixture row' => ['', 0, '[empty]', $textStates, []];
+        yield 'test3.test empty CDATA exact fixture row' => ['', 1, '[empty]', $cdataState, []];
+        yield 'test3.test form feed text-mode exact fixture row' => ["\f", 8, '\u000C', $textStates, [['Character', "\f"]]];
+        yield 'test3.test form feed CDATA exact fixture row' => ["\f", 9, '\u000C', $cdataState, [['Character', "\f"]]];
+
+        foreach ([
+            38 => [';=', ';='],
+            40 => [';>', ';>'],
+            42 => [';?', ';?'],
+            44 => [';@', ';@'],
+            46 => [';A', ';A'],
+            48 => [';B', ';B'],
+            50 => [';Y', ';Y'],
+            52 => [';Z', ';Z'],
+            54 => [';`', ';`'],
+            56 => [';a', ';a'],
+            58 => [';b', ';b'],
+            60 => [';y', ';y'],
+            62 => [';z', ';z'],
+            64 => [';{', ';{'],
+            66 => [";\u{100000}", ';\uDBC0\uDC00'],
+        ] as $textIndex => [$input, $description]) {
+            yield "test3.test $description text-mode exact fixture row" => [
+                $input,
+                $textIndex,
+                $description,
+                $textStates,
+                [['Character', $input]],
+            ];
+            yield "test3.test $description CDATA exact fixture row" => [
+                $input,
+                $textIndex + 1,
+                $description,
+                $cdataState,
+                [['Character', $input]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -9716,6 +9763,33 @@ final class SerializeTest extends TestCase
             'line' => 1,
             'col' => $errorColumn,
         ]], $fixture['errors']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libTest3LiteralFixtureProvider')]
+    public function testHtml5libTest3LiteralFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
     }
 
     #[DataProvider('html5libRcdataStateProvider')]
