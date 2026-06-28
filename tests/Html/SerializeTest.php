@@ -8044,6 +8044,7 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 dash in tag name' => ['<a->', '<a-></a->'];
         yield 'html5lib test3 period in tag name' => ['<a.>', '<a.></a.>'];
         yield 'html5lib test3 self-closing slash after tag name' => ['<a/>', '<a></a>'];
+        yield 'html5lib test2 non-void element with self-closing slash' => ['<h/>', '<h></h>'];
         yield 'html5lib test4 permitted slash on br start tag' => ['<br/>', '<br>'];
         yield 'html5lib test4 non-void self-closing start tag' => ['<xr/>', '<xr></xr>'];
         yield 'html5lib test3 zero in tag name' => ['<a0>', '<a0></a0>'];
@@ -8238,6 +8239,27 @@ final class SerializeTest extends TestCase
         yield 'html5lib test1 unquoted attribute final ampersand before text' => [
             '<a a=a&>foo',
             '<a a="a&amp;">foo</a>',
+        ];
+        yield 'html5lib test2 attribute ampersand value' => [
+            "<h a='&'>",
+            '<h a="&amp;"></h>',
+        ];
+        yield 'html5lib test2 void element with permitted slash and attribute' => [
+            "<br foo='bar'/>",
+            '<br foo="bar">',
+        ];
+        yield 'html5lib test2 start tag slash before attribute' => [
+            "<h/a='b'>",
+            '<h a="b"></h>',
+        ];
+        yield 'html5lib test2 double-quoted attribute value' => [
+            '<h a="b">',
+            '<h a="b"></h>',
+        ];
+        yield 'html5lib test2 start tag with space before close' => ['<h >', '<h></h>'];
+        yield 'html5lib test2 empty attribute followed by uppercase attribute' => [
+            "<h a B=''>",
+            '<h a="" b=""></h>',
         ];
         yield 'tag_attr.ton #8 legacy query reference without semicolon' => [
             "<div n='/ololo/?arg=1&acirc'>",
