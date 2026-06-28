@@ -4217,6 +4217,54 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3UnquotedAttributeValueContinuationAsciiNonBmpFixtureProvider(): iterable
+    {
+        foreach ([
+            1453 => ['<a a=a0>', '<a a=a0>', 'a0', []],
+            1454 => ['<a a=a1>', '<a a=a1>', 'a1', []],
+            1455 => ['<a a=a9>', '<a a=a9>', 'a9', []],
+            1456 => ['<a a=a<>', '<a a=a<>', 'a<', [['unexpected-character-in-unquoted-attribute-value', 1, 7]]],
+            1457 => ['<a a=a=>', '<a a=a=>', 'a=', [['unexpected-character-in-unquoted-attribute-value', 1, 7]]],
+            1458 => ['<a a=a>', '<a a=a>', 'a', []],
+            1459 => ['<a a=a?>', '<a a=a?>', 'a?', []],
+            1460 => ['<a a=a@>', '<a a=a@>', 'a@', []],
+            1461 => ['<a a=aA>', '<a a=aA>', 'aA', []],
+            1462 => ['<a a=aB>', '<a a=aB>', 'aB', []],
+            1463 => ['<a a=aY>', '<a a=aY>', 'aY', []],
+            1464 => ['<a a=aZ>', '<a a=aZ>', 'aZ', []],
+            1465 => ['<a a=a`>', '<a a=a`>', 'a`', [['unexpected-character-in-unquoted-attribute-value', 1, 7]]],
+            1466 => ['<a a=aa>', '<a a=aa>', 'aa', []],
+            1467 => ['<a a=ab>', '<a a=ab>', 'ab', []],
+            1468 => ['<a a=ay>', '<a a=ay>', 'ay', []],
+            1469 => ['<a a=az>', '<a a=az>', 'az', []],
+            1470 => ['<a a=a{>', '<a a=a{>', 'a{', []],
+            1471 => ['<a a=a\\uDBC0\\uDC00>', "<a a=a\u{100000}>", "a\u{100000}", []],
+            1472 => ['<a a=b>', '<a a=b>', 'b', []],
+            1473 => ['<a a=y>', '<a a=y>', 'y', []],
+            1474 => ['<a a=z>', '<a a=z>', 'z', []],
+            1475 => ['<a a={>', '<a a={>', '{', []],
+            1476 => ['<a a=\\uDBC0\\uDC00>', "<a a=\u{100000}>", "\u{100000}", []],
+        ] as $testIndex => [$description, $html, $value, $errors]) {
+            $expectedOutput = [['StartTag', 'a', ['a' => $value]]];
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description unquoted attribute-value continuation ASCII/non-BMP exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -13902,6 +13950,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3UnquotedAttributeValueContinuationControlPunctuationFixtureProvider')]
     public function testHtml5libTest3UnquotedAttributeValueContinuationControlPunctuationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3UnquotedAttributeValueContinuationAsciiNonBmpFixtureProvider')]
+    public function testHtml5libTest3UnquotedAttributeValueContinuationAsciiNonBmpFixtureRows(
         string $html,
         int $testIndex,
         string $description,
