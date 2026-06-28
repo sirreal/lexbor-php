@@ -3287,6 +3287,39 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest2DoctypeFixtureProvider(): iterable
+    {
+        foreach ([
+            0 => ['DOCTYPE without name', '<!DOCTYPE>', [['DOCTYPE', null, null, null, false]], [['code' => 'missing-doctype-name', 'line' => 1, 'col' => 10]]],
+            1 => ['DOCTYPE without space before name', '<!DOCTYPEhtml>', [['DOCTYPE', 'html', null, null, true]], [['code' => 'missing-whitespace-before-doctype-name', 'line' => 1, 'col' => 10]]],
+            2 => ['Incorrect DOCTYPE without a space before name', '<!DOCTYPEfoo>', [['DOCTYPE', 'foo', null, null, true]], [['code' => 'missing-whitespace-before-doctype-name', 'line' => 1, 'col' => 10]]],
+            3 => ['DOCTYPE with publicId', '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML Transitional 4.01//EN">', [['DOCTYPE', 'html', '-//W3C//DTD HTML Transitional 4.01//EN', null, true]], []],
+            4 => ['DOCTYPE with EOF after PUBLIC', '<!DOCTYPE html PUBLIC', [['DOCTYPE', 'html', null, null, false]], [['code' => 'eof-in-doctype', 'col' => 22, 'line' => 1]]],
+            5 => ["DOCTYPE with EOF after PUBLIC '", "<!DOCTYPE html PUBLIC '", [['DOCTYPE', 'html', '', null, false]], [['code' => 'eof-in-doctype', 'col' => 24, 'line' => 1]]],
+            6 => ["DOCTYPE with EOF after PUBLIC 'x", "<!DOCTYPE html PUBLIC 'x", [['DOCTYPE', 'html', 'x', null, false]], [['code' => 'eof-in-doctype', 'col' => 25, 'line' => 1]]],
+            7 => ['DOCTYPE with systemId', '<!DOCTYPE html SYSTEM "-//W3C//DTD HTML Transitional 4.01//EN">', [['DOCTYPE', 'html', null, '-//W3C//DTD HTML Transitional 4.01//EN', true]], []],
+            8 => ['DOCTYPE with single-quoted systemId', "<!DOCTYPE html SYSTEM '-//W3C//DTD HTML Transitional 4.01//EN'>", [['DOCTYPE', 'html', null, '-//W3C//DTD HTML Transitional 4.01//EN', true]], []],
+            9 => ['DOCTYPE with publicId and systemId', '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML Transitional 4.01//EN" "-//W3C//DTD HTML Transitional 4.01//EN">', [['DOCTYPE', 'html', '-//W3C//DTD HTML Transitional 4.01//EN', '-//W3C//DTD HTML Transitional 4.01//EN', true]], []],
+            10 => ['DOCTYPE with > in double-quoted publicId', '<!DOCTYPE html PUBLIC ">x', [['DOCTYPE', 'html', '', null, false], ['Character', 'x']], [['code' => 'abrupt-doctype-public-identifier', 'col' => 24, 'line' => 1]]],
+            11 => ['DOCTYPE with > in single-quoted publicId', "<!DOCTYPE html PUBLIC '>x", [['DOCTYPE', 'html', '', null, false], ['Character', 'x']], [['code' => 'abrupt-doctype-public-identifier', 'col' => 24, 'line' => 1]]],
+            12 => ['DOCTYPE with > in double-quoted systemId', '<!DOCTYPE html PUBLIC "foo" ">x', [['DOCTYPE', 'html', 'foo', '', false], ['Character', 'x']], [['code' => 'abrupt-doctype-system-identifier', 'col' => 30, 'line' => 1]]],
+            13 => ['DOCTYPE with > in single-quoted systemId', "<!DOCTYPE html PUBLIC 'foo' '>x", [['DOCTYPE', 'html', 'foo', '', false], ['Character', 'x']], [['code' => 'abrupt-doctype-system-identifier', 'col' => 30, 'line' => 1]]],
+            14 => ['Incomplete doctype', '<!DOCTYPE html ', [['DOCTYPE', 'html', null, null, false]], [['code' => 'eof-in-doctype', 'line' => 1, 'col' => 16]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test2.test $testIndex $description doctype exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -13856,6 +13889,36 @@ final class SerializeTest extends TestCase
     ): void
     {
         $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test1.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest2DoctypeFixtureProvider')]
+    public function testHtml5libTest2DoctypeFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test2.test');
         self::assertIsString($contents);
 
         $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
