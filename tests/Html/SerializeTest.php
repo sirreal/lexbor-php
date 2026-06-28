@@ -3434,6 +3434,62 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
+    public static function html5libTest3ProcessingInstructionFixtureProvider(): iterable
+    {
+        foreach ([
+            1158 => ['<?', '<?', '?', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1159 => ['<?\\u0000', "<?\0", "?\u{FFFD}", [['unexpected-question-mark-instead-of-tag-name', 1, 2], ['unexpected-null-character', 1, 3]]],
+            1160 => ['<?\\u0009', "<?\t", "?\t", [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1161 => ['<?\\u000A', "<?\n", "?\n", [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1162 => ['<?\\u000B', "<?\v", "?\v", [['control-character-in-input-stream', 1, 3], ['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1163 => ['<?\\u000C', "<?\f", "?\f", [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1164 => ['<? ', '<? ', '? ', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1165 => ['<? \\u0000', "<? \0", "? \u{FFFD}", [['unexpected-question-mark-instead-of-tag-name', 1, 2], ['unexpected-null-character', 1, 4]]],
+            1166 => ['<?!', '<?!', '?!', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1167 => ['<?"', '<?"', '?"', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1168 => ['<?&', '<?&', '?&', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1169 => ["<?'", "<?'", "?'", [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1170 => ['<?-', '<?-', '?-', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1171 => ['<?/', '<?/', '?/', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1172 => ['<?0', '<?0', '?0', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1173 => ['<?1', '<?1', '?1', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1174 => ['<?9', '<?9', '?9', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1175 => ['<?<', '<?<', '?<', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1176 => ['<?=', '<?=', '?=', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1177 => ['<?>', '<?>', '?', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1178 => ['<??', '<??', '??', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1179 => ['<?@', '<?@', '?@', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1180 => ['<?A', '<?A', '?A', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1181 => ['<?B', '<?B', '?B', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1182 => ['<?Y', '<?Y', '?Y', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1183 => ['<?Z', '<?Z', '?Z', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1184 => ['<?`', '<?`', '?`', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1185 => ['<?a', '<?a', '?a', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1186 => ['<?b', '<?b', '?b', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1187 => ['<?y', '<?y', '?y', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1188 => ['<?z', '<?z', '?z', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1189 => ['<?{', '<?{', '?{', [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+            1190 => ['<?\\uDBC0\\uDC00', "<?\u{100000}", "?\u{100000}", [['unexpected-question-mark-instead-of-tag-name', 1, 2]]],
+        ] as $testIndex => [$description, $html, $comment, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description processing-instruction exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Comment', $comment]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
     {
         foreach ([
@@ -12508,6 +12564,36 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3ProcessingInstructionFixtureProvider')]
+    public function testHtml5libTest3ProcessingInstructionFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
     }
 
     /**
