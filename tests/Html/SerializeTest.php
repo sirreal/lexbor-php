@@ -2428,6 +2428,10 @@ final class SerializeTest extends TestCase
             '<xmp></foo>bar</xmpaar>',
             '<xmp></foo>bar</xmpaar></xmp>',
         ];
+        yield 'contentModelFlags.test RAWTEXT xmp close returns to data state' => [
+            '<xmp>foo</xmp></baz>',
+            '<xmp>foo</xmp>',
+        ];
         yield 'contentModelFlags.test RAWTEXT xmp entity-looking text is not decoded' => [
             '<xmp>&foo;</xmp>',
             '<xmp>&foo;</xmp>',
