@@ -4015,6 +4015,55 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesDiacriticalDoubleAcuteDoubleLongLeftArrowExactFixtureProvider(): iterable
+    {
+        foreach ([
+            160 => ['Bad named entity: DiacriticalDoubleAcute without a semi-colon', '&DiacriticalDoubleAcute', '&DiacriticalDoubleAcute'],
+            161 => ['Named entity: DiacriticalDoubleAcute; with a semi-colon', '&DiacriticalDoubleAcute;', "\u{02DD}"],
+            162 => ['Bad named entity: DiacriticalGrave without a semi-colon', '&DiacriticalGrave', '&DiacriticalGrave'],
+            163 => ['Named entity: DiacriticalGrave; with a semi-colon', '&DiacriticalGrave;', '`'],
+            164 => ['Bad named entity: DiacriticalTilde without a semi-colon', '&DiacriticalTilde', '&DiacriticalTilde'],
+            165 => ['Named entity: DiacriticalTilde; with a semi-colon', '&DiacriticalTilde;', "\u{02DC}"],
+            166 => ['Bad named entity: Diamond without a semi-colon', '&Diamond', '&Diamond'],
+            167 => ['Named entity: Diamond; with a semi-colon', '&Diamond;', "\u{22C4}"],
+            168 => ['Bad named entity: DifferentialD without a semi-colon', '&DifferentialD', '&DifferentialD'],
+            169 => ['Named entity: DifferentialD; with a semi-colon', '&DifferentialD;', "\u{2146}"],
+            170 => ['Bad named entity: Dopf without a semi-colon', '&Dopf', '&Dopf'],
+            171 => ['Named entity: Dopf; with a semi-colon', '&Dopf;', "\u{1D53B}"],
+            172 => ['Bad named entity: Dot without a semi-colon', '&Dot', '&Dot'],
+            173 => ['Named entity: Dot; with a semi-colon', '&Dot;', "\u{00A8}"],
+            174 => ['Bad named entity: DotDot without a semi-colon', '&DotDot', '&DotDot'],
+            175 => ['Named entity: DotDot; with a semi-colon', '&DotDot;', "\u{20DC}"],
+            176 => ['Bad named entity: DotEqual without a semi-colon', '&DotEqual', '&DotEqual'],
+            177 => ['Named entity: DotEqual; with a semi-colon', '&DotEqual;', "\u{2250}"],
+            178 => ['Bad named entity: DoubleContourIntegral without a semi-colon', '&DoubleContourIntegral', '&DoubleContourIntegral'],
+            179 => ['Named entity: DoubleContourIntegral; with a semi-colon', '&DoubleContourIntegral;', "\u{222F}"],
+            180 => ['Bad named entity: DoubleDot without a semi-colon', '&DoubleDot', '&DoubleDot'],
+            181 => ['Named entity: DoubleDot; with a semi-colon', '&DoubleDot;', "\u{00A8}"],
+            182 => ['Bad named entity: DoubleDownArrow without a semi-colon', '&DoubleDownArrow', '&DoubleDownArrow'],
+            183 => ['Named entity: DoubleDownArrow; with a semi-colon', '&DoubleDownArrow;', "\u{21D3}"],
+            184 => ['Bad named entity: DoubleLeftArrow without a semi-colon', '&DoubleLeftArrow', '&DoubleLeftArrow'],
+            185 => ['Named entity: DoubleLeftArrow; with a semi-colon', '&DoubleLeftArrow;', "\u{21D0}"],
+            186 => ['Bad named entity: DoubleLeftRightArrow without a semi-colon', '&DoubleLeftRightArrow', '&DoubleLeftRightArrow'],
+            187 => ['Named entity: DoubleLeftRightArrow; with a semi-colon', '&DoubleLeftRightArrow;', "\u{21D4}"],
+            188 => ['Bad named entity: DoubleLeftTee without a semi-colon', '&DoubleLeftTee', '&DoubleLeftTee'],
+            189 => ['Named entity: DoubleLeftTee; with a semi-colon', '&DoubleLeftTee;', "\u{2AE4}"],
+            190 => ['Bad named entity: DoubleLongLeftArrow without a semi-colon', '&DoubleLongLeftArrow', '&DoubleLongLeftArrow'],
+            191 => ['Named entity: DoubleLongLeftArrow; with a semi-colon', '&DoubleLongLeftArrow;', "\u{27F8}"],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                [],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -15447,6 +15496,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesCupCapDiacriticalDotExactFixtureProvider')]
     public function testHtml5libNamedEntitiesCupCapDiacriticalDotExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesDiacriticalDoubleAcuteDoubleLongLeftArrowExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesDiacriticalDoubleAcuteDoubleLongLeftArrowExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
