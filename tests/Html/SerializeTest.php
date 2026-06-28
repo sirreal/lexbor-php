@@ -4484,6 +4484,86 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeSystemDoubleQuotedBoundaryFixtureProvider(): iterable
+    {
+        foreach ([
+            497 => ['<!DOCTYPE a SYSTEM', '<!DOCTYPE a SYSTEM', null, [['eof-in-doctype', 1, 19]]],
+            498 => ['<!DOCTYPE a SYSTEM\\u0000', "<!DOCTYPE a SYSTEM\0", null, [['missing-quote-before-doctype-system-identifier', 1, 19], ['unexpected-null-character', 1, 19]]],
+            499 => ['<!DOCTYPE a SYSTEM \\u0000', "<!DOCTYPE a SYSTEM \0", null, [['missing-quote-before-doctype-system-identifier', 1, 20], ['unexpected-null-character', 1, 20]]],
+            500 => ['<!DOCTYPE a SYSTEM x\\u0000', "<!DOCTYPE a SYSTEM \0", null, [['missing-quote-before-doctype-system-identifier', 1, 20], ['unexpected-null-character', 1, 20]]],
+            501 => ['<!DOCTYPE a SYSTEM\\u0008', "<!DOCTYPE a SYSTEM\x08", null, [['control-character-in-input-stream', 1, 19], ['missing-quote-before-doctype-system-identifier', 1, 19]]],
+            502 => ['<!DOCTYPE a SYSTEM\\u0009', "<!DOCTYPE a SYSTEM\t", null, [['eof-in-doctype', 1, 20]]],
+            503 => ['<!DOCTYPE a SYSTEM\\u000A', "<!DOCTYPE a SYSTEM\n", null, [['eof-in-doctype', 2, 1]]],
+            504 => ['<!DOCTYPE a SYSTEM\\u000B', "<!DOCTYPE a SYSTEM\v", null, [['control-character-in-input-stream', 1, 19], ['missing-quote-before-doctype-system-identifier', 1, 19]]],
+            505 => ['<!DOCTYPE a SYSTEM\\u000C', "<!DOCTYPE a SYSTEM\f", null, [['eof-in-doctype', 1, 20]]],
+            506 => ['<!DOCTYPE a SYSTEM\\u000D', "<!DOCTYPE a SYSTEM\r", null, [['eof-in-doctype', 2, 1]]],
+            507 => ['<!DOCTYPE a SYSTEM\\u001F', "<!DOCTYPE a SYSTEM\x1F", null, [['control-character-in-input-stream', 1, 19], ['missing-quote-before-doctype-system-identifier', 1, 19]]],
+            508 => ['<!DOCTYPE a SYSTEM ', '<!DOCTYPE a SYSTEM ', null, [['eof-in-doctype', 1, 20]]],
+            509 => ['<!DOCTYPE a SYSTEM!', '<!DOCTYPE a SYSTEM!', null, [['missing-quote-before-doctype-system-identifier', 1, 19]]],
+            510 => ['<!DOCTYPE a SYSTEM"', '<!DOCTYPE a SYSTEM"', '', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 20]]],
+            511 => ['<!DOCTYPE a SYSTEM"\\u0000', "<!DOCTYPE a SYSTEM\"\0", "\u{FFFD}", [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['unexpected-null-character', 1, 20], ['eof-in-doctype', 1, 21]]],
+            512 => ['<!DOCTYPE a SYSTEM"\\u0009', "<!DOCTYPE a SYSTEM\"\t", "\t", [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            513 => ['<!DOCTYPE a SYSTEM"\\u000A', "<!DOCTYPE a SYSTEM\"\n", "\n", [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 2, 1]]],
+            514 => ['<!DOCTYPE a SYSTEM"\\u000B', "<!DOCTYPE a SYSTEM\"\v", "\v", [['control-character-in-input-stream', 1, 20], ['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            515 => ['<!DOCTYPE a SYSTEM"\\u000C', "<!DOCTYPE a SYSTEM\"\f", "\f", [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            516 => ['<!DOCTYPE a SYSTEM" ', '<!DOCTYPE a SYSTEM" ', ' ', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            517 => ['<!DOCTYPE a SYSTEM"!', '<!DOCTYPE a SYSTEM"!', '!', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            518 => ['<!DOCTYPE a SYSTEM""', '<!DOCTYPE a SYSTEM""', '', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            519 => ['<!DOCTYPE a SYSTEM"#', '<!DOCTYPE a SYSTEM"#', '#', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            520 => ['<!DOCTYPE a SYSTEM"&', '<!DOCTYPE a SYSTEM"&', '&', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            521 => ["<!DOCTYPE a SYSTEM\"'", "<!DOCTYPE a SYSTEM\"'", "'", [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            522 => ['<!DOCTYPE a SYSTEM"-', '<!DOCTYPE a SYSTEM"-', '-', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            523 => ['<!DOCTYPE a SYSTEM"/', '<!DOCTYPE a SYSTEM"/', '/', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            524 => ['<!DOCTYPE a SYSTEM"0', '<!DOCTYPE a SYSTEM"0', '0', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            525 => ['<!DOCTYPE a SYSTEM"1', '<!DOCTYPE a SYSTEM"1', '1', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            526 => ['<!DOCTYPE a SYSTEM"9', '<!DOCTYPE a SYSTEM"9', '9', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            527 => ['<!DOCTYPE a SYSTEM"<', '<!DOCTYPE a SYSTEM"<', '<', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            528 => ['<!DOCTYPE a SYSTEM"=', '<!DOCTYPE a SYSTEM"=', '=', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            529 => ['<!DOCTYPE a SYSTEM">', '<!DOCTYPE a SYSTEM">', '', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['abrupt-doctype-system-identifier', 1, 20]]],
+            530 => ['<!DOCTYPE a SYSTEM"?', '<!DOCTYPE a SYSTEM"?', '?', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            531 => ['<!DOCTYPE a SYSTEM"@', '<!DOCTYPE a SYSTEM"@', '@', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            532 => ['<!DOCTYPE a SYSTEM"A', '<!DOCTYPE a SYSTEM"A', 'A', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            533 => ['<!DOCTYPE a SYSTEM"B', '<!DOCTYPE a SYSTEM"B', 'B', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            534 => ['<!DOCTYPE a SYSTEM"Y', '<!DOCTYPE a SYSTEM"Y', 'Y', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            535 => ['<!DOCTYPE a SYSTEM"Z', '<!DOCTYPE a SYSTEM"Z', 'Z', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            536 => ['<!DOCTYPE a SYSTEM"`', '<!DOCTYPE a SYSTEM"`', '`', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            537 => ['<!DOCTYPE a SYSTEM"a', '<!DOCTYPE a SYSTEM"a', 'a', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            538 => ['<!DOCTYPE a SYSTEM"b', '<!DOCTYPE a SYSTEM"b', 'b', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            539 => ['<!DOCTYPE a SYSTEM"y', '<!DOCTYPE a SYSTEM"y', 'y', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            540 => ['<!DOCTYPE a SYSTEM"z', '<!DOCTYPE a SYSTEM"z', 'z', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            541 => ['<!DOCTYPE a SYSTEM"{', '<!DOCTYPE a SYSTEM"{', '{', [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 21]]],
+            542 => ['<!DOCTYPE a SYSTEM"\\uDBC0\\uDC00', "<!DOCTYPE a SYSTEM\"\u{100000}", "\u{100000}", [['missing-whitespace-after-doctype-system-keyword', 1, 19], ['eof-in-doctype', 1, 22]]],
+            543 => ['<!DOCTYPE a SYSTEM#', '<!DOCTYPE a SYSTEM#', null, [['missing-quote-before-doctype-system-identifier', 1, 19]]],
+            544 => ['<!DOCTYPE a SYSTEM&', '<!DOCTYPE a SYSTEM&', null, [['missing-quote-before-doctype-system-identifier', 1, 19]]],
+        ] as $testIndex => [$description, $html, $systemId, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            $expectedSerialization = '<!DOCTYPE a';
+            if ($systemId !== null) {
+                $expectedSerialization .= ' SYSTEM "' . $systemId . '"';
+            }
+
+            $expectedSerialization .= '><html><head></head><body></body></html>';
+
+            yield "test3.test $description SYSTEM identifier keyword/double-quoted exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', 'a', null, $systemId, false]],
+                $expectedErrors,
+                $expectedSerialization,
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -11807,6 +11887,49 @@ final class SerializeTest extends TestCase
             array_map(
                 static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
                 $fixture['errors'],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeSystemDoubleQuotedBoundaryFixtureProvider')]
+    public function testHtml5libTest3DoctypeSystemDoubleQuotedBoundaryFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
             ),
         );
 
