@@ -3483,6 +3483,34 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest4TagCaseSlashFixtureProvider(): iterable
+    {
+        foreach ([
+            43 => ['Uppercase start tag name', '<X>', [['StartTag', 'x', []]], []],
+            44 => ['Uppercase end tag name', '</X>', [['EndTag', 'x']], []],
+            45 => ['Uppercase attribute name', '<x X>', [['StartTag', 'x', ['x' => '']]], []],
+            46 => ['Tag/attribute name case edge values', '<x@AZ[`az{ @AZ[`az{>', [['StartTag', 'x@az[`az{', ['@az[`az{' => '']]], []],
+            47 => ['Duplicate different-case attributes', '<x x=1 x=2 X=3>', [['StartTag', 'x', ['x' => '1']]], [['code' => 'duplicate-attribute', 'line' => 1, 'col' => 9], ['code' => 'duplicate-attribute', 'line' => 1, 'col' => 13]]],
+            48 => ['Uppercase close tag attributes', '</x X>', [['EndTag', 'x']], [['code' => 'end-tag-with-attributes', 'line' => 1, 'col' => 6]]],
+            49 => ['Duplicate close tag attributes', '</x x x>', [['EndTag', 'x']], [['code' => 'duplicate-attribute', 'line' => 1, 'col' => 8], ['code' => 'end-tag-with-attributes', 'line' => 1, 'col' => 8]]],
+            50 => ['Permitted slash', '<br/>', [['StartTag', 'br', [], true]], []],
+            51 => ['Non-permitted slash', '<xr/>', [['StartTag', 'xr', [], true]], []],
+            52 => ['Permitted slash but in close tag', '</br/>', [['EndTag', 'br']], [['code' => 'end-tag-with-trailing-solidus', 'line' => 1, 'col' => 6]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test4.test $testIndex $description tag-case/slash exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -14223,6 +14251,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest4EofNumericReferenceFixtureProvider')]
     public function testHtml5libTest4EofNumericReferenceFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test4.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest4TagCaseSlashFixtureProvider')]
+    public function testHtml5libTest4TagCaseSlashFixtureRows(
         string $html,
         int $testIndex,
         string $description,
