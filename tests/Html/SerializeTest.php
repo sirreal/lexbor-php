@@ -7773,6 +7773,18 @@ final class SerializeTest extends TestCase
             '<svg><foreignObject><![CDATA[foo]]></foreignObject></svg>',
             '<svg><foreignobject>foo</foreignobject></svg>',
         ];
+        yield 'domjs.test CDATA content keeps character reference text' => [
+            '<svg><![CDATA[foo&#32;]]></svg>',
+            '<svg>foo&amp;#32;</svg>',
+        ];
+        yield 'domjs.test CDATA followed by HTML content decodes following reference' => [
+            '<svg><![CDATA[foo&#32;]]>&#32;</svg>',
+            '<svg>foo&amp;#32; </svg>',
+        ];
+        yield 'domjs.test CDATA extra bracket keeps one bracket' => [
+            '<svg><![CDATA[foo]]]></svg>',
+            '<svg>foo]</svg>',
+        ];
     }
 
     /**
