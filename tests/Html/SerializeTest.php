@@ -3293,6 +3293,36 @@ final class SerializeTest extends TestCase
                 [['Comment', '-']],
                 [['code' => 'incorrectly-opened-comment', 'line' => 1, 'col' => 3]],
             ],
+            1113 => [
+                '<"',
+                '<"',
+                [['Character', '<"']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            1114 => [
+                '<&',
+                '<&',
+                [['Character', '<&']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            1115 => [
+                "<'",
+                "<'",
+                [['Character', "<'"]],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            1116 => [
+                '<-',
+                '<-',
+                [['Character', '<-']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
+            1117 => [
+                '<.',
+                '<.',
+                [['Character', '<.']],
+                [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 2]],
+            ],
         ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
             yield "test3.test $description tag-open exact fixture row" => [
                 $html,
