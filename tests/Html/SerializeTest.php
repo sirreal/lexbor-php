@@ -7977,6 +7977,8 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 dash in tag name' => ['<a->', '<a-></a->'];
         yield 'html5lib test3 period in tag name' => ['<a.>', '<a.></a.>'];
         yield 'html5lib test3 self-closing slash after tag name' => ['<a/>', '<a></a>'];
+        yield 'html5lib test4 permitted slash on br start tag' => ['<br/>', '<br>'];
+        yield 'html5lib test4 non-void self-closing start tag' => ['<xr/>', '<xr></xr>'];
         yield 'html5lib test3 zero in tag name' => ['<a0>', '<a0></a0>'];
         yield 'html5lib test3 one in tag name' => ['<a1>', '<a1></a1>'];
         yield 'html5lib test3 nine in tag name' => ['<a9>', '<a9></a9>'];
@@ -8015,6 +8017,8 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 standalone uppercase B start tag folds' => ['<B>', '<b></b>'];
         yield 'html5lib test3 standalone uppercase Y start tag folds' => ['<Y>', '<y></y>'];
         yield 'html5lib test3 standalone uppercase Z start tag folds' => ['<Z>', '<z></z>'];
+        yield 'html5lib test4 uppercase X start tag folds' => ['<X>', '<x></x>'];
+        yield 'html5lib test4 standalone uppercase X end tag is ignored' => ['</X>', ''];
         yield 'html5lib test3 invalid tag-open left bracket is text' => ['<[', '&lt;['];
         yield 'html5lib test3 invalid tag-open backtick is text' => ['<`', '&lt;`'];
         yield 'html5lib test3 standalone lowercase a start tag' => ['<a>', '<a></a>'];
@@ -8035,6 +8039,7 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 tag name carriage return boundary' => ["<a\r>", '<a></a>'];
         yield 'html5lib test3 tag name unit separator is retained' => ["<a\x1F>", "<a\x1F></a\x1F>"];
         yield 'html5lib test3 EOF before end tag name is text' => ['</', '&lt;/'];
+        yield 'html5lib test4 standalone br end tag trailing slash is ignored' => ['</br/>', ''];
         yield 'html5lib test4 EOF in tag name state' => ['<a', ''];
         yield 'html5lib test4 slash EOF in tag name state' => ['<z/', ''];
         yield 'html5lib test4 CR EOF in tag name state' => ["<z\r", ''];
@@ -8231,6 +8236,11 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 before attribute name uppercase B' => ['<a B>', '<a b=""></a>'];
         yield 'html5lib test3 before attribute name uppercase Y' => ['<a Y>', '<a y=""></a>'];
         yield 'html5lib test3 before attribute name uppercase Z' => ['<a Z>', '<a z=""></a>'];
+        yield 'html5lib test4 uppercase attribute name folds' => ['<x X>', '<x x=""></x>'];
+        yield 'html5lib test4 tag and attribute name case edge values fold ASCII only' => [
+            '<x@AZ[`az{ @AZ[`az{>',
+            '<x@az[`az{ @az[`az{=""></x@az[`az{>',
+        ];
         yield 'html5lib test3 before attribute name left bracket' => ['<a [>', '<a [=""></a>'];
         yield 'html5lib test3 before attribute name backtick' => ['<a `>', '<a `=""></a>'];
         yield 'html5lib test3 before attribute name lowercase b' => ['<a b>', '<a b=""></a>'];
@@ -8307,6 +8317,10 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 after attribute name left bracket' => ['<a a [>', '<a a="" [=""></a>'];
         yield 'html5lib test3 after attribute name backtick' => ['<a a `>', '<a a="" `=""></a>'];
         yield 'html5lib test3 after attribute name lowercase a duplicate' => ['<a a a>', '<a a=""></a>'];
+        yield 'html5lib test4 duplicate different-case attributes keep first value' => [
+            '<x x=1 x=2 X=3>',
+            '<x x="1"></x>',
+        ];
         yield 'html5lib test3 after attribute name lowercase b' => ['<a a b>', '<a a="" b=""></a>'];
         yield 'html5lib test3 after attribute name lowercase y' => ['<a a y>', '<a a="" y=""></a>'];
         yield 'html5lib test3 after attribute name lowercase z' => ['<a a z>', '<a a="" z=""></a>'];
@@ -8614,6 +8628,8 @@ final class SerializeTest extends TestCase
         yield 'html5lib test4 EOF in single-quoted attribute value state' => ["<a a ='a", ''];
         yield 'html5lib test4 EOF in unquoted attribute value state' => ['<a a =a', ''];
         yield 'html5lib test4 EOF in after attribute value state' => ["<a a ='a'", ''];
+        yield 'html5lib test4 standalone end tag attributes are ignored' => ['</x X>', ''];
+        yield 'html5lib test4 standalone duplicate end tag attributes are ignored' => ['</x x x>', ''];
         yield 'html5lib test2 double-quote after attribute name' => [
             '<h a ">',
             '<h a="" &quot;=""></h>',
