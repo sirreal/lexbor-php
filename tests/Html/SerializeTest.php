@@ -4743,6 +4743,55 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesNewLineNotGreaterFullEqualExactFixtureProvider(): iterable
+    {
+        foreach ([
+            608 => ['Bad named entity: NewLine without a semi-colon', '&NewLine', '&NewLine', []],
+            609 => ['Named entity: NewLine; with a semi-colon', '&NewLine;', "\n", []],
+            610 => ['Bad named entity: Nfr without a semi-colon', '&Nfr', '&Nfr', []],
+            611 => ['Named entity: Nfr; with a semi-colon', '&Nfr;', "\u{1D511}", []],
+            612 => ['Bad named entity: NoBreak without a semi-colon', '&NoBreak', '&NoBreak', []],
+            613 => ['Named entity: NoBreak; with a semi-colon', '&NoBreak;', "\u{2060}", []],
+            614 => ['Bad named entity: NonBreakingSpace without a semi-colon', '&NonBreakingSpace', '&NonBreakingSpace', []],
+            615 => ['Named entity: NonBreakingSpace; with a semi-colon', '&NonBreakingSpace;', "\u{00A0}", []],
+            616 => ['Bad named entity: Nopf without a semi-colon', '&Nopf', '&Nopf', []],
+            617 => ['Named entity: Nopf; with a semi-colon', '&Nopf;', "\u{2115}", []],
+            618 => ['Bad named entity: Not without a semi-colon', '&Not', '&Not', []],
+            619 => ['Named entity: Not; with a semi-colon', '&Not;', "\u{2AEC}", []],
+            620 => ['Bad named entity: NotCongruent without a semi-colon', '&NotCongruent', '&NotCongruent', []],
+            621 => ['Named entity: NotCongruent; with a semi-colon', '&NotCongruent;', "\u{2262}", []],
+            622 => ['Bad named entity: NotCupCap without a semi-colon', '&NotCupCap', '&NotCupCap', []],
+            623 => ['Named entity: NotCupCap; with a semi-colon', '&NotCupCap;', "\u{226D}", []],
+            624 => ['Bad named entity: NotDoubleVerticalBar without a semi-colon', '&NotDoubleVerticalBar', '&NotDoubleVerticalBar', []],
+            625 => ['Named entity: NotDoubleVerticalBar; with a semi-colon', '&NotDoubleVerticalBar;', "\u{2226}", []],
+            626 => ['Bad named entity: NotElement without a semi-colon', '&NotElement', '&NotElement', []],
+            627 => ['Named entity: NotElement; with a semi-colon', '&NotElement;', "\u{2209}", []],
+            628 => ['Bad named entity: NotEqual without a semi-colon', '&NotEqual', '&NotEqual', []],
+            629 => ['Named entity: NotEqual; with a semi-colon', '&NotEqual;', "\u{2260}", []],
+            630 => ['Bad named entity: NotEqualTilde without a semi-colon', '&NotEqualTilde', '&NotEqualTilde', []],
+            631 => ['Named entity: NotEqualTilde; with a semi-colon', '&NotEqualTilde;', "\u{2242}\u{0338}", []],
+            632 => ['Bad named entity: NotExists without a semi-colon', '&NotExists', '&NotExists', []],
+            633 => ['Named entity: NotExists; with a semi-colon', '&NotExists;', "\u{2204}", []],
+            634 => ['Bad named entity: NotGreater without a semi-colon', '&NotGreater', '&NotGreater', []],
+            635 => ['Named entity: NotGreater; with a semi-colon', '&NotGreater;', "\u{226F}", []],
+            636 => ['Bad named entity: NotGreaterEqual without a semi-colon', '&NotGreaterEqual', '&NotGreaterEqual', []],
+            637 => ['Named entity: NotGreaterEqual; with a semi-colon', '&NotGreaterEqual;', "\u{2271}", []],
+            638 => ['Bad named entity: NotGreaterFullEqual without a semi-colon', '&NotGreaterFullEqual', '&NotGreaterFullEqual', []],
+            639 => ['Named entity: NotGreaterFullEqual; with a semi-colon', '&NotGreaterFullEqual;', "\u{2267}\u{0338}", []],
+        ] as $testIndex => [$description, $html, $character, $expectedErrors]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -16637,6 +16686,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesMfrNestedLessLessExactFixtureProvider')]
     public function testHtml5libNamedEntitiesMfrNestedLessLessExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesNewLineNotGreaterFullEqualExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesNewLineNotGreaterFullEqualExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
