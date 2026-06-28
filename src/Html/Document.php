@@ -1404,6 +1404,7 @@ REGEX;
                     'publicId' => null,
                     'systemId' => null,
                     'offset' => strlen($invalidAfterNameMatch[0][0]),
+                    'forceQuirks' => true,
                 ];
             }
 

@@ -416,27 +416,32 @@ final class SerializeTest extends TestCase
         yield 'html5lib test4 invalid publik keyword after doctype name' => [
             '<!DOCTYPE html PUBLIK "AbC" "XyZ">',
             '<!DOCTYPE html><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'html5lib test4 EOF in invalid publi keyword after doctype name' => [
             '<!DOCTYPE html PUBLI',
             '<!DOCTYPE html><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'html5lib test4 invalid sistem keyword after doctype name' => [
             '<!DOCTYPE html SISTEM "AbC">',
             '<!DOCTYPE html><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'html5lib test4 EOF in invalid sys keyword after doctype name' => [
             '<!DOCTYPE html SYS',
             '<!DOCTYPE html><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'html5lib test4 invalid sequence after doctype name' => [
             '<!DOCTYPE html x>text',
             '<!DOCTYPE html><html><head></head><body>text</body></html>',
-            false,
+            true,
+        ];
+        yield 'html5lib test4 CR EOF after doctype name' => [
+            "<!doctype html \r",
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
         ];
         foreach ([
             'uppercase Y' => '<!DOCTYPEa Y',
@@ -8315,6 +8320,54 @@ final class SerializeTest extends TestCase
         yield 'html5lib test2 empty attribute followed by uppercase attribute' => [
             "<h a B=''>",
             '<h a="" b=""></h>',
+        ];
+        yield 'html5lib test4 less-than in unquoted attribute value' => [
+            '<z x=<>',
+            '<z x="&lt;"></z>',
+        ];
+        yield 'html5lib test4 equals in unquoted attribute value' => [
+            '<z z=z=z>',
+            '<z z="z=z"></z>',
+        ];
+        yield 'html5lib test4 double quote after ampersand in double-quoted value' => [
+            '<z z="&">',
+            '<z z="&amp;"></z>',
+        ];
+        yield 'html5lib test4 single quote after ampersand in double-quoted value' => [
+            "<z z=\"&'\">",
+            "<z z=\"&amp;'\"></z>",
+        ];
+        yield 'html5lib test4 single quote after ampersand in single-quoted value' => [
+            "<z z='&'>",
+            '<z z="&amp;"></z>',
+        ];
+        yield 'html5lib test4 double quote after ampersand in single-quoted value' => [
+            "<z z='&\"'>",
+            '<z z="&amp;&quot;"></z>',
+        ];
+        yield 'html5lib test4 bogus character reference before text' => [
+            "<z z='&xlink_xmlns;'>bar<z>",
+            '<z z="&amp;xlink_xmlns;">bar<z></z></z>',
+        ];
+        yield 'html5lib test4 hexadecimal character reference before text' => [
+            "<z z='&#x0020; foo'>bar<z>",
+            '<z z="  foo">bar<z></z></z>',
+        ];
+        yield 'html5lib test4 double-quoted value without following whitespace' => [
+            '<foo a="b"c>',
+            '<foo a="b" c=""></foo>',
+        ];
+        yield 'html5lib test4 single-quoted value without following whitespace' => [
+            "<foo a='b'c>",
+            '<foo a="b" c=""></foo>',
+        ];
+        yield 'html5lib test4 quoted br self-closing slash' => [
+            "<br a='b'/>",
+            '<br a="b">',
+        ];
+        yield 'html5lib test4 quoted non-void self-closing slash' => [
+            "<bar a='b'/>",
+            '<bar a="b"></bar>',
         ];
         yield 'tag_attr.ton #8 legacy query reference without semicolon' => [
             "<div n='/ololo/?arg=1&acirc'>",
