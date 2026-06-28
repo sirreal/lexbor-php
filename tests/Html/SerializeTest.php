@@ -241,32 +241,37 @@ final class SerializeTest extends TestCase
         yield 'doctype.ton #12 EOF in single-quoted public identifier' => [
             "<!DOCTYPE html PUBLIC 'test publi",
             '<!DOCTYPE html PUBLIC "test publi"><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'doctype.ton #13 duplicate EOF in single-quoted public identifier' => [
             "<!DOCTYPE html PUBLIC 'test publi",
             '<!DOCTYPE html PUBLIC "test publi"><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'doctype.ton #14 EOF in system identifier after public identifier' => [
             '<!DOCTYPE html PUBLIC \'test public\' "test syst',
             '<!DOCTYPE html PUBLIC "test public" "test syst"><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'doctype.ton #15 missing whitespace before EOF system identifier' => [
             '<!DOCTYPE html PUBLIC \'test public\'"test syst',
             '<!DOCTYPE html PUBLIC "test public" "test syst"><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'doctype.ton #16 EOF after public keyword' => [
             '<!DOCTYPE html PUBLIC ',
             '<!DOCTYPE html><html><head></head><body></body></html>',
-            false,
+            true,
         ];
         yield 'doctype.ton #17 EOF after opening public quote' => [
             '<!DOCTYPE html PUBLIC "',
             '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
-            false,
+            true,
+        ];
+        yield 'html5lib test2 doctype without name' => [
+            '<!DOCTYPE>',
+            '<html><head></head><body></body></html>',
+            true,
         ];
         yield 'html5lib test2 doctype without space before html name' => [
             '<!DOCTYPEhtml>',
@@ -277,6 +282,41 @@ final class SerializeTest extends TestCase
             '<!DOCTYPEfoo>',
             '<!DOCTYPE foo><html><head></head><body></body></html>',
             true,
+        ];
+        yield 'html5lib test2 doctype with public identifier' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML Transitional 4.01//EN">',
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML Transitional 4.01//EN"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test2 doctype EOF after public keyword' => [
+            '<!DOCTYPE html PUBLIC',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test2 doctype EOF after opening single-quoted public identifier' => [
+            "<!DOCTYPE html PUBLIC '",
+            '<!DOCTYPE html PUBLIC ""><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test2 doctype EOF in single-quoted public identifier' => [
+            "<!DOCTYPE html PUBLIC 'x",
+            '<!DOCTYPE html PUBLIC "x"><html><head></head><body></body></html>',
+            true,
+        ];
+        yield 'html5lib test2 doctype with system identifier' => [
+            '<!DOCTYPE html SYSTEM "-//W3C//DTD HTML Transitional 4.01//EN">',
+            '<!DOCTYPE html SYSTEM "-//W3C//DTD HTML Transitional 4.01//EN"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test2 doctype with single-quoted system identifier' => [
+            "<!DOCTYPE html SYSTEM '-//W3C//DTD HTML Transitional 4.01//EN'>",
+            '<!DOCTYPE html SYSTEM "-//W3C//DTD HTML Transitional 4.01//EN"><html><head></head><body></body></html>',
+            false,
+        ];
+        yield 'html5lib test2 doctype with public and system identifiers' => [
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML Transitional 4.01//EN" "-//W3C//DTD HTML Transitional 4.01//EN">',
+            '<!DOCTYPE html PUBLIC "-//W3C//DTD HTML Transitional 4.01//EN" "-//W3C//DTD HTML Transitional 4.01//EN"><html><head></head><body></body></html>',
+            false,
         ];
         yield 'html5lib test3 NUL after doctype keyword' => [
             "<!DOCTYPE \0>",
