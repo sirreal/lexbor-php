@@ -7851,6 +7851,17 @@ final class SerializeTest extends TestCase
         yield 'comment.ton #1 space comment' => ['<div><!-- --></div>', '<div><!-- --></div>'];
         yield 'comment.ton #2 repeated hyphen comment' => ['<div><!-------></div>', '<div><!-------></div>'];
         yield 'html5lib test1 truncated doctype start is bogus comment' => ['<!DOC>', '<!--' . 'DOC' . '-->'];
+        yield 'html5lib test1 simple comment' => ['<!--comment-->', '<!--comment-->'];
+        yield 'html5lib test1 central dash comment' => ['<!----->', '<!----->'];
+        yield 'html5lib test1 two central dashes comment' => ['<!-- --comment -->', '<!-- --comment -->'];
+        yield 'html5lib test1 central less-than bang comment' => ['<!--<!-->', '<!--<!-->'];
+        yield 'html5lib test1 unfinished comment' => ['<!--comment', '<!--comment-->'];
+        yield 'html5lib test1 less-than in comment' => ['<!-- <test-->', '<!-- <test-->'];
+        yield 'html5lib test1 double less-than in comment' => ['<!--<<-->', '<!--<<-->'];
+        yield 'html5lib test1 less-than bang in comment' => ['<!-- <!test-->', '<!-- <!test-->'];
+        yield 'html5lib test1 less-than bang dash in comment' => ['<!-- <!-test-->', '<!-- <!-test-->'];
+        yield 'html5lib test1 nested comment marker' => ['<!-- <!--test-->', '<!-- <!--test-->'];
+        yield 'html5lib test1 nested comment marker with extra less-than' => ['<!-- <<!--test-->', '<!-- <<!--test-->'];
         yield 'html5lib test3 incorrectly opened comment NUL' => ["<!\0", "<!--\u{FFFD}-->"];
         yield 'html5lib test3 incorrectly opened comment space NUL' => ["<! \0", "<!-- \u{FFFD}-->"];
         yield 'html5lib test4 incorrectly opened comment followed by NUL text' => [
@@ -7988,6 +7999,7 @@ final class SerializeTest extends TestCase
         yield 'tag_name.ton #4 single-letter tag plus NUL' => ["<s\0>", "<s\u{FFFD}></s\u{FFFD}>"];
         yield 'tag_name.ton #5 repeated NULs in tag name' => ["<sEf\0\0\0sTf>", "<sef\u{FFFD}\u{FFFD}\u{FFFD}stf></sef\u{FFFD}\u{FFFD}\u{FFFD}stf>"];
         yield 'tag_name.ton #6 uppercase ASCII is lowercased' => ['<AAAAAA-aa>', '<aaaaaa-aa></aaaaaa-aa>'];
+        yield 'html5lib test1 single start tag' => ['<h>', '<h></h>'];
         yield 'body pre-scan does not consume NUL-suffixed body tag' => ["<body\0>x</body\0>", "<body\u{FFFD}>x</body\u{FFFD}>"];
         yield 'html5lib test2 less-than in tag name' => ['<a<b>', '<a<b></a<b>'];
         yield 'html5lib test3 exclamation in tag name' => ['<a!>', '<a!></a!>'];
@@ -8142,6 +8154,23 @@ final class SerializeTest extends TestCase
         yield 'tag_attr.ton #7 unknown query ampersand remains literal' => [
             "<div n='/ololo/?arg=1&redirect=123'>",
             '<div n="/ololo/?arg=1&amp;redirect=123"></div>',
+        ];
+        yield 'html5lib test1 start tag with single-quoted attribute' => [
+            "<h a='b'>",
+            '<h a="b"></h>',
+        ];
+        yield 'html5lib test1 start tag with unquoted attribute' => ['<h a=b>', '<h a="b"></h>'];
+        yield 'html5lib test1 multiple attributes' => [
+            "<h a='b' c='d'>",
+            '<h a="b" c="d"></h>',
+        ];
+        yield 'html5lib test1 adjacent attributes without whitespace' => [
+            "<h a='b'c='d'>",
+            '<h a="b" c="d"></h>',
+        ];
+        yield 'html5lib test1 repeated attribute keeps first value' => [
+            "<h a='b' a='d'>",
+            '<h a="b"></h>',
         ];
         yield 'tag_attr.ton #8 legacy query reference without semicolon' => [
             "<div n='/ololo/?arg=1&acirc'>",
