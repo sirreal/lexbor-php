@@ -3346,6 +3346,34 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest2TagBogusCommentFixtureProvider(): iterable
+    {
+        foreach ([
+            23 => ['StartTag containing <', '<a<b>', [['StartTag', 'a<b', []]], []],
+            24 => ['Non-void element containing trailing /', '<h/>', [['StartTag', 'h', [], true]], []],
+            25 => ['Void element with permitted slash', '<br/>', [['StartTag', 'br', [], true]], []],
+            26 => ['Void element with permitted slash (with attribute)', "<br foo='bar'/>", [['StartTag', 'br', ['foo' => 'bar'], true]], []],
+            27 => ['StartTag containing /', "<h/a='b'>", [['StartTag', 'h', ['a' => 'b']]], [['code' => 'unexpected-solidus-in-tag', 'line' => 1, 'col' => 4]]],
+            28 => ['Double-quoted attribute value', '<h a="b">', [['StartTag', 'h', ['a' => 'b']]], []],
+            29 => ['Unescaped </', '</', [['Character', '</']], [['code' => 'eof-before-tag-name', 'line' => 1, 'col' => 3]]],
+            30 => ['Illegal end tag name', '</1>', [['Comment', '1']], [['code' => 'invalid-first-character-of-tag-name', 'line' => 1, 'col' => 3]]],
+            31 => ['Simili processing instruction', '<?namespace>', [['Comment', '?namespace']], [['code' => 'unexpected-question-mark-instead-of-tag-name', 'line' => 1, 'col' => 2]]],
+            32 => ['A bogus comment stops at >, even if preceded by two dashes', '<?foo-->', [['Comment', '?foo--']], [['code' => 'unexpected-question-mark-instead-of-tag-name', 'line' => 1, 'col' => 2]]],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test2.test $testIndex $description tag/bogus-comment exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -13966,6 +13994,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest2CharacterReferenceFixtureProvider')]
     public function testHtml5libTest2CharacterReferenceFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test2.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest2TagBogusCommentFixtureProvider')]
+    public function testHtml5libTest2TagBogusCommentFixtureRows(
         string $html,
         int $testIndex,
         string $description,
