@@ -3946,6 +3946,44 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3CommentDataNoSpaceFixtureProvider(): iterable
+    {
+        foreach ([
+            249 => ['<!--.', '<!--.', '.', 6],
+            250 => ['<!--/', '<!--/', '/', 6],
+            251 => ['<!--0', '<!--0', '0', 6],
+            252 => ['<!--1', '<!--1', '1', 6],
+            253 => ['<!--9', '<!--9', '9', 6],
+            254 => ['<!--<', '<!--<', '<', 6],
+            255 => ['<!--=', '<!--=', '=', 6],
+            256 => ['<!--?', '<!--?', '?', 6],
+            257 => ['<!--@', '<!--@', '@', 6],
+            258 => ['<!--A', '<!--A', 'A', 6],
+            259 => ['<!--B', '<!--B', 'B', 6],
+            260 => ['<!--Y', '<!--Y', 'Y', 6],
+            261 => ['<!--Z', '<!--Z', 'Z', 6],
+            262 => ['<!--`', '<!--`', '`', 6],
+            263 => ['<!--a', '<!--a', 'a', 6],
+            264 => ['<!--b', '<!--b', 'b', 6],
+            265 => ['<!--y', '<!--y', 'y', 6],
+            266 => ['<!--z', '<!--z', 'z', 6],
+            267 => ['<!--{', '<!--{', '{', 6],
+            268 => ['<!--\\uDBC0\\uDC00', "<!--\u{100000}", "\u{100000}", 7],
+        ] as $testIndex => [$description, $html, $comment, $errorColumn]) {
+            yield "test3.test $description comment-data no-space exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Comment', $comment]],
+                [['code' => 'eof-in-comment', 'line' => 1, 'col' => $errorColumn]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -10832,6 +10870,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3CommentDashContinuationFixtureProvider')]
     public function testHtml5libTest3CommentDashContinuationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3CommentDataNoSpaceFixtureProvider')]
+    public function testHtml5libTest3CommentDataNoSpaceFixtureRows(
         string $html,
         int $testIndex,
         string $description,
