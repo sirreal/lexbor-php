@@ -5461,6 +5461,53 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeMissingWhitespaceSystemSingleQuotedPrintableEofFixtureProvider(): iterable
+    {
+        foreach ([
+            989 => ["<!DOCTYPEa SYSTEM'(", "<!DOCTYPEa SYSTEM'(", '(', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            990 => ["<!DOCTYPEa SYSTEM'-", "<!DOCTYPEa SYSTEM'-", '-', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            991 => ["<!DOCTYPEa SYSTEM'/", "<!DOCTYPEa SYSTEM'/", '/', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            992 => ["<!DOCTYPEa SYSTEM'0", "<!DOCTYPEa SYSTEM'0", '0', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            993 => ["<!DOCTYPEa SYSTEM'1", "<!DOCTYPEa SYSTEM'1", '1', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            994 => ["<!DOCTYPEa SYSTEM'9", "<!DOCTYPEa SYSTEM'9", '9', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            995 => ["<!DOCTYPEa SYSTEM'<", "<!DOCTYPEa SYSTEM'<", '<', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            996 => ["<!DOCTYPEa SYSTEM'=", "<!DOCTYPEa SYSTEM'=", '=', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            997 => ["<!DOCTYPEa SYSTEM'>", "<!DOCTYPEa SYSTEM'>", '', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['abrupt-doctype-system-identifier', 1, 19]]],
+            998 => ["<!DOCTYPEa SYSTEM'?", "<!DOCTYPEa SYSTEM'?", '?', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            999 => ["<!DOCTYPEa SYSTEM'@", "<!DOCTYPEa SYSTEM'@", '@', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1000 => ["<!DOCTYPEa SYSTEM'A", "<!DOCTYPEa SYSTEM'A", 'A', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1001 => ["<!DOCTYPEa SYSTEM'B", "<!DOCTYPEa SYSTEM'B", 'B', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1002 => ["<!DOCTYPEa SYSTEM'Y", "<!DOCTYPEa SYSTEM'Y", 'Y', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1003 => ["<!DOCTYPEa SYSTEM'Z", "<!DOCTYPEa SYSTEM'Z", 'Z', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1004 => ["<!DOCTYPEa SYSTEM'`", "<!DOCTYPEa SYSTEM'`", '`', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1005 => ["<!DOCTYPEa SYSTEM'a", "<!DOCTYPEa SYSTEM'a", 'a', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1006 => ["<!DOCTYPEa SYSTEM'b", "<!DOCTYPEa SYSTEM'b", 'b', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1007 => ["<!DOCTYPEa SYSTEM'y", "<!DOCTYPEa SYSTEM'y", 'y', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1008 => ["<!DOCTYPEa SYSTEM'z", "<!DOCTYPEa SYSTEM'z", 'z', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1009 => ["<!DOCTYPEa SYSTEM'{", "<!DOCTYPEa SYSTEM'{", '{', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 20]]],
+            1010 => ["<!DOCTYPEa SYSTEM'\\uDBC0\\uDC00", "<!DOCTYPEa SYSTEM'\u{100000}", "\u{100000}", [['missing-whitespace-before-doctype-name', 1, 10], ['missing-whitespace-after-doctype-system-keyword', 1, 18], ['eof-in-doctype', 1, 21]]],
+        ] as $testIndex => [$description, $html, $systemId, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description missing-whitespace single-quoted SYSTEM identifier printable EOF exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', 'a', null, $systemId, false]],
+                $expectedErrors,
+                '<!DOCTYPE a SYSTEM "' . $systemId . '"><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -13531,6 +13578,49 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeMissingWhitespaceSystemClosedEmptyIdentifierBoundaryFixtureProvider')]
     public function testHtml5libTest3DoctypeMissingWhitespaceSystemClosedEmptyIdentifierBoundaryFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeMissingWhitespaceSystemSingleQuotedPrintableEofFixtureProvider')]
+    public function testHtml5libTest3DoctypeMissingWhitespaceSystemSingleQuotedPrintableEofFixtureRows(
         string $html,
         int $testIndex,
         string $description,
