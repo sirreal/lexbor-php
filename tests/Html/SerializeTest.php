@@ -178,6 +178,11 @@ final class SerializeTest extends TestCase
             '<!DOCTYPE html><html><head></head><body></body></html>',
             false,
         ];
+        yield 'domjs.test doctype EOF after name whitespace' => [
+            '<!DOCTYPE html ',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            false,
+        ];
         yield 'doctype.ton #5 public identifier with double quotes' => [
             '<!DOCTYPE html PUBLIC "test public">',
             '<!DOCTYPE html PUBLIC "test public"><html><head></head><body></body></html>',
@@ -7830,6 +7835,7 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 unfinished four-dash comment' => ['<!----', '<!--' . '' . '-->'];
         yield 'html5lib test3 incorrectly closed empty comment' => ['<!----!>', '<!--' . '' . '-->'];
         yield 'html5lib test3 incorrectly closed comment with data' => ['<!----!-->', '<!--' . '--!' . '-->'];
+        yield 'html5lib domjs incorrectly closed comment NUL replacement' => ["<!----!\0-->", "<!----!\u{FFFD}-->"];
         yield 'html5lib pendingSpecChanges unfinished four-dash comment with space' => ['<!---- >', '<!--' . '-- >' . '-->'];
     }
 
