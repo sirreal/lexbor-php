@@ -3404,6 +3404,47 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest4TagAttributeFixtureProvider(): iterable
+    {
+        foreach ([
+            0 => ['< in attribute name', '<z/0  <>', [['StartTag', 'z', ['0' => '', '<' => '']]], [['code' => 'unexpected-solidus-in-tag', 'line' => 1, 'col' => 4], ['code' => 'unexpected-character-in-attribute-name', 'line' => 1, 'col' => 7]]],
+            1 => ['< in unquoted attribute value', '<z x=<>', [['StartTag', 'z', ['x' => '<']]], [['code' => 'unexpected-character-in-unquoted-attribute-value', 'line' => 1, 'col' => 6]]],
+            2 => ['= in unquoted attribute value', '<z z=z=z>', [['StartTag', 'z', ['z' => 'z=z']]], [['code' => 'unexpected-character-in-unquoted-attribute-value', 'line' => 1, 'col' => 7]]],
+            3 => ['= attribute', '<z =>', [['StartTag', 'z', ['=' => '']]], [['code' => 'unexpected-equals-sign-before-attribute-name', 'line' => 1, 'col' => 4]]],
+            4 => ['== attribute', '<z ==>', [['StartTag', 'z', ['=' => '']]], [['code' => 'unexpected-equals-sign-before-attribute-name', 'line' => 1, 'col' => 4], ['code' => 'missing-attribute-value', 'line' => 1, 'col' => 6]]],
+            5 => ['=== attribute', '<z ===>', [['StartTag', 'z', ['=' => '=']]], [['code' => 'unexpected-equals-sign-before-attribute-name', 'line' => 1, 'col' => 4], ['code' => 'unexpected-character-in-unquoted-attribute-value', 'line' => 1, 'col' => 6]]],
+            6 => ['==== attribute', '<z ====>', [['StartTag', 'z', ['=' => '==']]], [['code' => 'unexpected-equals-sign-before-attribute-name', 'line' => 1, 'col' => 4], ['code' => 'unexpected-character-in-unquoted-attribute-value', 'line' => 1, 'col' => 6], ['code' => 'unexpected-character-in-unquoted-attribute-value', 'line' => 1, 'col' => 7]]],
+            7 => ['" after ampersand in double-quoted attribute value', '<z z="&">', [['StartTag', 'z', ['z' => '&']]], []],
+            8 => ["' after ampersand in double-quoted attribute value", '<z z="&\'">', [['StartTag', 'z', ['z' => '&\'']]], []],
+            9 => ["' after ampersand in single-quoted attribute value", "<z z='&'>", [['StartTag', 'z', ['z' => '&']]], []],
+            10 => ['" after ampersand in single-quoted attribute value', "<z z='&\"'>", [['StartTag', 'z', ['z' => '&"']]], []],
+            11 => ['Text after bogus character reference', "<z z='&xlink_xmlns;'>bar<z>", [['StartTag', 'z', ['z' => '&xlink_xmlns;']], ['Character', 'bar'], ['StartTag', 'z', []]], []],
+            12 => ['Text after hex character reference', "<z z='&#x0020; foo'>bar<z>", [['StartTag', 'z', ['z' => '  foo']], ['Character', 'bar'], ['StartTag', 'z', []]], []],
+            13 => ['Attribute name starting with "', '<foo "=\'bar\'>', [['StartTag', 'foo', ['"' => 'bar']]], [['code' => 'unexpected-character-in-attribute-name', 'line' => 1, 'col' => 6]]],
+            14 => ["Attribute name starting with '", "<foo '='bar'>", [['StartTag', 'foo', ['\'' => 'bar']]], [['code' => 'unexpected-character-in-attribute-name', 'line' => 1, 'col' => 6]]],
+            15 => ['Attribute name containing "', '<foo a"b=\'bar\'>', [['StartTag', 'foo', ['a"b' => 'bar']]], [['code' => 'unexpected-character-in-attribute-name', 'line' => 1, 'col' => 7]]],
+            16 => ["Attribute name containing '", "<foo a'b='bar'>", [['StartTag', 'foo', ["a'b" => 'bar']]], [['code' => 'unexpected-character-in-attribute-name', 'line' => 1, 'col' => 7]]],
+            17 => ["Unquoted attribute value containing '", "<foo a=b'c>", [['StartTag', 'foo', ['a' => "b'c"]]], [['code' => 'unexpected-character-in-unquoted-attribute-value', 'line' => 1, 'col' => 9]]],
+            18 => ['Unquoted attribute value containing "', '<foo a=b"c>', [['StartTag', 'foo', ['a' => 'b"c']]], [['code' => 'unexpected-character-in-unquoted-attribute-value', 'line' => 1, 'col' => 9]]],
+            19 => ['Double-quoted attribute value not followed by whitespace', '<foo a="b"c>', [['StartTag', 'foo', ['a' => 'b', 'c' => '']]], [['code' => 'missing-whitespace-between-attributes', 'line' => 1, 'col' => 11]]],
+            20 => ['Single-quoted attribute value not followed by whitespace', "<foo a='b'c>", [['StartTag', 'foo', ['a' => 'b', 'c' => '']]], [['code' => 'missing-whitespace-between-attributes', 'line' => 1, 'col' => 11]]],
+            21 => ['Quoted attribute followed by permitted /', "<br a='b'/>", [['StartTag', 'br', ['a' => 'b'], true]], []],
+            22 => ['Quoted attribute followed by non-permitted /', "<bar a='b'/>", [['StartTag', 'bar', ['a' => 'b'], true]], []],
+        ] as $testIndex => [$description, $html, $expectedOutput, $expectedErrors]) {
+            yield "test4.test $testIndex $description tag/attribute exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>}>
      */
     public static function html5libTest3LiteralFixtureProvider(): iterable
@@ -14093,6 +14134,36 @@ final class SerializeTest extends TestCase
     ): void
     {
         $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test2.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest4TagAttributeFixtureProvider')]
+    public function testHtml5libTest4TagAttributeFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test4.test');
         self::assertIsString($contents);
 
         $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
