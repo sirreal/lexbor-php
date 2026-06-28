@@ -3944,6 +3944,69 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3UnquotedAttributeValuePunctuationFixtureProvider(): iterable
+    {
+        foreach ([
+            1346 => ['<a a=#>', '<a a=#>', '#', []],
+            1347 => ['<a a=%>', '<a a=%>', '%', []],
+            1348 => ['<a a=&>', '<a a=&>', '&', []],
+        ] as $testIndex => [$description, $html, $value, $errors]) {
+            $expectedOutput = [['StartTag', 'a', ['a' => $value]]];
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description unquoted attribute-value punctuation exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3SingleQuotedAttributeValueBasicFixtureProvider(): iterable
+    {
+        foreach ([
+            1349 => ["<a a=''>", "<a a=''>", '', []],
+            1350 => ["<a a='\\u0000'>", "<a a='\0'>", "\u{FFFD}", [['unexpected-null-character', 1, 7]]],
+            1351 => ["<a a='\\u0009'>", "<a a='\t'>", "\t", []],
+            1352 => ["<a a='\\u000A'>", "<a a='\n'>", "\n", []],
+            1353 => ["<a a='\\u000B'>", "<a a='\v'>", "\v", [['control-character-in-input-stream', 1, 7]]],
+            1354 => ["<a a='\\u000C'>", "<a a='\f'>", "\f", []],
+            1355 => ["<a a=' '>", "<a a=' '>", ' ', []],
+            1356 => ["<a a='!'>", "<a a='!'>", '!', []],
+            1357 => ["<a a='\"'>", "<a a='\"'>", '"', []],
+            1358 => ["<a a='%'>", "<a a='%'>", '%', []],
+            1359 => ["<a a='&'>", "<a a='&'>", '&', []],
+            1360 => ["<a a=''>", "<a a=''>", '', []],
+        ] as $testIndex => [$description, $html, $value, $errors]) {
+            $expectedOutput = [['StartTag', 'a', ['a' => $value]]];
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $testIndex $description single-quoted attribute-value basic exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest3CommentStartFixtureProvider(): iterable
@@ -13419,6 +13482,66 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoubleQuotedAttributeValueAsciiNonBmpFixtureProvider')]
     public function testHtml5libTest3DoubleQuotedAttributeValueAsciiNonBmpFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3UnquotedAttributeValuePunctuationFixtureProvider')]
+    public function testHtml5libTest3UnquotedAttributeValuePunctuationFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3SingleQuotedAttributeValueBasicFixtureProvider')]
+    public function testHtml5libTest3SingleQuotedAttributeValueBasicFixtureRows(
         string $html,
         int $testIndex,
         string $description,
