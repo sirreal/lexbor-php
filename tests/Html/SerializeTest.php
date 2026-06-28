@@ -7664,6 +7664,9 @@ final class SerializeTest extends TestCase
         yield 'html5lib test3 processing instruction NUL' => ["<?\0", "<!--?\u{FFFD}-->"];
         yield 'html5lib test3 processing instruction tab' => ["<?\t", "<!--?\t-->"];
         yield 'html5lib test3 processing instruction line feed' => ["<?\n", "<!--?\n-->"];
+        yield 'html5lib domjs bogus comment CR normalizes to LF' => ["<?\r", "<!--?\n-->"];
+        yield 'html5lib domjs bogus comment CRLF normalizes to LF' => ["<?\r\n", "<!--?\n-->"];
+        yield 'html5lib domjs bogus comment CRLFLF normalizes to LFLF' => ["<?\r\n\n", "<!--?\n\n-->"];
         yield 'html5lib test3 processing instruction vertical tab' => ["<?\v", "<!--?\v-->"];
         yield 'html5lib test3 processing instruction form feed' => ["<?\f", "<!--?\f-->"];
         yield 'html5lib test3 processing instruction space' => ['<? ', '<!--? -->'];
