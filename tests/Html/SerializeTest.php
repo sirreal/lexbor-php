@@ -7764,6 +7764,15 @@ final class SerializeTest extends TestCase
         yield 'char_ref.ton CRLF is normalized to LF' => ["<p>\r\n</p>", "<p>\n</p>"];
         yield 'char_ref.ton CR CRLF is normalized to two LFs' => ["<p>\r\r\n</p>", "<p>\n\n</p>"];
         yield 'char_ref.ton LF CR is normalized to two LFs' => ["<p>\n\r</p>", "<p>\n\n</p>"];
+        yield 'html5lib test4 CR followed by non-LF normalizes to LF' => ["\r?", "\n?"];
+        yield 'html5lib test4 CR at EOF normalizes to LF' => ["\r", "\n"];
+        yield 'html5lib test4 LF at EOF remains LF' => ["\n", "\n"];
+        yield 'html5lib test4 CRLF normalizes to LF' => ["\r\n", "\n"];
+        yield 'html5lib test4 CR CR normalizes to two LFs' => ["\r\r", "\n\n"];
+        yield 'html5lib test4 LF LF remains two LFs' => ["\n\n", "\n\n"];
+        yield 'html5lib test4 LF CR normalizes to two LFs' => ["\n\r", "\n\n"];
+        yield 'html5lib test4 text CR CR CR text normalizes to LFs' => ["text\r\r\rtext", "text\n\n\ntext"];
+        yield 'html5lib unicodeCharsProblematic CR before NUL normalizes and preserves NUL' => ["\r\0", "\n\0"];
         yield 'char_ref.ton comment CRLF is normalized to LF' => ["<div><!--\r\n--></div>", "<div><!--\n--></div>"];
         yield 'char_ref.ton raw text CRLF is normalized to LF' => ["<script>\r\n</script>", "<script>\n</script>"];
     }
