@@ -5216,6 +5216,53 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypeMissingWhitespacePublicMissingQuotePrintableBoundaryFixtureProvider(): iterable
+    {
+        foreach ([
+            876 => ['<!DOCTYPEa PUBLIC(', '<!DOCTYPEa PUBLIC(', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            877 => ['<!DOCTYPEa PUBLIC-', '<!DOCTYPEa PUBLIC-', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            878 => ['<!DOCTYPEa PUBLIC/', '<!DOCTYPEa PUBLIC/', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            879 => ['<!DOCTYPEa PUBLIC0', '<!DOCTYPEa PUBLIC0', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            880 => ['<!DOCTYPEa PUBLIC1', '<!DOCTYPEa PUBLIC1', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            881 => ['<!DOCTYPEa PUBLIC9', '<!DOCTYPEa PUBLIC9', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            882 => ['<!DOCTYPEa PUBLIC<', '<!DOCTYPEa PUBLIC<', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            883 => ['<!DOCTYPEa PUBLIC=', '<!DOCTYPEa PUBLIC=', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            884 => ['<!DOCTYPEa PUBLIC>', '<!DOCTYPEa PUBLIC>', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-doctype-public-identifier', 1, 18]]],
+            885 => ['<!DOCTYPEa PUBLIC?', '<!DOCTYPEa PUBLIC?', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            886 => ['<!DOCTYPEa PUBLIC@', '<!DOCTYPEa PUBLIC@', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            887 => ['<!DOCTYPEa PUBLICA', '<!DOCTYPEa PUBLICA', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            888 => ['<!DOCTYPEa PUBLICB', '<!DOCTYPEa PUBLICB', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            889 => ['<!DOCTYPEa PUBLICY', '<!DOCTYPEa PUBLICY', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            890 => ['<!DOCTYPEa PUBLICZ', '<!DOCTYPEa PUBLICZ', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            891 => ['<!DOCTYPEa PUBLIC`', '<!DOCTYPEa PUBLIC`', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            892 => ['<!DOCTYPEa PUBLICa', '<!DOCTYPEa PUBLICa', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            893 => ['<!DOCTYPEa PUBLICb', '<!DOCTYPEa PUBLICb', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            894 => ['<!DOCTYPEa PUBLICy', '<!DOCTYPEa PUBLICy', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            895 => ['<!DOCTYPEa PUBLICz', '<!DOCTYPEa PUBLICz', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            896 => ['<!DOCTYPEa PUBLIC{', '<!DOCTYPEa PUBLIC{', [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+            897 => ['<!DOCTYPEa PUBLIC\\uDBC0\\uDC00', "<!DOCTYPEa PUBLIC\u{100000}", [['missing-whitespace-before-doctype-name', 1, 10], ['missing-quote-before-doctype-public-identifier', 1, 18]]],
+        ] as $testIndex => [$description, $html, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description missing-whitespace missing-quote PUBLIC identifier printable boundary exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', 'a', null, null, false]],
+                $expectedErrors,
+                '<!DOCTYPE a><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -13071,6 +13118,49 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3DoctypeMissingWhitespacePublicSingleQuotedPrintableEofFixtureProvider')]
     public function testHtml5libTest3DoctypeMissingWhitespacePublicSingleQuotedPrintableEofFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'] ?? [],
+            ),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypeMissingWhitespacePublicMissingQuotePrintableBoundaryFixtureProvider')]
+    public function testHtml5libTest3DoctypeMissingWhitespacePublicMissingQuotePrintableBoundaryFixtureRows(
         string $html,
         int $testIndex,
         string $description,
