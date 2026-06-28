@@ -4187,6 +4187,42 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>, string, bool}>
+     */
+    public static function html5libTest3DoctypePublicKeywordBoundaryFixtureProvider(): iterable
+    {
+        foreach ([
+            354 => ['<!DOCTYPE a PUBLIC', '<!DOCTYPE a PUBLIC', [['eof-in-doctype', 1, 19]]],
+            355 => ['<!DOCTYPE a PUBLIC\\u0000', "<!DOCTYPE a PUBLIC\0", [['missing-quote-before-doctype-public-identifier', 1, 19], ['unexpected-null-character', 1, 19]]],
+            356 => ['<!DOCTYPE a PUBLIC\\u0008', "<!DOCTYPE a PUBLIC\x08", [['control-character-in-input-stream', 1, 19], ['missing-quote-before-doctype-public-identifier', 1, 19]]],
+            357 => ['<!DOCTYPE a PUBLIC\\u0009', "<!DOCTYPE a PUBLIC\t", [['eof-in-doctype', 1, 20]]],
+            358 => ['<!DOCTYPE a PUBLIC\\u000A', "<!DOCTYPE a PUBLIC\n", [['eof-in-doctype', 2, 1]]],
+            359 => ['<!DOCTYPE a PUBLIC\\u000B', "<!DOCTYPE a PUBLIC\v", [['control-character-in-input-stream', 1, 19], ['missing-quote-before-doctype-public-identifier', 1, 19]]],
+            360 => ['<!DOCTYPE a PUBLIC\\u000C', "<!DOCTYPE a PUBLIC\f", [['eof-in-doctype', 1, 20]]],
+            361 => ['<!DOCTYPE a PUBLIC\\u000D', "<!DOCTYPE a PUBLIC\r", [['eof-in-doctype', 2, 1]]],
+            362 => ['<!DOCTYPE a PUBLIC\\u001F', "<!DOCTYPE a PUBLIC\x1F", [['control-character-in-input-stream', 1, 19], ['missing-quote-before-doctype-public-identifier', 1, 19]]],
+            363 => ['<!DOCTYPE a PUBLIC ', '<!DOCTYPE a PUBLIC ', [['eof-in-doctype', 1, 20]]],
+            364 => ['<!DOCTYPE a PUBLIC!', '<!DOCTYPE a PUBLIC!', [['missing-quote-before-doctype-public-identifier', 1, 19]]],
+        ] as $testIndex => [$description, $html, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description doctype PUBLIC keyword boundary exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['DOCTYPE', 'a', null, null, false]],
+                $expectedErrors,
+                '<!DOCTYPE a><html><head></head><body></body></html>',
+                true,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -11297,6 +11333,49 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame($quirksMode, $document->isQuirksMode());
+        self::assertSame($expectedSerialization, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3DoctypePublicKeywordBoundaryFixtureProvider')]
+    public function testHtml5libTest3DoctypePublicKeywordBoundaryFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+        string $expectedSerialization,
+        bool $quirksMode,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame(
+            $expectedErrors,
+            array_map(
+                static fn (array $error): array => ['code' => $error['code'], 'line' => $error['line'], 'col' => $error['col']],
+                $fixture['errors'],
+            ),
+        );
 
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
