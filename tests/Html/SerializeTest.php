@@ -2578,6 +2578,10 @@ final class SerializeTest extends TestCase
             '<xmp>foo<!-- x --x>x-- >x--!>x--<></xmp>',
             '<xmp>foo<!-- x --x>x-- >x--!>x--<></xmp>',
         ];
+        yield 'html5lib test1 plaintext element' => [
+            '<plaintext>foobar',
+            '<plaintext>foobar</plaintext>',
+        ];
         yield 'domjs.test script HTML comment EOF' => [
             '<script><!--test',
             '<script><!--test</script>',
@@ -2690,6 +2694,26 @@ final class SerializeTest extends TestCase
             '<xmp></xm/</xmp>',
             '<xmp></xm/</xmp>',
         ];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function html5libScriptDataStateProvider(): iterable
+    {
+        yield 'html5lib test1 less-than in script data' => ['<test-->', '<test-->'];
+        yield 'html5lib test1 less-than bang in script data' => ['<!test-->', '<!test-->'];
+        yield 'html5lib test1 less-than bang dash in script data' => ['<!-test-->', '<!-test-->'];
+        yield 'html5lib test1 escaped script data' => ['<!--test-->', '<!--test-->'];
+        yield 'html5lib test1 less-than in script HTML comment' => ['<!-- < test -->', '<!-- < test -->'];
+        yield 'html5lib test1 end-tag opener in script HTML comment' => ['<!-- </ test -->', '<!-- </ test -->'];
+        yield 'html5lib test1 start tag in script HTML comment' => ['<!-- <test> -->', '<!-- <test> -->'];
+        yield 'html5lib test1 end tag in script HTML comment' => ['<!-- </test> -->', '<!-- </test> -->'];
+        yield 'html5lib test1 dash in double escaped script HTML comment' => ['<!--<script>-</script>-->', '<!--<script>-</script>-->'];
+        yield 'html5lib test1 double dash in double escaped script HTML comment' => ['<!--<script>--</script>-->', '<!--<script>--</script>-->'];
+        yield 'html5lib test1 triple dash in double escaped script HTML comment' => ['<!--<script>---</script>-->', '<!--<script>---</script>-->'];
+        yield 'html5lib test1 spaced dash in double escaped script HTML comment' => ['<!--<script> - </script>-->', '<!--<script> - </script>-->'];
+        yield 'html5lib test1 spaced double dash in double escaped script HTML comment' => ['<!--<script> -- </script>-->', '<!--<script> -- </script>-->'];
     }
 
     /**
@@ -7941,6 +7965,7 @@ final class SerializeTest extends TestCase
         yield 'comment.ton #2 repeated hyphen comment' => ['<div><!-------></div>', '<div><!-------></div>'];
         yield 'html5lib test1 truncated doctype start is bogus comment' => ['<!DOC>', '<!--' . 'DOC' . '-->'];
         yield 'html5lib test1 simple comment' => ['<!--comment-->', '<!--comment-->'];
+        yield 'html5lib test1 short empty comment with two dashes' => ['<!---->', '<!--' . '' . '-->'];
         yield 'html5lib test1 central dash comment' => ['<!----->', '<!----->'];
         yield 'html5lib test1 two central dashes comment' => ['<!-- --comment -->', '<!-- --comment -->'];
         yield 'html5lib test1 central less-than bang comment' => ['<!--<!-->', '<!--<!-->'];
@@ -9116,6 +9141,18 @@ final class SerializeTest extends TestCase
         self::assertSame(Status::Ok, $document->parse($html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    #[DataProvider('html5libScriptDataStateProvider')]
+    public function testHtml5libScriptDataStateFragments(string $html, string $expected): void
+    {
+        $document = new Document();
+        $script = $document->createElement('script');
+        $fragment = $document->createFragmentForElement($script, $html);
+
+        self::assertInstanceOf(Text::class, $fragment->firstChild);
+        self::assertNull($fragment->firstChild->next);
+        self::assertSame($expected, $fragment->firstChild->data);
     }
 
     #[DataProvider('tokenizerCharacterReferenceProvider')]
