@@ -3828,6 +3828,42 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<string>, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libTest3IncorrectlyClosedCommentFixtureProvider(): iterable
+    {
+        foreach ([
+            190 => ['<!----!', '<!----!', '', [['eof-in-comment', 1, 8]]],
+            191 => ['<!----!>', '<!----!>', '', [['incorrectly-closed-comment', 1, 8]]],
+            192 => ['<!----! >', '<!----! >', '--! >', [['eof-in-comment', 1, 10]]],
+            193 => ['<!----!LF>', "<!----!\n>", "--!\n>", [['eof-in-comment', 2, 2]]],
+            194 => ['<!----!CR>', "<!----!\r>", "--!\n>", [['eof-in-comment', 2, 2]]],
+            195 => ['<!----!CRLF>', "<!----!\r\n>", "--!\n>", [['eof-in-comment', 2, 2]]],
+            196 => ['<!----!a', '<!----!a', '--!a', [['eof-in-comment', 1, 9]]],
+            197 => ['<!----!a-', '<!----!a-', '--!a', [['eof-in-comment', 1, 10]]],
+            198 => ['<!----!a--', '<!----!a--', '--!a', [['eof-in-comment', 1, 11]]],
+            199 => ['<!----!a-->', '<!----!a-->', '--!a', []],
+            200 => ['<!----!-', '<!----!-', '--!', [['eof-in-comment', 1, 9]]],
+            201 => ['<!----!--', '<!----!--', '--!', [['eof-in-comment', 1, 10]]],
+            202 => ['<!----!-->', '<!----!-->', '--!', []],
+        ] as $testIndex => [$description, $html, $comment, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "test3.test $description incorrectly-closed comment exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [],
+                [['Comment', $comment]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, string, string, bool}>
      */
     public static function html5libTextOnlyNulProvider(): iterable
@@ -10624,6 +10660,36 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libTest3CommentDoubleDashFixtureProvider')]
     public function testHtml5libTest3CommentDoubleDashFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $initialStates,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/test3.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertSame($initialStates, $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors'] ?? []);
+    }
+
+    /**
+     * @param list<string> $initialStates
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libTest3IncorrectlyClosedCommentFixtureProvider')]
+    public function testHtml5libTest3IncorrectlyClosedCommentFixtureRows(
         string $html,
         int $testIndex,
         string $description,
