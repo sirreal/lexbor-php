@@ -7447,6 +7447,12 @@ final class SerializeTest extends TestCase
         yield 'html5lib test1 non-ASCII character reference name' => ["&\u{00AC};", '&amp;¬;'];
         yield 'html5lib test1 ASCII decimal entity' => ['&#0036;', '$'];
         yield 'html5lib test1 ASCII hexadecimal entity' => ['&#x3f;', '?'];
+        yield 'html5lib test2 decimal NUL character reference' => ['&#0000;', '�'];
+        yield 'html5lib test2 decimal out-of-range character reference' => ['&#2225222;', '�'];
+        yield 'html5lib test2 hexadecimal out-of-range character reference' => ['&#x1010FFFF;', '�'];
+        yield 'html5lib test2 hexadecimal surrogate pair references' => ['&#xD869;&#xDED6;', '��'];
+        yield 'html5lib test2 mixed-case hexadecimal character reference' => ['&#xaBcD;', "\u{ABCD}"];
+        yield 'html5lib test2 entity without a name' => ['&;', '&amp;;'];
         yield 'html5lib entities undefined double-quoted attribute entity remains literal' => [
             '<h a="&noti;">',
             '<h a="&amp;noti;"></h>',
