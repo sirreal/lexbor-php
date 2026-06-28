@@ -3484,6 +3484,59 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libUnicodeCharsControlFixtureProvider(): iterable
+    {
+        $testIndex = 0;
+        foreach ([
+            0x0001,
+            0x0002,
+            0x0003,
+            0x0004,
+            0x0005,
+            0x0006,
+            0x0007,
+            0x0008,
+            0x000B,
+            0x000E,
+            0x000F,
+            0x0010,
+            0x0011,
+            0x0012,
+            0x0013,
+            0x0014,
+            0x0015,
+            0x0016,
+            0x0017,
+            0x0018,
+            0x0019,
+            0x001A,
+            0x001B,
+            0x001C,
+            0x001D,
+            0x001E,
+            0x001F,
+            0x007F,
+        ] as $codePoint) {
+            $description = sprintf('Invalid Unicode character U+%04X', $codePoint);
+            $html = chr($codePoint);
+
+            yield "unicodeChars.test $description exact fixture row" => [
+                $html,
+                $testIndex++,
+                $description,
+                [['Character', $html]],
+                [[
+                    'code' => 'control-character-in-input-stream',
+                    'line' => 1,
+                    'col' => 1,
+                ]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -14486,6 +14539,35 @@ final class SerializeTest extends TestCase
         self::assertIsArray($fixture);
         self::assertSame($description, $fixture['description']);
         self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libUnicodeCharsControlFixtureProvider')]
+    public function testHtml5libUnicodeCharsControlFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/unicodeChars.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors']);
