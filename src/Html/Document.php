@@ -34,6 +34,7 @@ final class Document extends Node
         $html = self::normalizeTokenizedNewlines($html);
         $doctype = $this->parseLeadingDoctype($html);
         $this->quirksMode = self::doctypeRequiresQuirks($doctype);
+        $this->clearDocumentPrologueNodes();
         $this->setDocumentTypeFromParsedDoctype($doctype);
 
         while ($this->body->firstChild !== null) {
@@ -43,6 +44,7 @@ final class Document extends Node
         $this->body->clearAttributes();
 
         $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
+        $html = $this->consumeDocumentPrologueComments($html);
         $bodyFragment = $this->bodyFragment($html);
         if ($bodyFragment !== null) {
             foreach ($this->parseAttributes($bodyFragment['attributes']) as $attribute) {
@@ -846,6 +848,48 @@ final class Document extends Node
         return preg_replace('~^[ \t\n\f\r]*<!doctype(?=[ \t\n\f\r>])[^>]*>~i', '', $html, 1) ?? $html;
     }
 
+    private function consumeDocumentPrologueComments(string $html): string
+    {
+        $offset = 0;
+        $consumedComment = false;
+
+        while (true) {
+            $commentOffset = self::skipHtmlWhitespace($html, $offset);
+            $comment = self::consumeDocumentPrologueComment($html, $commentOffset);
+            if ($comment === null) {
+                return $consumedComment ? substr($html, $commentOffset) : $html;
+            }
+
+            [$data, $offset] = $comment;
+            $this->insertBeforeSpec($this->createComment($data), $this->body);
+            $consumedComment = true;
+        }
+    }
+
+    /**
+     * @return array{string, int}|null
+     */
+    private static function consumeDocumentPrologueComment(string $html, int $offset): ?array
+    {
+        $tail = substr($html, $offset);
+
+        if (preg_match('~^</(?<invalid>[^A-Za-z>][^>]*)(?:>|\z)|^<(?<bogus>\?[^>]*)(?:>|\z)|^<!(?!doctype)(?!--)(?<declaration>[^>]*)(?:>|\z)~si', $tail, $match, PREG_UNMATCHED_AS_NULL) !== 1) {
+            return null;
+        }
+
+        $data = $match['invalid'] ?? $match['bogus'] ?? $match['declaration'] ?? '';
+
+        return [
+            str_replace("\0", "\u{FFFD}", $data),
+            $offset + strlen($match[0]),
+        ];
+    }
+
+    private static function skipHtmlWhitespace(string $html, int $offset): int
+    {
+        return $offset + strspn($html, " \t\n\f\r", $offset);
+    }
+
     /**
      * @param array{name: string, publicId: string|null, systemId: string|null, offset: int}|null $doctype
      */
@@ -874,6 +918,19 @@ final class Document extends Node
             $next = $child->next;
 
             if ($child instanceof DocumentType) {
+                $child->remove();
+            }
+
+            $child = $next;
+        }
+    }
+
+    private function clearDocumentPrologueNodes(): void
+    {
+        for ($child = $this->firstChild; $child !== null;) {
+            $next = $child->next;
+
+            if ($child !== $this->body && ! $child instanceof DocumentType) {
                 $child->remove();
             }
 

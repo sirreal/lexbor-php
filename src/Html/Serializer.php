@@ -95,8 +95,12 @@ final class Serializer
 
     private static function serializeDocument(Document $document, bool $fullDoctype): string
     {
-        $doctype = $document->documentType();
-        $prefix = $doctype === null ? '' : self::serializeDoctype($doctype, $fullDoctype);
+        $prefix = '';
+        $body = $document->bodyElement();
+
+        for ($child = $document->firstChild; $child !== null && $child !== $body; $child = $child->next) {
+            $prefix .= self::serialize($child, $fullDoctype);
+        }
 
         return $prefix . '<html><head></head>' . self::serializeElement($document->bodyElement(), $fullDoctype) . '</html>';
     }

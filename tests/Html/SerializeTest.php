@@ -22071,6 +22071,28 @@ final class SerializeTest extends TestCase
             '&lt;/',
             ["            </\n", '                "</"'],
         ];
+
+        foreach ([
+            39 => ['end-tag-open invalid first char comment', '</#', '<!--#-->', "            </#\n", "            <!-- # -->\n"],
+            40 => ['question-mark tag-open comment', '<?', '<!--?-->', "            <?\n", "            <!-- ? -->\n"],
+            41 => ['question-mark bogus comment with data', '<?#', '<!--?#-->', "            <?#\n", "            <!-- ?# -->\n"],
+            42 => ['markup declaration eof comment', '<!', '<!---->', "            <!\n", "            <!--  -->\n"],
+            43 => ['markup declaration invalid first char comment', '<!#', '<!--#-->', "            <!#\n", "            <!-- # -->\n"],
+            44 => ['processing instruction comment', '<?COMMENT?>', '<!--?COMMENT?-->', "            <?COMMENT?>\n", "            <!-- ?COMMENT? -->\n"],
+            45 => ['incorrect declaration comment', '<!COMMENT>', '<!--COMMENT-->', "            <!COMMENT>\n", "            <!-- COMMENT -->\n"],
+            46 => ['invalid end tag spaced comment', '</ COMMENT >', '<!-- COMMENT -->', "            </ COMMENT >\n", "            <!--  COMMENT  -->\n"],
+            47 => ['processing instruction double hyphen comment', '<?COM--MENT?>', '<!--?COM--MENT?-->', "            <?COM--MENT?>\n", "            <!-- ?COM--MENT? -->\n"],
+            48 => ['incorrect declaration double hyphen comment', '<!COM--MENT>', '<!--COM--MENT-->', "            <!COM--MENT>\n", "            <!-- COM--MENT -->\n"],
+            49 => ['invalid end tag double hyphen comment', '</ COM--MENT >', '<!-- COM--MENT -->', "            </ COM--MENT >\n", "            <!--  COM--MENT  -->\n"],
+        ] as $testNumber => [$label, $html, $comment, $dataLine, $commentLine]) {
+            yield "html5_test/tests1.ton #{$testNumber} {$label}" => [
+                $testNumber,
+                $html,
+                $comment . '<html><head></head><body></body></html>',
+                '',
+                [$dataLine, $commentLine],
+            ];
+        }
     }
 
     /**
@@ -22163,6 +22185,18 @@ final class SerializeTest extends TestCase
 
         self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testDocumentPrologueBogusCommentsIgnoreInterleavedWhitespace(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse("<!DOCTYPE html>\n<?one>\t<!two>\n<p>x</p>"));
+
+        self::assertSame(
+            '<!DOCTYPE html><!--?one--><!--two--><html><head></head><body><p>x</p></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<p>x</p>', Serializer::serializeDeep($document->bodyElement()));
     }
 
     public function testRemovedParsedDocumentTypeIsNotSerialized(): void
@@ -29022,7 +29056,7 @@ final class SerializeTest extends TestCase
 
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
-        self::assertSame('<!--' . $expectedOutput[0][1] . '-->', Serializer::serializeDeep($document->bodyElement()));
+        self::assertTopLevelCommentSerialization($document, '<!--' . $expectedOutput[0][1] . '-->');
     }
 
     /**
@@ -30382,6 +30416,28 @@ final class SerializeTest extends TestCase
         ) ?? $data;
     }
 
+    private static function assertTopLevelCommentSerialization(Document $document, string $expected): void
+    {
+        $body = Serializer::serializeDeep($document->bodyElement());
+        $prologue = $expected;
+        $expectedBody = '';
+        if ($body !== '' && str_ends_with($expected, $body)) {
+            $prologue = substr($expected, 0, -strlen($body));
+            $expectedBody = $body;
+        }
+
+        self::assertStringStartsWith('<!--', $prologue);
+        self::assertSame($expectedBody, $body);
+        self::assertSame($prologue . '<html><head></head><body>' . $expectedBody . '</body></html>', Serializer::serializeDeep($document));
+    }
+
+    private static function beginsWithDocumentPrologueBogusComment(string $html): bool
+    {
+        $html = ltrim($html, " \t\n\f\r");
+
+        return preg_match('~^(?:</[^A-Za-z>]|<\?|<!(?!doctype)(?!--))~si', $html) === 1;
+    }
+
     #[DataProvider('tokenizerCharacterReferenceProvider')]
     public function testTokenizerCharacterReferenceRegressions(
         string $html,
@@ -30411,6 +30467,11 @@ final class SerializeTest extends TestCase
 
         self::assertSame(Status::Ok, $document->parse($html));
 
+        if (self::beginsWithDocumentPrologueBogusComment($html)) {
+            self::assertTopLevelCommentSerialization($document, $expected);
+            return;
+        }
+
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
     }
 
@@ -30419,6 +30480,11 @@ final class SerializeTest extends TestCase
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
+
+        if (str_starts_with($expected, '<!--') && self::beginsWithDocumentPrologueBogusComment($html)) {
+            self::assertTopLevelCommentSerialization($document, $expected);
+            return;
+        }
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
     }
@@ -30465,6 +30531,11 @@ final class SerializeTest extends TestCase
     {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
+
+        if (self::beginsWithDocumentPrologueBogusComment($html)) {
+            self::assertTopLevelCommentSerialization($document, $expected);
+            return;
+        }
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
     }
