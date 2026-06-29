@@ -22905,6 +22905,16 @@ final class SerializeTest extends TestCase
                 "                  \"test</div>test\"\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #5 frame start tag is ignored' => [
+            5,
+            '<frame>test',
+            '<html><head></head><body>test</body></html>',
+            'test',
+            [
+                "            <frame>test\n",
+                "                \"test\"\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #12 script EOF keeps partial end tag text' => [
             12,
             '<script></x',
@@ -24866,6 +24876,33 @@ final class SerializeTest extends TestCase
 
         self::assertSame('<!DOCTYPE html><html><head></head><body><p>x</p></body></html>', Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame('<p>x</p>', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testFramesetFragmentKeepsFrameStartTag(): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests6.ton');
+        self::assertIsString($contents);
+        $testMarker = '/* Test number: 30 */';
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString("            </frameset><frame>\n", $fixtureBlock);
+        self::assertStringContainsString("        \"fragment\": {\"tag\": \"frameset\", \"ns\": \"html\"},\n", $fixtureBlock);
+        self::assertStringContainsString("            <frame>\n", $fixtureBlock);
+
+        $document = new Document();
+        $frameset = $document->createElement('frameset');
+        $fragment = $document->createFragmentForElement($frameset, '</frameset><frame>');
+
+        self::assertSame('<frame>', Serializer::serializeDeep($fragment));
+
+        $frameset->setInnerHtml('</frameset><frame>');
+        self::assertSame('<frameset><frame></frameset>', Serializer::serializeDeep($frameset));
     }
 
     public function testDocumentPrologueBogusCommentsIgnoreInterleavedWhitespace(): void

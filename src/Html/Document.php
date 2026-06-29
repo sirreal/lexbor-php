@@ -354,6 +354,15 @@ final class Document extends Node
                 continue;
             }
 
+            if (
+                $tagName === 'frame'
+                && self::isHtmlInsertionContext($namespaceParent)
+                && ! ($namespaceParent instanceof Element && $namespaceParent->tagName === 'frameset')
+            ) {
+                $offset = $tagEnd;
+                continue;
+            }
+
             if ($tagName === 'form' && self::isHtmlInsertionContext($namespaceParent)) {
                 if ($formElement !== null) {
                     $offset = $tagEnd;
