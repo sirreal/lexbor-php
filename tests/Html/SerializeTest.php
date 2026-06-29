@@ -7158,6 +7158,61 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesGlEGtExactFixtureProvider(): iterable
+    {
+        $missingSemicolon = static fn (int $col): array => [[
+            'code' => 'missing-semicolon-after-character-reference',
+            'line' => 1,
+            'col' => $col,
+        ]];
+
+        foreach ([
+            2112 => ['Named entity: glE; with a semi-colon', '&glE;', "\u{2A92}", []],
+            2113 => ['Bad named entity: gla without a semi-colon', '&gla', '&gla', []],
+            2114 => ['Named entity: gla; with a semi-colon', '&gla;', "\u{2AA5}", []],
+            2115 => ['Bad named entity: glj without a semi-colon', '&glj', '&glj', []],
+            2116 => ['Named entity: glj; with a semi-colon', '&glj;', "\u{2AA4}", []],
+            2117 => ['Bad named entity: gnE without a semi-colon', '&gnE', '&gnE', []],
+            2118 => ['Named entity: gnE; with a semi-colon', '&gnE;', "\u{2269}", []],
+            2119 => ['Bad named entity: gnap without a semi-colon', '&gnap', '&gnap', []],
+            2120 => ['Named entity: gnap; with a semi-colon', '&gnap;', "\u{2A8A}", []],
+            2121 => ['Bad named entity: gnapprox without a semi-colon', '&gnapprox', '&gnapprox', []],
+            2122 => ['Named entity: gnapprox; with a semi-colon', '&gnapprox;', "\u{2A8A}", []],
+            2123 => ['Bad named entity: gne without a semi-colon', '&gne', '&gne', []],
+            2124 => ['Named entity: gne; with a semi-colon', '&gne;', "\u{2A88}", []],
+            2125 => ['Bad named entity: gneq without a semi-colon', '&gneq', '&gneq', []],
+            2126 => ['Named entity: gneq; with a semi-colon', '&gneq;', "\u{2A88}", []],
+            2127 => ['Bad named entity: gneqq without a semi-colon', '&gneqq', '&gneqq', []],
+            2128 => ['Named entity: gneqq; with a semi-colon', '&gneqq;', "\u{2269}", []],
+            2129 => ['Bad named entity: gnsim without a semi-colon', '&gnsim', '&gnsim', []],
+            2130 => ['Named entity: gnsim; with a semi-colon', '&gnsim;', "\u{22E7}", []],
+            2131 => ['Bad named entity: gopf without a semi-colon', '&gopf', '&gopf', []],
+            2132 => ['Named entity: gopf; with a semi-colon', '&gopf;', "\u{1D558}", []],
+            2133 => ['Bad named entity: grave without a semi-colon', '&grave', '&grave', []],
+            2134 => ['Named entity: grave; with a semi-colon', '&grave;', "\u{0060}", []],
+            2135 => ['Bad named entity: gscr without a semi-colon', '&gscr', '&gscr', []],
+            2136 => ['Named entity: gscr; with a semi-colon', '&gscr;', "\u{210A}", []],
+            2137 => ['Bad named entity: gsim without a semi-colon', '&gsim', '&gsim', []],
+            2138 => ['Named entity: gsim; with a semi-colon', '&gsim;', "\u{2273}", []],
+            2139 => ['Bad named entity: gsime without a semi-colon', '&gsime', '&gsime', []],
+            2140 => ['Named entity: gsime; with a semi-colon', '&gsime;', "\u{2A8E}", []],
+            2141 => ['Bad named entity: gsiml without a semi-colon', '&gsiml', '&gsiml', []],
+            2142 => ['Named entity: gsiml; with a semi-colon', '&gsiml;', "\u{2A90}", []],
+            2143 => ['Named entity: gt without a semi-colon', '&gt', "\u{003E}", $missingSemicolon(4)],
+        ] as $testIndex => [$description, $html, $character, $expectedErrors]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -20616,6 +20671,39 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertArrayNotHasKey('errors', $fixture);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesGlEGtExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesGlEGtExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
     }
 
     /**
