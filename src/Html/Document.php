@@ -188,6 +188,7 @@ final class Document extends Node
     {
         $stack = [$root];
         $formattingEndTagsPoppedByScope = [];
+        $pendingFormattingTailClones = [];
         $formElement = (
             $context !== null
             && $context->namespace === Element::NAMESPACE_HTML
@@ -199,6 +200,7 @@ final class Document extends Node
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
             $tagStart = $match[0][1];
             if ($tagStart > $offset) {
+                $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
                 $this->appendText($stack[count($stack) - 1], substr($html, $offset, $tagStart - $offset));
                 $formattingEndTagsPoppedByScope = [];
             }
@@ -299,7 +301,16 @@ final class Document extends Node
                     continue;
                 }
 
-                if ($this->handleFormattingEndTagWithFurthestBlock($stack, $tagName)) {
+                if ($this->consumePendingFormattingTailEndTag($pendingFormattingTailClones, $tagName)) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                $formattingTailClones = $this->handleFormattingEndTagWithFurthestBlock($stack, $tagName);
+                if ($formattingTailClones !== null) {
+                    if ($formattingTailClones !== []) {
+                        $pendingFormattingTailClones = $formattingTailClones;
+                    }
                     $offset = $tagEnd;
                     continue;
                 }
@@ -363,12 +374,32 @@ final class Document extends Node
                 continue;
             }
 
-            if ($tagName === 'form' && self::isHtmlInsertionContext($namespaceParent)) {
-                if ($formElement !== null) {
+            if ($tagName === 'form' && self::isHtmlInsertionContext($namespaceParent) && $formElement !== null) {
+                $offset = $tagEnd;
+                continue;
+            }
+
+            if ($tagName === 'select' && self::isHtmlTreeConstructionStartTagContext($namespaceParent, $tagName)) {
+                if (
+                    $context !== null
+                    && $context->namespace === Element::NAMESPACE_HTML
+                    && $context->tagName === 'select'
+                ) {
                     $offset = $tagEnd;
                     continue;
                 }
 
+                if ($this->closeOpenSelectInScope($stack)) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+            }
+
+            $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
+            $parent = $stack[count($stack) - 1];
+            $namespaceParent = ($parent === $root && $context !== null && ! $mathAnnotationXmlBreakout) ? $context : $parent;
+
+            if ($tagName === 'form' && self::isHtmlInsertionContext($namespaceParent)) {
                 $inTableFormInsertionMode = $namespaceParent instanceof Element
                     && $namespaceParent->namespace === Element::NAMESPACE_HTML
                     && $namespaceParent->tagName === 'table';
@@ -425,22 +456,6 @@ final class Document extends Node
                 $this->closeOpenOptionOptgroupForOptgroupStart($stack);
                 $parent = $stack[count($stack) - 1];
                 $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
-            }
-
-            if ($tagName === 'select' && $htmlTreeConstructionStartTagContext) {
-                if (
-                    $context !== null
-                    && $context->namespace === Element::NAMESPACE_HTML
-                    && $context->tagName === 'select'
-                ) {
-                    $offset = $tagEnd;
-                    continue;
-                }
-
-                if ($this->closeOpenSelectInScope($stack)) {
-                    $offset = $tagEnd;
-                    continue;
-                }
             }
 
             if (($tagName === 'dd' || $tagName === 'dt') && self::isHtmlInsertionContext($namespaceParent)) {
@@ -528,6 +543,7 @@ final class Document extends Node
         }
 
         if ($offset < strlen($html)) {
+            $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
             $this->appendText($stack[count($stack) - 1], substr($html, $offset));
         }
     }
@@ -1270,16 +1286,17 @@ final class Document extends Node
 
     /**
      * @param list<Node> $stack
+     * @return list<Element>|null
      */
-    private function handleFormattingEndTagWithFurthestBlock(array &$stack, string $tagName): bool
+    private function handleFormattingEndTagWithFurthestBlock(array &$stack, string $tagName): ?array
     {
         if ($tagName !== 'b' && $tagName !== 'font' && $tagName !== 'i') {
-            return false;
+            return null;
         }
 
         $formattingIndex = $this->openElementIndex($stack, $tagName);
         if ($formattingIndex === null) {
-            return true;
+            return [];
         }
 
         $furthestBlockIndex = null;
@@ -1291,18 +1308,18 @@ final class Document extends Node
             }
 
             if ($node instanceof Element && self::isHtmlScopeBoundaryElement($node)) {
-                return false;
+                return null;
             }
         }
 
         if ($furthestBlockIndex === null) {
-            return false;
+            return null;
         }
 
         $formattingElement = $stack[$formattingIndex];
         $furthestBlock = $stack[$furthestBlockIndex];
         if (! $formattingElement instanceof Element || ! $furthestBlock instanceof Element) {
-            return false;
+            return null;
         }
 
         $tailClones = [];
@@ -1353,12 +1370,39 @@ final class Document extends Node
         }
 
         $stack[] = $furthestBlock;
-        foreach ($tailClones as $clone) {
+
+        return $tailClones;
+    }
+
+    /**
+     * @param list<Node> $stack
+     * @param list<Element> $pendingTailClones
+     */
+    private function reconstructPendingFormattingTail(array &$stack, array &$pendingTailClones): void
+    {
+        foreach ($pendingTailClones as $clone) {
             $stack[count($stack) - 1]->appendChild($clone);
             $stack[] = $clone;
         }
 
-        return true;
+        $pendingTailClones = [];
+    }
+
+    /**
+     * @param list<Element> $pendingTailClones
+     */
+    private function consumePendingFormattingTailEndTag(array &$pendingTailClones, string $tagName): bool
+    {
+        for ($index = count($pendingTailClones) - 1; $index >= 0; $index--) {
+            if ($pendingTailClones[$index]->tagName !== $tagName) {
+                continue;
+            }
+
+            array_splice($pendingTailClones, $index, 1);
+            return true;
+        }
+
+        return false;
     }
 
     private function cloneElementShallow(Element $element): Element

@@ -22933,6 +22933,20 @@ final class SerializeTest extends TestCase
      */
     public static function html5TestTests2ElementContainerProvider(): iterable
     {
+        yield 'html5_test/tests2.ton #10 font adoption drops empty trailing b at EOF' => [
+            10,
+            '<!DOCTYPE html><font><p><b>test</font>',
+            '<!DOCTYPE html><html><head></head><body><font></font><p><font><b>test</b></font></p></body></html>',
+            '<font></font><p><font><b>test</b></font></p>',
+            [
+                "            <!DOCTYPE html><font><p><b>test</font>\n",
+                "                <font>\n",
+                "                <p>\n",
+                "                  <font>\n",
+                "                    <b>\n",
+                "                      \"test\"\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #40 datalist keeps option and trailing text' => [
             40,
             '<!DOCTYPE html><datalist><option>foo</datalist>bar',
@@ -23380,6 +23394,42 @@ final class SerializeTest extends TestCase
             self::assertStringContainsString($snippet, $fixtureBlock);
         }
 
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string}>
+     */
+    public static function pendingFormattingTailProvider(): iterable
+    {
+        yield 'unrelated stray end tag preserves pending tail' => [
+            '<font><p>hello<b>cruel</font></i>world',
+            '<html><head></head><body><font></font><p><font>hello<b>cruel</b></font><b>world</b></p></body></html>',
+            '<font></font><p><font>hello<b>cruel</b></font><b>world</b></p>',
+        ];
+        yield 'matching end tag consumes pending tail' => [
+            '<font><p>hello<b>cruel</font></b>world',
+            '<html><head></head><body><font></font><p><font>hello<b>cruel</b></font>world</p></body></html>',
+            '<font></font><p><font>hello<b>cruel</b></font>world</p>',
+        ];
+        yield 'ignored frame start tag leaves pending tail unmaterialized' => [
+            '<!DOCTYPE html><font><p><b>test</font><frame>',
+            '<!DOCTYPE html><html><head></head><body><font></font><p><font><b>test</b></font></p></body></html>',
+            '<font></font><p><font><b>test</b></font></p>',
+        ];
+    }
+
+    #[DataProvider('pendingFormattingTailProvider')]
+    public function testPendingFormattingTailReconstruction(
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+    ): void
+    {
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse($html));
 
