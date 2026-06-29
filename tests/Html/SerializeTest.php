@@ -23018,6 +23018,17 @@ final class SerializeTest extends TestCase
                 "                \"X\"\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #47 body end tag stays title text' => [
+            47,
+            '<!DOCTYPE html><body><title>test</body></title>',
+            '<!DOCTYPE html><html><head></head><body><title>test&lt;/body&gt;</title></body></html>',
+            '<title>test&lt;/body&gt;</title>',
+            [
+                "            <!DOCTYPE html><body><title>test</body></title>\n",
+                "                <title>\n",
+                "                  \"test</body>\"\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #48 title metadata and style stay in body' => [
             48,
             "<!DOCTYPE html><body><title>X</title><meta name=z><link rel=foo><style>\nx { content:\"</style\" } </style>",

@@ -2205,9 +2205,8 @@ final class Document extends Node
 
             if ($tagName === 'body') {
                 if (! $mathAnnotationXmlBreakout && ! self::bodyFragmentScannerHasOpenForeignElement($stack)) {
-                    $closePattern = '~</body\s*>~i';
-
-                    if (preg_match($closePattern, $html, $close, PREG_OFFSET_CAPTURE, $start) !== 1) {
+                    $contentEnd = $this->bodyFragmentContentEnd($html, $start);
+                    if ($contentEnd === null) {
                         return [
                             'attributes' => $attributes,
                             'content' => substr($html, $start),
@@ -2216,12 +2215,75 @@ final class Document extends Node
 
                     return [
                         'attributes' => $attributes,
-                        'content' => substr($html, $start, $close[0][1] - $start),
+                        'content' => substr($html, $start, $contentEnd - $start),
                     ];
                 }
 
                 $offset = $start;
                 continue;
+            }
+
+            if (! $selfClosing && self::isTextOnlyTagName($tagName, $this->isScriptingEnabled())) {
+                $offset = self::skipTextOnlyElementContent($tagName, $html, $start);
+                continue;
+            }
+
+            if (! $selfClosing && ! VoidElements::is($tagName)) {
+                $namespace = self::bodyFragmentScannerNamespaceForElement($stack, $tagName);
+                $stack[] = [
+                    'tagName' => $tagName,
+                    'namespace' => $namespace,
+                    'htmlIntegration' => self::bodyFragmentScannerIsMathAnnotationXmlHtmlIntegrationPoint($namespace, $tagName, $parsedAttributes),
+                ];
+            }
+
+            $offset = $start;
+        }
+
+        return null;
+    }
+
+    private function bodyFragmentContentEnd(string $html, int $offset): ?int
+    {
+        $pattern = '~<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
+        $stack = [];
+
+        while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
+            $tagStart = $match[0][1];
+            $ignoredMarkupEnd = self::bodyFragmentScannerIgnoredMarkupEnd(
+                $html,
+                $offset,
+                $tagStart,
+                self::bodyFragmentScannerHasOpenForeignElement($stack),
+            );
+            if ($ignoredMarkupEnd !== null) {
+                $offset = $ignoredMarkupEnd;
+                continue;
+            }
+
+            $tagName = self::normalizeTagTokenName($match['tag'][0]);
+            $tagEnd = $tagStart + strlen($match[0][0]);
+
+            if ($match['closing'][0] === '/') {
+                if ($tagName === 'body' && ! self::bodyFragmentScannerHasOpenForeignElement($stack)) {
+                    return $tagStart;
+                }
+
+                self::popBodyFragmentScannerStack($stack, $tagName);
+                $offset = self::consumeBodyFragmentScannerEndTag($html, $tagEnd);
+                continue;
+            }
+
+            $startTag = self::consumeStartTag($html, $tagEnd);
+            if ($startTag === null) {
+                return null;
+            }
+
+            [$attributes, $start, $selfClosing] = $startTag;
+            $parsedAttributes = $this->parseAttributes($attributes);
+            $namespaceParent = $stack[count($stack) - 1] ?? null;
+            if (self::bodyFragmentScannerIsMathAnnotationXmlHtmlBreakoutStartTag($namespaceParent, $tagName, $parsedAttributes)) {
+                self::popBodyFragmentScannerUntilHtmlInsertionContext($stack);
             }
 
             if (! $selfClosing && self::isTextOnlyTagName($tagName, $this->isScriptingEnabled())) {
