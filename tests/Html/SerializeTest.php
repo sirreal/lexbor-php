@@ -22033,6 +22033,14 @@ final class SerializeTest extends TestCase
                 [$dataLine, "              <body>\n"],
             ];
         }
+
+        yield 'html5_test/tests1.ton #22 heading start tag closes current heading' => [
+            22,
+            '<h1>Hello<h2>World',
+            '<html><head></head><body><h1>Hello</h1><h2>World</h2></body></html>',
+            '<h1>Hello</h1><h2>World</h2>',
+            ["            <h1>Hello<h2>World\n", "                <h1>\n", '                  "Hello"', "                <h2>\n", '                  "World"'],
+        ];
     }
 
     /**

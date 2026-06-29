@@ -243,6 +243,11 @@ final class Document extends Node
                 $parent = $stack[count($stack) - 1];
             }
 
+            if (self::isHeadingTag($tagName)) {
+                $this->closeCurrentHeadingElement($stack);
+                $parent = $stack[count($stack) - 1];
+            }
+
             $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             $element = $this->createElement($tagName, $this->namespaceForElement($namespaceParent, $tagName));
             foreach ($this->parseAttributes($attributeSource) as $attribute) {
@@ -723,6 +728,19 @@ final class Document extends Node
         }
     }
 
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeCurrentHeadingElement(array &$stack): void
+    {
+        $node = $stack[count($stack) - 1];
+        if (! $node instanceof Element || ! self::isHeadingTag($node->tagName)) {
+            return;
+        }
+
+        array_pop($stack);
+    }
+
     private function isDocumentShellTag(Node $root, ?Element $context, string $tagName): bool
     {
         return $root === $this->body
@@ -753,6 +771,16 @@ final class Document extends Node
         }
 
         return Element::NAMESPACE_HTML;
+    }
+
+    private static function isHeadingTag(string $tagName): bool
+    {
+        return $tagName === 'h1'
+            || $tagName === 'h2'
+            || $tagName === 'h3'
+            || $tagName === 'h4'
+            || $tagName === 'h5'
+            || $tagName === 'h6';
     }
 
     /**
