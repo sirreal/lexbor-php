@@ -1609,7 +1609,6 @@ final class Document extends Node
         $offset = 0;
         $headStarted = false;
         $headClosed = false;
-        $ignoredDoctype = false;
 
         $length = strlen($html);
         while ($offset < $length) {
@@ -1644,7 +1643,6 @@ final class Document extends Node
             $doctypeEnd = $this->consumeDoctypeAt($html, $offset);
             if ($doctypeEnd !== null) {
                 $offset = $doctypeEnd;
-                $ignoredDoctype = true;
                 continue;
             }
 
@@ -1722,7 +1720,7 @@ final class Document extends Node
                 return substr($html, $offset);
             }
 
-            return $ignoredDoctype ? substr($html, $offset) : $html;
+            return substr($html, $offset);
         }
 
         return '';
