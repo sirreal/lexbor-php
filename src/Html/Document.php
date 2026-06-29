@@ -251,7 +251,7 @@ final class Document extends Node
                     continue;
                 }
 
-                if ($tagName === 'p' && ! $this->hasOpenElement($stack, 'p')) {
+                if ($tagName === 'p' && ! $this->hasOpenElementInScope($stack, 'p')) {
                     $formattingEndTagsPoppedByScope = [];
                     $parent->appendChild($this->createElement('p'));
                     $offset = $tagEnd;
@@ -297,12 +297,12 @@ final class Document extends Node
             }
 
             if ($tagName === 'p') {
-                $this->closeElement($stack, 'p');
+                $this->closeElementInScope($stack, 'p');
                 $parent = $stack[count($stack) - 1];
             }
 
             if ($tagName === 'hr') {
-                $this->closeElement($stack, 'p');
+                $this->closeElementInScope($stack, 'p');
                 $parent = $stack[count($stack) - 1];
             }
 
@@ -1006,6 +1006,29 @@ final class Document extends Node
             $node = $stack[$index];
             if ($node instanceof Element && $node->tagName === $tagName) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function hasOpenElementInScope(array $stack, string $tagName): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->tagName === $tagName) {
+                return true;
+            }
+
+            if (self::isHtmlScopeBoundary($node->tagName)) {
+                return false;
             }
         }
 

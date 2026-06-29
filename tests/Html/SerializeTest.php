@@ -22526,6 +22526,7 @@ final class SerializeTest extends TestCase
             19 => 'menu',
             20 => 'nav',
             21 => 'ol',
+            22 => 'p',
             23 => 'search',
             24 => 'section',
             25 => 'summary',
@@ -22540,6 +22541,7 @@ final class SerializeTest extends TestCase
             34 => 'dt',
             35 => 'plaintext',
             36 => 'table',
+            37 => 'hr',
             38 => 'xmp',
         ] as $testNumber => $tagName) {
             yield "html5_test/tests20.ton #{$testNumber} {$tagName} inside button keeps paragraph open" => [$testNumber, $tagName];
@@ -22572,7 +22574,41 @@ final class SerializeTest extends TestCase
         $document = new Document();
         self::assertSame(Status::Ok, $document->parse("<!doctype html><p><button><{$tagName}>"));
 
-        $expectedBody = "<p><button><{$tagName}></{$tagName}></button></p>";
+        $expectedElement = $tagName === 'hr' ? '<hr>' : "<{$tagName}></{$tagName}>";
+        $expectedBody = "<p><button>{$expectedElement}</button></p>";
+        self::assertSame(
+            "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testHtml5TestTests20ButtonScopeParagraphEndTagRecoveryFixture(): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
+        self::assertIsString($contents);
+        $testMarker = '/* Test number: 39 */';
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ([
+            "            <!doctype html><p><button></p>\n",
+            "                <p>\n",
+            "                  <button>\n",
+            "                    <p>\n",
+        ] as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><p><button></p>'));
+
+        $expectedBody = '<p><button><p></p></button></p>';
         self::assertSame(
             "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
             Serializer::serializeDeep($document, fullDoctype: true),
