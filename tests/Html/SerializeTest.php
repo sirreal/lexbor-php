@@ -11162,6 +11162,126 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libEntitiesRemainingExactFixtureProvider(): iterable
+    {
+        $longUndefinedNamedEntity = '&a' . str_repeat('m', 946) . 'p;';
+
+        foreach ([
+            0 => [
+                'Undefined named entity in a double-quoted attribute value ending in semicolon and whose name starts with a known entity name.',
+                '<h a="&noti;">',
+                [['StartTag', 'h', ['a' => '&noti;']]],
+                [],
+            ],
+            1 => [
+                'Entity name requiring semicolon instead followed by the equals sign in a double-quoted attribute value.',
+                '<h a="&lang=">',
+                [['StartTag', 'h', ['a' => '&lang=']]],
+                [],
+            ],
+            2 => [
+                'Valid entity name followed by the equals sign in a double-quoted attribute value.',
+                '<h a="&not=">',
+                [['StartTag', 'h', ['a' => '&not=']]],
+                [],
+            ],
+            3 => [
+                'Undefined named entity in a single-quoted attribute value ending in semicolon and whose name starts with a known entity name.',
+                "<h a='&noti;'>",
+                [['StartTag', 'h', ['a' => '&noti;']]],
+                [],
+            ],
+            4 => [
+                'Entity name requiring semicolon instead followed by the equals sign in a single-quoted attribute value.',
+                "<h a='&lang='>",
+                [['StartTag', 'h', ['a' => '&lang=']]],
+                [],
+            ],
+            5 => [
+                'Valid entity name followed by the equals sign in a single-quoted attribute value.',
+                "<h a='&not='>",
+                [['StartTag', 'h', ['a' => '&not=']]],
+                [],
+            ],
+            6 => [
+                'Undefined named entity in an unquoted attribute value ending in semicolon and whose name starts with a known entity name.',
+                '<h a=&noti;>',
+                [['StartTag', 'h', ['a' => '&noti;']]],
+                [],
+            ],
+            7 => [
+                'Entity name requiring semicolon instead followed by the equals sign in an unquoted attribute value.',
+                '<h a=&lang=>',
+                [['StartTag', 'h', ['a' => '&lang=']]],
+                [['unexpected-character-in-unquoted-attribute-value', 1, 11]],
+            ],
+            8 => [
+                'Valid entity name followed by the equals sign in an unquoted attribute value.',
+                '<h a=&not=>',
+                [['StartTag', 'h', ['a' => '&not=']]],
+                [['unexpected-character-in-unquoted-attribute-value', 1, 10]],
+            ],
+            9 => [
+                'Ambiguous ampersand.',
+                '&rrrraannddom;',
+                [['Character', '&rrrraannddom;']],
+                [['unknown-named-character-reference', 1, 14]],
+            ],
+            10 => [
+                "Semicolonless named entity 'not' followed by 'i;' in body",
+                '&noti;',
+                [['Character', "\u{00AC}i;"]],
+                [['missing-semicolon-after-character-reference', 1, 5]],
+            ],
+            11 => [
+                'Very long undefined named entity in body',
+                $longUndefinedNamedEntity,
+                [['Character', $longUndefinedNamedEntity]],
+                [['unknown-named-character-reference', 1, 950]],
+            ],
+            76 => [
+                'Decimal numeric entity followed by hex character a.',
+                '&#97a',
+                [['Character', 'aa']],
+                [['missing-semicolon-after-character-reference', 1, 5]],
+            ],
+            77 => [
+                'Decimal numeric entity followed by hex character A.',
+                '&#97A',
+                [['Character', 'aA']],
+                [['missing-semicolon-after-character-reference', 1, 5]],
+            ],
+            78 => [
+                'Decimal numeric entity followed by hex character f.',
+                '&#97f',
+                [['Character', 'af']],
+                [['missing-semicolon-after-character-reference', 1, 5]],
+            ],
+            79 => [
+                'Decimal numeric entity followed by hex character A.',
+                '&#97F',
+                [['Character', 'aF']],
+                [['missing-semicolon-after-character-reference', 1, 5]],
+            ],
+        ] as $testIndex => [$description, $html, $expectedOutput, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "entities.test $testIndex $description remaining exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                $expectedOutput,
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest1DoctypeTagCommentFixtureProvider(): iterable
@@ -27053,6 +27173,39 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<list<mixed>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libEntitiesRemainingExactFixtureProvider')]
+    public function testHtml5libEntitiesRemainingExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/entities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
     }
 
     /**
