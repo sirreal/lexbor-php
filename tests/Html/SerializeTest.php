@@ -22814,6 +22814,123 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, list<string>}>
+     */
+    public static function html5TestTests2RawTextRecoveryProvider(): iterable
+    {
+        yield 'html5_test/tests2.ton #1 doctype with body text' => [
+            1,
+            '<!DOCTYPE html>Test',
+            '<!DOCTYPE html><html><head></head><body>Test</body></html>',
+            'Test',
+            [
+                "            <!DOCTYPE html>Test\n",
+                "                \"Test\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #2 textarea treats div end tag as text' => [
+            2,
+            '<textarea>test</div>test',
+            '<html><head></head><body><textarea>test&lt;/div&gt;test</textarea></body></html>',
+            '<textarea>test&lt;/div&gt;test</textarea>',
+            [
+                "            <textarea>test</div>test\n",
+                "                <textarea>\n",
+                "                  \"test</div>test\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #12 script EOF keeps partial end tag text' => [
+            12,
+            '<script></x',
+            '<html><head><script></x</script></head><body></body></html>',
+            '',
+            [
+                "            <script></x\n",
+                "                <script>\n",
+                "                  \"</x\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #17 incomplete end tag before body is ignored' => [
+            17,
+            '</b test',
+            '<html><head></head><body></body></html>',
+            '',
+            [
+                "            </b test\n",
+                "              <body>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #18 end tag attributes recover to body text' => [
+            18,
+            '<!DOCTYPE html></b test<b &=&amp>X',
+            '<!DOCTYPE html><html><head></head><body>X</body></html>',
+            'X',
+            [
+                "            <!DOCTYPE html></b test<b &=&amp>X\n",
+                "                \"X\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #19 no-space doctype with script raw text' => [
+            19,
+            '<!doctypehtml><scrIPt type=text/x-foobar;baz>X</SCRipt',
+            '<!DOCTYPE html><html><head><script type="text/x-foobar;baz">X</SCRipt</script></head><body></body></html>',
+            '',
+            [
+                "            <!doctypehtml><scrIPt type=text/x-foobar;baz>X</SCRipt\n",
+                "                <script type=\"text/x-foobar;baz\">\n",
+                "                  \"X</SCRipt\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #29 form start closes paragraph' => [
+            29,
+            '<!doctypehtml><p><form>',
+            '<!DOCTYPE html><html><head></head><body><p></p><form></form></body></html>',
+            '<p></p><form></form>',
+            [
+                "            <!doctypehtml><p><form>\n",
+                "                <p>\n",
+                "                <form>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #30 uppercase paragraph end tag then text' => [
+            30,
+            '<!DOCTYPE html><p></P>X',
+            '<!DOCTYPE html><html><head></head><body><p></p>X</body></html>',
+            '<p></p>X',
+            [
+                "            <!DOCTYPE html><p></P>X\n",
+                "                <p>\n",
+                "                \"X\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #48 title metadata and style stay in body' => [
+            48,
+            "<!DOCTYPE html><body><title>X</title><meta name=z><link rel=foo><style>\nx { content:\"</style\" } </style>",
+            "<!DOCTYPE html><html><head></head><body><title>X</title><meta name=\"z\"><link rel=\"foo\"><style>\nx { content:\"</style\" } </style></body></html>",
+            "<title>X</title><meta name=\"z\"><link rel=\"foo\"><style>\nx { content:\"</style\" } </style>",
+            [
+                "            <!DOCTYPE html><body><title>X</title><meta name=z><link rel=foo><style>\n",
+                "            x { content:\"</style\" } </style>\n",
+                "                <title>\n",
+                "                <meta name=\"z\">\n",
+                "                <style>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #52 script whitespace title stays in head' => [
+            52,
+            "<!DOCTYPE html><script>\n</script>  <title>x</title>  </head>",
+            "<!DOCTYPE html><html><head><script>\n</script>  <title>x</title>  </head><body></body></html>",
+            '',
+            [
+                "            <!DOCTYPE html><script>\n",
+                "            </script>  <title>x</title>  </head>\n",
+                "                <script>\n",
+                "                <title>\n",
+            ],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function upstreamLegacyVoidElementProvider(): iterable
@@ -22986,6 +23103,41 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5TestTests2ElementContainerProvider')]
     public function testHtml5TestTests2ElementContainerFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2RawTextRecoveryProvider')]
+    public function testHtml5TestTests2RawTextRecoveryFixtures(
         int $testNumber,
         string $html,
         string $expectedDocument,
