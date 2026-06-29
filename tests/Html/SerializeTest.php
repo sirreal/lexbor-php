@@ -10389,6 +10389,40 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>}>
+     */
+    public static function html5libNamedEntitiesZeetrfZwnjExactFixtureProvider(): iterable
+    {
+        foreach ([
+            4192 => ['Bad named entity: zeetrf without a semi-colon', '&zeetrf', '&zeetrf'],
+            4193 => ['Named entity: zeetrf; with a semi-colon', '&zeetrf;', "\u{2128}"],
+            4194 => ['Bad named entity: zeta without a semi-colon', '&zeta', '&zeta'],
+            4195 => ['Named entity: zeta; with a semi-colon', '&zeta;', "\u{03B6}"],
+            4196 => ['Bad named entity: zfr without a semi-colon', '&zfr', '&zfr'],
+            4197 => ['Named entity: zfr; with a semi-colon', '&zfr;', "\u{1D537}"],
+            4198 => ['Bad named entity: zhcy without a semi-colon', '&zhcy', '&zhcy'],
+            4199 => ['Named entity: zhcy; with a semi-colon', '&zhcy;', "\u{0436}"],
+            4200 => ['Bad named entity: zigrarr without a semi-colon', '&zigrarr', '&zigrarr'],
+            4201 => ['Named entity: zigrarr; with a semi-colon', '&zigrarr;', "\u{21DD}"],
+            4202 => ['Bad named entity: zopf without a semi-colon', '&zopf', '&zopf'],
+            4203 => ['Named entity: zopf; with a semi-colon', '&zopf;', "\u{1D56B}"],
+            4204 => ['Bad named entity: zscr without a semi-colon', '&zscr', '&zscr'],
+            4205 => ['Named entity: zscr; with a semi-colon', '&zscr;', "\u{1D4CF}"],
+            4206 => ['Bad named entity: zwj without a semi-colon', '&zwj', '&zwj'],
+            4207 => ['Named entity: zwj; with a semi-colon', '&zwj;', "\u{200D}"],
+            4208 => ['Bad named entity: zwnj without a semi-colon', '&zwnj', '&zwnj'],
+            4209 => ['Named entity: zwnj; with a semi-colon', '&zwnj;', "\u{200C}"],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -25704,6 +25738,33 @@ final class SerializeTest extends TestCase
         } else {
             self::assertSame($expectedErrors, $fixture['errors']);
         }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libNamedEntitiesZeetrfZwnjExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesZeetrfZwnjExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertArrayNotHasKey('errors', $fixture);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
     }
 
     /**
