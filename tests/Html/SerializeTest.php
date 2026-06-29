@@ -22760,6 +22760,430 @@ final class SerializeTest extends TestCase
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
     }
 
+    /**
+     * @return iterable<string, array{int, string, string, list<string>, bool}>
+     */
+    public static function html5TestTests20MathAnnotationXmlProvider(): iterable
+    {
+        yield 'html5_test/tests20.ton #53 annotation-xml without encoding breaks out div' => [
+            53,
+            '<math><annotation-xml><div>',
+            '<math><annotation-xml></annotation-xml></math><div></div>',
+            [
+                "            <math><annotation-xml><div>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml>\n",
+                "                <div>\n",
+            ],
+            false,
+        ];
+        yield 'html5_test/tests20.ton #54 SVG encoding does not make annotation-xml an HTML integration point' => [
+            54,
+            '<math><annotation-xml encoding="application/svg+xml"><div>',
+            '<math><annotation-xml encoding="application/svg+xml"></annotation-xml></math><div></div>',
+            [
+                "            <math><annotation-xml encoding=\"application/svg+xml\"><div>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml encoding=\"application/svg+xml\">\n",
+                "                <div>\n",
+            ],
+            false,
+        ];
+        yield 'html5_test/tests20.ton #55 XHTML encoding keeps div inside annotation-xml' => [
+            55,
+            '<math><annotation-xml encoding="application/xhtml+xml"><div>',
+            '<math><annotation-xml encoding="application/xhtml+xml"><div></div></annotation-xml></math>',
+            [
+                "            <math><annotation-xml encoding=\"application/xhtml+xml\"><div>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml encoding=\"application/xhtml+xml\">\n",
+                "                    <div>\n",
+            ],
+            true,
+        ];
+        yield 'html5_test/tests20.ton #56 mixed-case XHTML encoding keeps div inside annotation-xml' => [
+            56,
+            '<math><annotation-xml encoding="aPPlication/xhtmL+xMl"><div>',
+            '<math><annotation-xml encoding="aPPlication/xhtmL+xMl"><div></div></annotation-xml></math>',
+            [
+                "            <math><annotation-xml encoding=\"aPPlication/xhtmL+xMl\"><div>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml encoding=\"aPPlication/xhtmL+xMl\">\n",
+                "                    <div>\n",
+            ],
+            true,
+        ];
+        yield 'html5_test/tests20.ton #57 HTML encoding keeps div inside annotation-xml' => [
+            57,
+            '<math><annotation-xml encoding="text/html"><div>',
+            '<math><annotation-xml encoding="text/html"><div></div></annotation-xml></math>',
+            [
+                "            <math><annotation-xml encoding=\"text/html\"><div>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml encoding=\"text/html\">\n",
+                "                    <div>\n",
+            ],
+            true,
+        ];
+        yield 'html5_test/tests20.ton #58 mixed-case HTML encoding keeps div inside annotation-xml' => [
+            58,
+            '<math><annotation-xml encoding="Text/htmL"><div>',
+            '<math><annotation-xml encoding="Text/htmL"><div></div></annotation-xml></math>',
+            [
+                "            <math><annotation-xml encoding=\"Text/htmL\"><div>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml encoding=\"Text/htmL\">\n",
+                "                    <div>\n",
+            ],
+            true,
+        ];
+        yield 'html5_test/tests20.ton #59 whitespace-wrapped HTML encoding breaks out div' => [
+            59,
+            '<math><annotation-xml encoding=" text/html "><div>',
+            '<math><annotation-xml encoding=" text/html "></annotation-xml></math><div></div>',
+            [
+                "            <math><annotation-xml encoding=\" text/html \"><div>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml encoding=\" text/html \">\n",
+                "                <div>\n",
+            ],
+            false,
+        ];
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests20MathAnnotationXmlProvider')]
+    public function testHtml5TestTests20MathAnnotationXmlFixtures(
+        int $testNumber,
+        string $input,
+        string $expectedBody,
+        array $fixtureSnippets,
+        bool $divInsideAnnotationXml,
+    ): void {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame(
+            "<html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        $math = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $math);
+        self::assertSame(Element::NAMESPACE_MATH, $math->namespace);
+        $annotationXml = $math->firstChild;
+        self::assertInstanceOf(Element::class, $annotationXml);
+        self::assertSame(Element::NAMESPACE_MATH, $annotationXml->namespace);
+
+        if ($divInsideAnnotationXml) {
+            $div = $annotationXml->firstChild;
+            self::assertInstanceOf(Element::class, $div);
+            self::assertSame(Element::NAMESPACE_HTML, $div->namespace);
+            self::assertNull($math->next);
+            return;
+        }
+
+        self::assertNull($annotationXml->firstChild);
+        $div = $math->next;
+        self::assertInstanceOf(Element::class, $div);
+        self::assertSame(Element::NAMESPACE_HTML, $div->namespace);
+    }
+
+    /**
+     * @return iterable<string, array{int, string, string, list<string>}>
+     */
+    public static function html5TestForeignFragmentMathAnnotationXmlProvider(): iterable
+    {
+        yield 'html5_test/foreign-fragment.ton #39 annotation-xml fragment div breaks out to HTML' => [
+            39,
+            '<div></div>',
+            Element::NAMESPACE_HTML,
+            [
+                "            <div></div>\n",
+                "        \"fragment\": {\"tag\": \"annotation-xml\", \"ns\": \"math\"},\n",
+                "            <div>\n",
+            ],
+        ];
+        yield 'html5_test/foreign-fragment.ton #40 annotation-xml fragment figure stays MathML' => [
+            40,
+            '<figure></figure>',
+            Element::NAMESPACE_MATH,
+            [
+                "            <figure></figure>\n",
+                "        \"fragment\": {\"tag\": \"annotation-xml\", \"ns\": \"math\"},\n",
+                "            <math:figure>\n",
+            ],
+        ];
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestForeignFragmentMathAnnotationXmlProvider')]
+    public function testHtml5TestForeignFragmentMathAnnotationXmlFixtures(
+        int $testNumber,
+        string $input,
+        string $expectedNamespace,
+        array $fixtureSnippets,
+    ): void {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/foreign-fragment.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        $context = $document->createElement('annotation-xml', Element::NAMESPACE_MATH);
+        $fragment = $document->createFragmentForElement($context, $input);
+        $child = $fragment->firstChild;
+
+        self::assertInstanceOf(Element::class, $child);
+        self::assertNull($child->next);
+        self::assertSame($expectedNamespace, $child->namespace);
+        self::assertSame($input, Serializer::serializeDeep($fragment));
+
+        $context->setInnerHtml($input);
+        $child = $context->firstChild;
+
+        self::assertInstanceOf(Element::class, $child);
+        self::assertNull($child->next);
+        self::assertSame($expectedNamespace, $child->namespace);
+
+        if ($testNumber === 39) {
+            $context = $document->createElement('annotation-xml', Element::NAMESPACE_MATH);
+            $context->setInnerHtml('<div>');
+            $child = $context->firstChild;
+
+            self::assertInstanceOf(Element::class, $child);
+            self::assertNull($child->next);
+            self::assertSame(Element::NAMESPACE_HTML, $child->namespace);
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string|null, bool}>
+     */
+    public static function mathAnnotationXmlHtmlBreakoutRegressionProvider(): iterable
+    {
+        yield 'head shell tag breaks out before being ignored' => [
+            '<math><annotation-xml><head>x',
+            '<math><annotation-xml></annotation-xml></math>x',
+            null,
+            false,
+        ];
+        yield 'font with color breaks out' => [
+            '<math><annotation-xml><font color=x>',
+            '<math><annotation-xml></annotation-xml></math><font color="x"></font>',
+            Element::NAMESPACE_HTML,
+            false,
+        ];
+        yield 'font without color face or size stays MathML' => [
+            '<math><annotation-xml><font>',
+            '<math><annotation-xml><font></font></annotation-xml></math>',
+            Element::NAMESPACE_MATH,
+            true,
+        ];
+    }
+
+    #[DataProvider('mathAnnotationXmlHtmlBreakoutRegressionProvider')]
+    public function testMathAnnotationXmlHtmlBreakoutRegressions(
+        string $input,
+        string $expectedBody,
+        ?string $expectedFontNamespace,
+        bool $fontInsideAnnotationXml,
+    ): void {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        if ($expectedFontNamespace === null) {
+            return;
+        }
+
+        $math = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $math);
+        $annotationXml = $math->firstChild;
+        self::assertInstanceOf(Element::class, $annotationXml);
+
+        $font = $fontInsideAnnotationXml ? $annotationXml->firstChild : $math->next;
+        self::assertInstanceOf(Element::class, $font);
+        self::assertSame('font', $font->tagName);
+        self::assertSame($expectedFontNamespace, $font->namespace);
+    }
+
+    public function testMathTextIntegrationPointCreatesHtmlAnnotationXml(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<math><mtext><annotation-xml><div>'));
+
+        self::assertSame(
+            '<math><mtext><annotation-xml><div></div></annotation-xml></mtext></math>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $math = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $math);
+        $mtext = $math->firstChild;
+        self::assertInstanceOf(Element::class, $mtext);
+        self::assertSame(Element::NAMESPACE_MATH, $mtext->namespace);
+        $annotationXml = $mtext->firstChild;
+        self::assertInstanceOf(Element::class, $annotationXml);
+        self::assertSame(Element::NAMESPACE_HTML, $annotationXml->namespace);
+        $div = $annotationXml->firstChild;
+        self::assertInstanceOf(Element::class, $div);
+        self::assertSame(Element::NAMESPACE_HTML, $div->namespace);
+    }
+
+    public function testMathAnnotationXmlBreakoutStopsAtMathTextIntegrationPoint(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<math><mtext><math><annotation-xml><div>'));
+
+        self::assertSame(
+            '<math><mtext><math><annotation-xml></annotation-xml></math><div></div></mtext></math>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $math = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $math);
+        $mtext = $math->firstChild;
+        self::assertInstanceOf(Element::class, $mtext);
+        self::assertSame(Element::NAMESPACE_MATH, $mtext->namespace);
+        $innerMath = $mtext->firstChild;
+        self::assertInstanceOf(Element::class, $innerMath);
+        self::assertSame(Element::NAMESPACE_MATH, $innerMath->namespace);
+        $div = $mtext->lastChild;
+        self::assertInstanceOf(Element::class, $div);
+        self::assertSame(Element::NAMESPACE_HTML, $div->namespace);
+    }
+
+    public function testNestedMathAnnotationXmlBodyDoesNotSeedDocumentBodyFragment(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<math><annotation-xml><body>y'));
+
+        self::assertSame(
+            '<math><annotation-xml></annotation-xml></math>y',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testNestedSvgForeignObjectBodyDoesNotSeedDocumentBodyFragment(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><foreignObject><body>y'));
+
+        self::assertSame(
+            '<svg><foreignobject>y</foreignobject></svg>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testBodyFragmentScannerIgnoresForeignTagsInsideComments(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!-- <math> --><body class=a>x</body>'));
+
+        self::assertSame(
+            '<html><head></head><body class="a">x</body></html>',
+            Serializer::serializeDeep($document),
+        );
+    }
+
+    public function testBodyFragmentScannerIgnoresBodyInsideScriptText(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('x<script><body class=a></script><body class=b>y</body>'));
+
+        self::assertSame(
+            '<html><head></head><body class="b">y</body></html>',
+            Serializer::serializeDeep($document),
+        );
+    }
+
+    public function testBodyFragmentScannerIgnoresForeignTagsInsideBogusDeclarations(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('x<! <math>><body class=a>y</body>'));
+
+        self::assertSame(
+            '<html><head></head><body class="a">y</body></html>',
+            Serializer::serializeDeep($document),
+        );
+    }
+
+    public function testBodyFragmentScannerMirrorsMathAnnotationXmlBreakoutBeforeBody(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<math><annotation-xml><head><body class=a>x</body>'));
+
+        self::assertSame(
+            '<html><head></head><body class="a">x</body></html>',
+            Serializer::serializeDeep($document),
+        );
+    }
+
+    public function testBodyFragmentScannerSkipsQuotedTextInsideEndTags(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<math></foo title="</math>"><body class=a>x</body>'));
+
+        self::assertSame(
+            '<html><head></head><body><math>x</math></body></html>',
+            Serializer::serializeDeep($document),
+        );
+    }
+
+    public function testBodyFragmentScannerSkipsQuotedGreaterThanInsideEndTags(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<math></foo title="></math>"><body class=a>x</body>'));
+
+        self::assertSame(
+            '<html><head></head><body><math>x</math></body></html>',
+            Serializer::serializeDeep($document),
+        );
+    }
+
+    public function testBodyFragmentScannerIgnoresBodyInsideForeignCdata(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><![CDATA[x> </svg><body class=a>z</body>]]></svg><body class=b>y</body>'));
+
+        self::assertSame(
+            '<html><head></head><body class="b">y</body></html>',
+            Serializer::serializeDeep($document),
+        );
+    }
+
     public function testFormFragmentContextSeedsFormPointer(): void
     {
         $document = new Document();

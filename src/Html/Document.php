@@ -323,14 +323,23 @@ final class Document extends Node
             }
 
             $formattingEndTagsPoppedByScope = [];
+            $attributes = $this->parseAttributes($attributeSource);
+
+            $formattingTailClones = [];
+            $mathAnnotationXmlBreakout = false;
+            $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            if (self::isMathAnnotationXmlHtmlBreakoutStartTag($namespaceParent, $tagName, $attributes)) {
+                $this->popUntilHtmlInsertionContext($stack, $root, $context);
+                $parent = $stack[count($stack) - 1];
+                $mathAnnotationXmlBreakout = true;
+                $namespaceParent = $parent;
+            }
 
             if ($this->isDocumentShellTag($root, $context, $tagName)) {
                 $offset = $tagEnd;
                 continue;
             }
 
-            $formattingTailClones = [];
-            $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             if ($tagName === 'form' && self::isHtmlInsertionContext($namespaceParent)) {
                 if ($formElement !== null) {
                     $offset = $tagEnd;
@@ -349,7 +358,7 @@ final class Document extends Node
                 }
 
                 $element = $this->createElement('form', $this->namespaceForElement($namespaceParent, 'form'));
-                foreach ($this->parseAttributes($attributeSource) as $attribute) {
+                foreach ($attributes as $attribute) {
                     $element->setAttribute($attribute['name'], $attribute['value']);
                 }
 
@@ -378,7 +387,7 @@ final class Document extends Node
             ) {
                 $formattingTailClones = $this->closeOpenParagraphAndCloneFormattingTail($stack);
                 $parent = $stack[count($stack) - 1];
-                $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+                $namespaceParent = ($parent === $root && $context !== null && ! $mathAnnotationXmlBreakout) ? $context : $parent;
             }
 
             if (
@@ -408,7 +417,7 @@ final class Document extends Node
                 $parent = $stack[count($stack) - 1];
             }
 
-            $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            $namespaceParent = ($parent === $root && $context !== null && ! $mathAnnotationXmlBreakout) ? $context : $parent;
             $namespace = $this->namespaceForElement($namespaceParent, $tagName);
 
             if ($tagName === 'image' && $namespace === Element::NAMESPACE_HTML) {
@@ -416,7 +425,7 @@ final class Document extends Node
             }
 
             $element = $this->createElement($tagName, $namespace);
-            foreach ($this->parseAttributes($attributeSource) as $attribute) {
+            foreach ($attributes as $attribute) {
                 $element->setAttribute($attribute['name'], $attribute['value']);
             }
 
@@ -970,6 +979,23 @@ final class Document extends Node
 
     /**
      * @param list<Node> $stack
+     */
+    private function popUntilHtmlInsertionContext(array &$stack, Node $root, ?Element $context): void
+    {
+        while (count($stack) > 1) {
+            $parent = $stack[count($stack) - 1];
+            $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+
+            if (self::isHtmlInsertionContext($namespaceParent) || self::isMathTextIntegrationPoint($namespaceParent)) {
+                return;
+            }
+
+            array_pop($stack);
+        }
+    }
+
+    /**
+     * @param list<Node> $stack
      * @return array<string, int>
      */
     private function closeElementInNormalScope(array &$stack, string $tagName): array
@@ -1458,6 +1484,18 @@ final class Document extends Node
             return Element::NAMESPACE_HTML;
         }
 
+        if (
+            self::isMathTextIntegrationPoint($parent)
+            && $tagName !== 'mglyph'
+            && $tagName !== 'malignmark'
+        ) {
+            return Element::NAMESPACE_HTML;
+        }
+
+        if (self::isHtmlInsertionContext($parent)) {
+            return Element::NAMESPACE_HTML;
+        }
+
         if ($parent->namespace === Element::NAMESPACE_SVG && $parent->tagName !== 'foreignobject') {
             return Element::NAMESPACE_SVG;
         }
@@ -1479,8 +1517,135 @@ final class Document extends Node
             return true;
         }
 
+        if (self::isMathAnnotationXmlHtmlIntegrationPoint($parent)) {
+            return true;
+        }
+
         return $parent->namespace === Element::NAMESPACE_SVG
             && $parent->tagName === 'foreignobject';
+    }
+
+    private static function isMathTextIntegrationPoint(Node $parent): bool
+    {
+        return $parent instanceof Element
+            && $parent->namespace === Element::NAMESPACE_MATH
+            && (
+                $parent->tagName === 'mi'
+                || $parent->tagName === 'mn'
+                || $parent->tagName === 'mo'
+                || $parent->tagName === 'ms'
+                || $parent->tagName === 'mtext'
+            );
+    }
+
+    /**
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private static function isMathAnnotationXmlHtmlBreakoutStartTag(Node $parent, string $tagName, array $attributes): bool
+    {
+        return $parent instanceof Element
+            && $parent->namespace === Element::NAMESPACE_MATH
+            && $parent->tagName === 'annotation-xml'
+            && ! self::isMathAnnotationXmlHtmlIntegrationPoint($parent)
+            && self::isMathAnnotationXmlHtmlBreakoutTagName($tagName, $attributes);
+    }
+
+    /**
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private static function isMathAnnotationXmlHtmlBreakoutTagName(string $tagName, array $attributes): bool
+    {
+        return in_array($tagName, [
+            'b',
+            'big',
+            'blockquote',
+            'body',
+            'br',
+            'center',
+            'code',
+            'dd',
+            'div',
+            'dl',
+            'dt',
+            'em',
+            'embed',
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'head',
+            'hr',
+            'i',
+            'img',
+            'li',
+            'listing',
+            'menu',
+            'meta',
+            'nobr',
+            'ol',
+            'p',
+            'pre',
+            'ruby',
+            's',
+            'small',
+            'span',
+            'strong',
+            'strike',
+            'sub',
+            'sup',
+            'table',
+            'tt',
+            'u',
+            'ul',
+            'var',
+        ], true)
+            || ($tagName === 'font' && self::hasAnyAttribute($attributes, ['color', 'face', 'size']));
+    }
+
+    /**
+     * @param list<array{name: string, value: string}> $attributes
+     * @param list<string> $names
+     */
+    private static function hasAnyAttribute(array $attributes, array $names): bool
+    {
+        foreach ($attributes as $attribute) {
+            if (in_array($attribute['name'], $names, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private static function attributeValue(array $attributes, string $name): ?string
+    {
+        foreach ($attributes as $attribute) {
+            if ($attribute['name'] === $name) {
+                return $attribute['value'];
+            }
+        }
+
+        return null;
+    }
+
+    private static function isMathAnnotationXmlHtmlIntegrationPoint(Element $element): bool
+    {
+        if ($element->namespace !== Element::NAMESPACE_MATH || $element->tagName !== 'annotation-xml') {
+            return false;
+        }
+
+        $encoding = $element->getAttribute('encoding');
+        if ($encoding === null) {
+            return false;
+        }
+
+        return strcasecmp($encoding, 'text/html') === 0
+            || strcasecmp($encoding, 'application/xhtml+xml') === 0;
     }
 
     private static function isHeadingTag(string $tagName): bool
@@ -1623,11 +1788,7 @@ final class Document extends Node
 
         if ($element->namespace === Element::NAMESPACE_MATH) {
             return $element->tagName === 'annotation-xml'
-                || $element->tagName === 'mi'
-                || $element->tagName === 'mn'
-                || $element->tagName === 'mo'
-                || $element->tagName === 'ms'
-                || $element->tagName === 'mtext';
+                || self::isMathTextIntegrationPoint($element);
         }
 
         if ($element->namespace === Element::NAMESPACE_SVG) {
@@ -1656,11 +1817,7 @@ final class Document extends Node
 
         if ($element->namespace === Element::NAMESPACE_MATH) {
             return $element->tagName === 'annotation-xml'
-                || $element->tagName === 'mi'
-                || $element->tagName === 'mn'
-                || $element->tagName === 'mo'
-                || $element->tagName === 'ms'
-                || $element->tagName === 'mtext';
+                || self::isMathTextIntegrationPoint($element);
         }
 
         if ($element->namespace === Element::NAMESPACE_SVG) {
@@ -1677,31 +1834,299 @@ final class Document extends Node
      */
     private function bodyFragment(string $html): ?array
     {
-        $pattern = '~<body(?=[\t\n\f\r />])~si';
+        $pattern = '~<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
+        $offset = 0;
+        $stack = [];
 
-        if (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE) !== 1) {
-            return null;
+        while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
+            $tagStart = $match[0][1];
+            $ignoredMarkupEnd = self::bodyFragmentScannerIgnoredMarkupEnd(
+                $html,
+                $offset,
+                $tagStart,
+                self::bodyFragmentScannerHasOpenForeignElement($stack),
+            );
+            if ($ignoredMarkupEnd !== null) {
+                $offset = $ignoredMarkupEnd;
+                continue;
+            }
+
+            $tagName = self::normalizeTagTokenName($match['tag'][0]);
+            $tagEnd = $tagStart + strlen($match[0][0]);
+
+            if ($match['closing'][0] === '/') {
+                self::popBodyFragmentScannerStack($stack, $tagName);
+                $offset = self::consumeBodyFragmentScannerEndTag($html, $tagEnd);
+                continue;
+            }
+
+            $bodyTag = self::consumeStartTag($html, $tagEnd);
+            if ($bodyTag === null) {
+                return null;
+            }
+
+            [$attributes, $start, $selfClosing] = $bodyTag;
+            $parsedAttributes = $this->parseAttributes($attributes);
+            $namespaceParent = $stack[count($stack) - 1] ?? null;
+            $mathAnnotationXmlBreakout = false;
+            if (self::bodyFragmentScannerIsMathAnnotationXmlHtmlBreakoutStartTag($namespaceParent, $tagName, $parsedAttributes)) {
+                self::popBodyFragmentScannerUntilHtmlInsertionContext($stack);
+                $mathAnnotationXmlBreakout = true;
+            }
+
+            if ($tagName === 'body') {
+                if (! $mathAnnotationXmlBreakout && ! self::bodyFragmentScannerHasOpenForeignElement($stack)) {
+                    $closePattern = '~</body\s*>~i';
+
+                    if (preg_match($closePattern, $html, $close, PREG_OFFSET_CAPTURE, $start) !== 1) {
+                        return [
+                            'attributes' => $attributes,
+                            'content' => substr($html, $start),
+                        ];
+                    }
+
+                    return [
+                        'attributes' => $attributes,
+                        'content' => substr($html, $start, $close[0][1] - $start),
+                    ];
+                }
+
+                $offset = $start;
+                continue;
+            }
+
+            if (! $selfClosing && self::isTextOnlyTagName($tagName, $this->isScriptingEnabled())) {
+                $offset = self::skipTextOnlyElementContent($tagName, $html, $start);
+                continue;
+            }
+
+            if (! $selfClosing && ! VoidElements::is($tagName)) {
+                $namespace = self::bodyFragmentScannerNamespaceForElement($stack, $tagName);
+                $stack[] = [
+                    'tagName' => $tagName,
+                    'namespace' => $namespace,
+                    'htmlIntegration' => self::bodyFragmentScannerIsMathAnnotationXmlHtmlIntegrationPoint($namespace, $tagName, $parsedAttributes),
+                ];
+            }
+
+            $offset = $start;
         }
 
-        $bodyTag = self::consumeStartTag($html, $match[0][1] + strlen($match[0][0]));
-        if ($bodyTag === null) {
-            return null;
+        return null;
+    }
+
+    /**
+     * @param list<array{tagName: string, namespace: string, htmlIntegration: bool}> $stack
+     */
+    private static function bodyFragmentScannerNamespaceForElement(array $stack, string $tagName): string
+    {
+        if ($tagName === 'svg') {
+            return Element::NAMESPACE_SVG;
         }
 
-        [$attributes, $start] = $bodyTag;
-        $closePattern = '~</body\s*>~i';
-
-        if (preg_match($closePattern, $html, $close, PREG_OFFSET_CAPTURE, $start) !== 1) {
-            return [
-                'attributes' => $attributes,
-                'content' => substr($html, $start),
-            ];
+        if ($tagName === 'math') {
+            return Element::NAMESPACE_MATH;
         }
 
-        return [
-            'attributes' => $attributes,
-            'content' => substr($html, $start, $close[0][1] - $start),
-        ];
+        $parent = $stack[count($stack) - 1] ?? null;
+        if ($parent === null) {
+            return Element::NAMESPACE_HTML;
+        }
+
+        if (
+            self::bodyFragmentScannerIsMathTextIntegrationPoint($parent)
+            && $tagName !== 'mglyph'
+            && $tagName !== 'malignmark'
+        ) {
+            return Element::NAMESPACE_HTML;
+        }
+
+        if (self::bodyFragmentScannerIsHtmlInsertionContext($parent)) {
+            return Element::NAMESPACE_HTML;
+        }
+
+        if ($parent['namespace'] === Element::NAMESPACE_SVG && $parent['tagName'] !== 'foreignobject') {
+            return Element::NAMESPACE_SVG;
+        }
+
+        if ($parent['namespace'] === Element::NAMESPACE_MATH) {
+            return Element::NAMESPACE_MATH;
+        }
+
+        return Element::NAMESPACE_HTML;
+    }
+
+    /**
+     * @param list<array{tagName: string, namespace: string, htmlIntegration: bool}> $stack
+     */
+    private static function bodyFragmentScannerHasOpenForeignElement(array $stack): bool
+    {
+        foreach ($stack as $element) {
+            if ($element['namespace'] !== Element::NAMESPACE_HTML) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<array{tagName: string, namespace: string, htmlIntegration: bool}> $stack
+     */
+    private static function popBodyFragmentScannerStack(array &$stack, string $tagName): void
+    {
+        for ($index = count($stack) - 1; $index >= 0; $index--) {
+            if ($stack[$index]['tagName'] === $tagName) {
+                array_splice($stack, $index);
+                return;
+            }
+        }
+    }
+
+    private static function bodyFragmentScannerIgnoredMarkupEnd(string $html, int $offset, int $tagStart, bool $inForeignContent): ?int
+    {
+        $cursor = $offset;
+        while (($markupStart = strpos($html, '<', $cursor)) !== false && $markupStart < $tagStart) {
+            if (substr($html, $markupStart, 4) === '<!--') {
+                [, $end] = self::consumeHtmlComment($html, $markupStart);
+                return $end;
+            }
+
+            if ($inForeignContent && substr($html, $markupStart, 9) === '<![CDATA[') {
+                [, $end] = self::consumeCdataSection($html, $markupStart);
+                return $end;
+            }
+
+            $comment = self::consumeDocumentPrologueComment($html, $markupStart);
+            if ($comment !== null) {
+                return $comment[1];
+            }
+
+            $cursor = $markupStart + 1;
+        }
+
+        return null;
+    }
+
+    private static function consumeBodyFragmentScannerEndTag(string $html, int $offset): int
+    {
+        $length = strlen($html);
+        $quote = null;
+
+        while ($offset < $length) {
+            $character = $html[$offset];
+
+            if ($quote !== null) {
+                if ($character === $quote) {
+                    $quote = null;
+                }
+                $offset++;
+                continue;
+            }
+
+            if ($character === '"' || $character === "'") {
+                $quote = $character;
+                $offset++;
+                continue;
+            }
+
+            if ($character === '>') {
+                return $offset + 1;
+            }
+
+            $offset++;
+        }
+
+        return $length;
+    }
+
+    private static function skipTextOnlyElementContent(string $tagName, string $html, int $offset): int
+    {
+        if ($tagName === 'plaintext') {
+            return strlen($html);
+        }
+
+        if ($tagName === 'script') {
+            $close = self::consumeScriptDataEndTag($html, $offset);
+            return $close === null ? strlen($html) : $close[1];
+        }
+
+        if (preg_match(sprintf('~</%s\s*>~i', preg_quote($tagName, '~')), $html, $match, PREG_OFFSET_CAPTURE, $offset) !== 1) {
+            return strlen($html);
+        }
+
+        return $match[0][1] + strlen($match[0][0]);
+    }
+
+    /**
+     * @param array{tagName: string, namespace: string, htmlIntegration: bool}|null $parent
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private static function bodyFragmentScannerIsMathAnnotationXmlHtmlBreakoutStartTag(?array $parent, string $tagName, array $attributes): bool
+    {
+        return $parent !== null
+            && $parent['namespace'] === Element::NAMESPACE_MATH
+            && $parent['tagName'] === 'annotation-xml'
+            && ! $parent['htmlIntegration']
+            && self::isMathAnnotationXmlHtmlBreakoutTagName($tagName, $attributes);
+    }
+
+    /**
+     * @param list<array{tagName: string, namespace: string, htmlIntegration: bool}> $stack
+     */
+    private static function popBodyFragmentScannerUntilHtmlInsertionContext(array &$stack): void
+    {
+        while ($stack !== []) {
+            $parent = $stack[count($stack) - 1];
+            if (self::bodyFragmentScannerIsHtmlInsertionContext($parent) || self::bodyFragmentScannerIsMathTextIntegrationPoint($parent)) {
+                return;
+            }
+
+            array_pop($stack);
+        }
+    }
+
+    /**
+     * @param array{tagName: string, namespace: string, htmlIntegration: bool} $element
+     */
+    private static function bodyFragmentScannerIsHtmlInsertionContext(array $element): bool
+    {
+        return $element['namespace'] === Element::NAMESPACE_HTML
+            || ($element['namespace'] === Element::NAMESPACE_SVG && $element['tagName'] === 'foreignobject')
+            || $element['htmlIntegration'];
+    }
+
+    /**
+     * @param array{tagName: string, namespace: string, htmlIntegration: bool} $element
+     */
+    private static function bodyFragmentScannerIsMathTextIntegrationPoint(array $element): bool
+    {
+        return $element['namespace'] === Element::NAMESPACE_MATH
+            && (
+                $element['tagName'] === 'mi'
+                || $element['tagName'] === 'mn'
+                || $element['tagName'] === 'mo'
+                || $element['tagName'] === 'ms'
+                || $element['tagName'] === 'mtext'
+            );
+    }
+
+    /**
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private static function bodyFragmentScannerIsMathAnnotationXmlHtmlIntegrationPoint(string $namespace, string $tagName, array $attributes): bool
+    {
+        if ($namespace !== Element::NAMESPACE_MATH || $tagName !== 'annotation-xml') {
+            return false;
+        }
+
+        $encoding = self::attributeValue($attributes, 'encoding');
+        if ($encoding === null) {
+            return false;
+        }
+
+        return strcasecmp($encoding, 'text/html') === 0
+            || strcasecmp($encoding, 'application/xhtml+xml') === 0;
     }
 
     private function stripLeadingDoctype(string $html): string
@@ -2639,7 +3064,12 @@ REGEX;
 
     private function isTextOnlyFragmentContext(Element $context): bool
     {
-        return in_array($context->tagName, [
+        return self::isTextOnlyTagName($context->tagName, $this->isScriptingEnabled());
+    }
+
+    private static function isTextOnlyTagName(string $tagName, bool $scripting = false): bool
+    {
+        return in_array($tagName, [
             'textarea',
             'title',
             'style',
@@ -2650,7 +3080,7 @@ REGEX;
             'noframes',
             'plaintext',
         ], true)
-            || ($context->tagName === 'noscript' && $this->isScriptingEnabled());
+            || ($tagName === 'noscript' && $scripting);
     }
 
     private function shouldDecodeTextOnlyElementContent(Element $element): bool
