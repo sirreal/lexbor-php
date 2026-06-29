@@ -22041,6 +22041,14 @@ final class SerializeTest extends TestCase
             '<h1>Hello</h1><h2>World</h2>',
             ["            <h1>Hello<h2>World\n", "                <h1>\n", '                  "Hello"', "                <h2>\n", '                  "World"'],
         ];
+
+        yield 'html5_test/tests1.ton #29 hr closes paragraph and stray paragraph end opens empty paragraph' => [
+            29,
+            '<p><hr></p>',
+            '<html><head></head><body><p></p><hr><p></p></body></html>',
+            '<p></p><hr><p></p>',
+            ["            <p><hr></p>\n", "                <p>\n", "                <hr>\n"],
+        ];
     }
 
     /**

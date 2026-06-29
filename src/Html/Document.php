@@ -228,6 +228,12 @@ final class Document extends Node
                     continue;
                 }
 
+                if ($tagName === 'p' && ! $this->hasOpenElement($stack, 'p')) {
+                    $parent->appendChild($this->createElement('p'));
+                    $offset = $tagEnd;
+                    continue;
+                }
+
                 $this->closeElement($stack, $tagName);
                 $offset = $tagEnd;
                 continue;
@@ -239,6 +245,11 @@ final class Document extends Node
             }
 
             if ($tagName === 'p') {
+                $this->closeElement($stack, 'p');
+                $parent = $stack[count($stack) - 1];
+            }
+
+            if ($tagName === 'hr') {
                 $this->closeElement($stack, 'p');
                 $parent = $stack[count($stack) - 1];
             }
@@ -726,6 +737,21 @@ final class Document extends Node
                 return;
             }
         }
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function hasOpenElement(array $stack, string $tagName): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if ($node instanceof Element && $node->tagName === $tagName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
