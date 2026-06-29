@@ -22094,6 +22094,30 @@ final class SerializeTest extends TestCase
             ];
         }
 
+        yield 'html5_test/tests1.ton #50 style in document head' => [
+            50,
+            '<!DOCTYPE html><style> EOF',
+            '<!DOCTYPE html><html><head><style> EOF</style></head><body></body></html>',
+            '',
+            ["            <!DOCTYPE html><style> EOF\n", "                <style>\n", '                  " EOF"'],
+        ];
+
+        yield 'html5_test/tests1.ton #51 script closes head before body text' => [
+            51,
+            '<!DOCTYPE html><script> <!-- </script> --> </script> EOF',
+            '<!DOCTYPE html><html><head><script> <!-- </script> </head><body>--&gt;  EOF</body></html>',
+            '--&gt;  EOF',
+            ["            <!DOCTYPE html><script> <!-- </script> --> </script> EOF\n", "                <script>\n", '                  " <!-- "', '                " "', '                "-->  EOF"'],
+        ];
+
+        yield 'html5_test/tests1.ton #55 title before body' => [
+            55,
+            '<!DOCTYPE html><title>U-test</title><body><div><p>Test<u></p></div></body>',
+            '<!DOCTYPE html><html><head><title>U-test</title></head><body><div><p>Test<u></u></p></div></body></html>',
+            '<div><p>Test<u></u></p></div>',
+            ["            <!DOCTYPE html><title>U-test</title><body><div><p>Test<u></p></div></body>\n", "                <title>\n", '                  "U-test"', "                    <u>\n"],
+        ];
+
         yield 'html5_test/tests1.ton #56 table/font recovery' => [
             56,
             '<!DOCTYPE html><font><table></font></table></font>',

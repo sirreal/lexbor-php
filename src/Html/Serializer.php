@@ -97,12 +97,13 @@ final class Serializer
     {
         $prefix = '';
         $body = $document->bodyElement();
+        $head = $document->headElement();
 
         for ($child = $document->firstChild; $child !== null && $child !== $body; $child = $child->next) {
             $prefix .= self::serialize($child, $fullDoctype);
         }
 
-        return $prefix . '<html><head></head>' . self::serializeElement($document->bodyElement(), $fullDoctype) . '</html>';
+        return $prefix . '<html>' . self::serializeElement($head, $fullDoctype) . self::serializeElement($body, $fullDoctype) . '</html>';
     }
 
     private static function serializeElement(Element $element, bool $fullDoctype): string

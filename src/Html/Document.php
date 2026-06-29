@@ -15,6 +15,7 @@ use Lexbor\Dom\Text;
 
 final class Document extends Node
 {
+    private Element $head;
     private Element $body;
     private TagRegistry $tags;
     private bool $quirksMode = false;
@@ -25,6 +26,7 @@ final class Document extends Node
         parent::__construct(NodeType::Document, $this, Tag::DOCUMENT);
 
         $this->tags = new TagRegistry();
+        $this->head = new Element('head', tagId: Tag::HEAD, ownerDocument: $this);
         $this->body = new Element('body', tagId: Tag::BODY, ownerDocument: $this);
         $this->appendChild($this->body);
     }
@@ -41,10 +43,16 @@ final class Document extends Node
             $this->body->firstChild->remove();
         }
 
+        while ($this->head->firstChild !== null) {
+            $this->head->firstChild->remove();
+        }
+
+        $this->head->clearAttributes();
         $this->body->clearAttributes();
 
         $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
         $html = $this->consumeDocumentPrologueComments($html);
+        $html = $this->consumeDocumentHeadContent($html, $doctype !== null);
         $bodyFragment = $this->bodyFragment($html);
         if ($bodyFragment !== null) {
             foreach ($this->parseAttributes($bodyFragment['attributes']) as $attribute) {
@@ -57,6 +65,11 @@ final class Document extends Node
         $this->parseFragmentInto($this->body, $html);
 
         return Status::Ok;
+    }
+
+    public function headElement(): Element
+    {
+        return $this->head;
     }
 
     public function bodyElement(): Element
@@ -774,6 +787,102 @@ final class Document extends Node
         return $root === $this->body
             && $context === null
             && ($tagName === 'html' || $tagName === 'head' || $tagName === 'body');
+    }
+
+    private function consumeDocumentHeadContent(string $html, bool $allowImplicitHeadContent): string
+    {
+        $offset = 0;
+        $headStarted = false;
+
+        $length = strlen($html);
+        while ($offset < $length) {
+            $whitespace = strspn($html, " \t\n\f\r", $offset);
+            $tokenOffset = $offset + $whitespace;
+
+            if ($headStarted && $whitespace > 0) {
+                if (self::consumeNamedStartTagAt($html, $tokenOffset, 'body') !== null) {
+                    return substr($html, $offset);
+                }
+
+                $this->appendText($this->head, substr($html, $offset, $whitespace));
+                $offset = $tokenOffset;
+            } else {
+                $offset = $tokenOffset;
+            }
+
+            $htmlTag = self::consumeNamedStartTagAt($html, $offset, 'html');
+            if ($htmlTag !== null) {
+                [, $offset] = $htmlTag;
+                continue;
+            }
+
+            $headTag = self::consumeNamedStartTagAt($html, $offset, 'head');
+            if ($headTag !== null) {
+                [$attributes, $offset] = $headTag;
+                foreach ($this->parseAttributes($attributes) as $attribute) {
+                    $this->head->setAttribute($attribute['name'], $attribute['value']);
+                }
+
+                $headStarted = true;
+                continue;
+            }
+
+            $headClose = self::consumeNamedEndTagAt($html, $offset, 'head');
+            if ($headClose !== null) {
+                return substr($html, $headClose);
+            }
+
+            if (! $headStarted && ! $allowImplicitHeadContent) {
+                return $html;
+            }
+
+            foreach (['title', 'style', 'script'] as $tagName) {
+                $startTag = self::consumeNamedStartTagAt($html, $offset, $tagName);
+                if ($startTag === null) {
+                    continue;
+                }
+
+                [$attributes, $startTagEnd, $selfClosing] = $startTag;
+                $element = $this->createElement($tagName);
+                foreach ($this->parseAttributes($attributes) as $attribute) {
+                    $element->setAttribute($attribute['name'], $attribute['value']);
+                }
+
+                $this->head->appendChild($element);
+                $offset = $selfClosing ? $startTagEnd : $this->appendTextOnlyElementContent($element, $html, $startTagEnd);
+                $headStarted = true;
+                continue 2;
+            }
+
+            if ($headStarted) {
+                return substr($html, $offset);
+            }
+
+            return $html;
+        }
+
+        return '';
+    }
+
+    /**
+     * @return array{string, int, bool}|null
+     */
+    private static function consumeNamedStartTagAt(string $html, int $offset, string $tagName): ?array
+    {
+        if (preg_match(sprintf('~^<%s(?=[\t\n\f\r />])~i', preg_quote($tagName, '~')), substr($html, $offset), $match) !== 1) {
+            return null;
+        }
+
+        return self::consumeStartTag($html, $offset + strlen($match[0]));
+    }
+
+    private static function consumeNamedEndTagAt(string $html, int $offset, string $tagName): ?int
+    {
+        if (preg_match(sprintf('~^</%s\s*>~i', preg_quote($tagName, '~')), substr($html, $offset), $match) !== 1) {
+            return null;
+        }
+
+        return $offset + strlen($match[0]);
     }
 
     private function namespaceForElement(Node $parent, string $tagName): string
