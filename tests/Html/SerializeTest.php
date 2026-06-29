@@ -22827,6 +22827,22 @@ final class SerializeTest extends TestCase
                 "                    <tr>\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #36 table caption then cell creates implied row containers' => [
+            36,
+            '<!DOCTYPE html><table><caption>test TEST</caption><td>test',
+            '<!DOCTYPE html><html><head></head><body><table><caption>test TEST</caption><tbody><tr><td>test</td></tr></tbody></table></body></html>',
+            '<table><caption>test TEST</caption><tbody><tr><td>test</td></tr></tbody></table>',
+            [
+                "            <!DOCTYPE html><table><caption>test TEST</caption><td>test\n",
+                "                <table>\n",
+                "                  <caption>\n",
+                "                    \"test TEST\"\n",
+                "                  <tbody>\n",
+                "                    <tr>\n",
+                "                      <td>\n",
+                "                        \"test\"\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #61 table row creates implied tbody' => [
             61,
             '<!DOCTYPE html><table><tr><td></p></table>',
