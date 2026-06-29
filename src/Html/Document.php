@@ -1342,6 +1342,7 @@ final class Document extends Node
         $offset = 0;
         $headStarted = false;
         $headClosed = false;
+        $ignoredDoctype = false;
 
         $length = strlen($html);
         while ($offset < $length) {
@@ -1371,6 +1372,13 @@ final class Document extends Node
                 $offset = $tokenOffset;
             } else {
                 $offset = $tokenOffset;
+            }
+
+            $doctypeEnd = $this->consumeDoctypeAt($html, $offset);
+            if ($doctypeEnd !== null) {
+                $offset = $doctypeEnd;
+                $ignoredDoctype = true;
+                continue;
             }
 
             $htmlTag = self::consumeNamedStartTagAt($html, $offset, 'html');
@@ -1447,10 +1455,24 @@ final class Document extends Node
                 return substr($html, $offset);
             }
 
-            return $html;
+            return $ignoredDoctype ? substr($html, $offset) : $html;
         }
 
         return '';
+    }
+
+    private function consumeDoctypeAt(string $html, int $offset): ?int
+    {
+        if (strncasecmp(substr($html, $offset, strlen('<!doctype')), '<!doctype', strlen('<!doctype')) !== 0) {
+            return null;
+        }
+
+        $doctype = $this->parseLeadingDoctype(substr($html, $offset));
+        if ($doctype === null) {
+            return null;
+        }
+
+        return $offset + $doctype['offset'];
     }
 
     /**

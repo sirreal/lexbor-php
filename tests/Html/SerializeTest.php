@@ -22703,6 +22703,16 @@ final class SerializeTest extends TestCase
                 "                \"test\n            test\"\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #45 duplicate doctype before html is ignored' => [
+            45,
+            '<!DOCTYPE html> <!DOCTYPE html>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '',
+            [
+                "            <!DOCTYPE html> <!DOCTYPE html>\n",
+                "              <body>\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #51 html start after doctype shell' => [
             51,
             '<!DOCTYPE html>  <html>',
@@ -24836,6 +24846,15 @@ final class SerializeTest extends TestCase
 
         self::assertSame('<html><head></head><body><p></p>x</body></html>', Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame('<p></p>x', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testDuplicateDoctypeBeforeBodyHandoffIsIgnored(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html> <!DOCTYPE html><html><p>x'));
+
+        self::assertSame('<!DOCTYPE html><html><head></head><body><p>x</p></body></html>', Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame('<p>x</p>', Serializer::serializeDeep($document->bodyElement()));
     }
 
     public function testDocumentPrologueBogusCommentsIgnoreInterleavedWhitespace(): void
