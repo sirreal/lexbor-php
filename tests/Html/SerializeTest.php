@@ -22199,6 +22199,79 @@ final class SerializeTest extends TestCase
                 $fixtureSnippets,
             ];
         }
+
+        $longAttributeName = 'attribute' . str_repeat('-', 1024);
+        yield 'html5_test/tests1.ton #77 long attribute name' => [
+            77,
+            "<test {$longAttributeName}>",
+            "<html><head></head><body><test {$longAttributeName}=\"\"></test></body></html>",
+            "<test {$longAttributeName}=\"\"></test>",
+            ['            <test attribute----------------------------------------------------------------', "                <test attribute----------------------------------------------------------------"],
+        ];
+
+        yield 'html5_test/tests1.ton #81 marquee inside anchor' => [
+            81,
+            '<a href=a>aa<marquee>aa<a href=b>bb</marquee>aa',
+            '<html><head></head><body><a href="a">aa<marquee>aa<a href="b">bb</a></marquee>aa</a></body></html>',
+            '<a href="a">aa<marquee>aa<a href="b">bb</a></marquee>aa</a>',
+            ["            <a href=a>aa<marquee>aa<a href=b>bb</marquee>aa\n", "                <a href=\"a\">\n", "                  <marquee>\n", "                    <a href=\"b\">\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #83 spacer after doctype' => [
+            83,
+            '<!DOCTYPE html><spacer>foo',
+            '<!DOCTYPE html><html><head></head><body><spacer>foo</spacer></body></html>',
+            '<spacer>foo</spacer>',
+            ["            <!DOCTYPE html><spacer>foo\n", "                <spacer>\n", '                  "foo"'],
+        ];
+
+        yield 'html5_test/tests1.ton #88 repeated body with body metadata' => [
+            88,
+            '<body><body><base><link><meta><title><p></title><body><p></body>',
+            '<html><head></head><body><base><link><meta><title>&lt;p&gt;</title><p></p></body></html>',
+            '<base><link><meta><title>&lt;p&gt;</title><p></p>',
+            ["            <body><body><base><link><meta><title><p></title><body><p></body>\n", "                <base>\n", "                <title>\n", '                  "<p>"'],
+        ];
+
+        yield 'html5_test/tests1.ton #89 textarea raw text' => [
+            89,
+            '<textarea><p></textarea>',
+            '<html><head></head><body><textarea>&lt;p&gt;</textarea></body></html>',
+            '<textarea>&lt;p&gt;</textarea>',
+            ["            <textarea><p></textarea>\n", "                <textarea>\n", '                  "<p>"'],
+        ];
+
+        yield 'html5_test/tests1.ton #90 image start tag treated as img' => [
+            90,
+            '<p><image></p>',
+            '<html><head></head><body><p><img></p></body></html>',
+            '<p><img></p>',
+            ["            <p><image></p>\n", "                <p>\n", "                  <img>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #93 head html end then body metadata' => [
+            93,
+            '<head></html><meta><p>',
+            '<html><head></head><body><meta><p></p></body></html>',
+            '<meta><p></p>',
+            ["            <head></html><meta><p>\n", "                <meta>\n", "                <p>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #95 empty heading auto-close' => [
+            95,
+            '<h1><h2>',
+            '<html><head></head><body><h1></h1><h2></h2></body></html>',
+            '<h1></h1><h2></h2>',
+            ["            <h1><h2>\n", "                <h1>\n", "                <h2>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #101 explicit shell with title' => [
+            101,
+            '<html><head><title></title><body></body></html>',
+            '<html><head><title></title></head><body></body></html>',
+            '',
+            ["            <html><head><title></title><body></body></html>\n", "                <title>\n", "              <body>\n"],
+        ];
     }
 
     /**
@@ -22291,6 +22364,25 @@ final class SerializeTest extends TestCase
 
         self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testSvgImageStartTagIsNotAliasedToHtmlImg(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><image href=x></image><text>x</text></svg>'));
+
+        self::assertSame(
+            '<svg><image href="x"></image><text>x</text></svg>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $svg = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $svg);
+
+        $image = $svg->firstChild;
+        self::assertInstanceOf(Element::class, $image);
+        self::assertSame('image', $image->tagName);
+        self::assertSame(Element::NAMESPACE_SVG, $image->namespace);
     }
 
     public function testDocumentPrologueBogusCommentsIgnoreInterleavedWhitespace(): void

@@ -284,7 +284,13 @@ final class Document extends Node
             }
 
             $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
-            $element = $this->createElement($tagName, $this->namespaceForElement($namespaceParent, $tagName));
+            $namespace = $this->namespaceForElement($namespaceParent, $tagName);
+
+            if ($tagName === 'image' && $namespace === Element::NAMESPACE_HTML) {
+                $tagName = 'img';
+            }
+
+            $element = $this->createElement($tagName, $namespace);
             foreach ($this->parseAttributes($attributeSource) as $attribute) {
                 $element->setAttribute($attribute['name'], $attribute['value']);
             }
