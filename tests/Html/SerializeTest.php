@@ -22049,6 +22049,28 @@ final class SerializeTest extends TestCase
             '<p></p><hr><p></p>',
             ["            <p><hr></p>\n", "                <p>\n", "                <hr>\n"],
         ];
+
+        yield 'html5_test/tests1.ton #36 eof after less-than sign text' => [
+            36,
+            '<',
+            '<html><head></head><body>&lt;</body></html>',
+            '&lt;',
+            ["            <\n", '                "<"'],
+        ];
+        yield 'html5_test/tests1.ton #37 invalid tag-open text' => [
+            37,
+            '<#',
+            '<html><head></head><body>&lt;#</body></html>',
+            '&lt;#',
+            ["            <#\n", '                "<#"'],
+        ];
+        yield 'html5_test/tests1.ton #38 end-tag-open eof text' => [
+            38,
+            '</',
+            '<html><head></head><body>&lt;/</body></html>',
+            '&lt;/',
+            ["            </\n", '                "</"'],
+        ];
     }
 
     /**
