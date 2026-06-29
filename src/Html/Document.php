@@ -179,6 +179,7 @@ final class Document extends Node
     private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void
     {
         $stack = [$root];
+        $formattingEndTagsPoppedByScope = [];
         $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
         $offset = 0;
 
@@ -186,12 +187,14 @@ final class Document extends Node
             $tagStart = $match[0][1];
             if ($tagStart > $offset) {
                 $this->appendText($stack[count($stack) - 1], substr($html, $offset, $tagStart - $offset));
+                $formattingEndTagsPoppedByScope = [];
             }
 
             $tagEnd = $tagStart + strlen($match[0][0]);
             $parent = $stack[count($stack) - 1];
 
             if (($match['comment_start'][1] ?? -1) !== -1) {
+                $formattingEndTagsPoppedByScope = [];
                 [$comment, $tagEnd] = self::consumeHtmlComment($html, $tagStart);
                 $this->appendComment($parent, $comment);
                 $offset = $tagEnd;
@@ -199,23 +202,27 @@ final class Document extends Node
             }
 
             if (($match['empty_end_tag'][1] ?? -1) !== -1) {
+                $formattingEndTagsPoppedByScope = [];
                 $offset = $tagEnd;
                 continue;
             }
 
             if (($match['invalid_end_tag'][1] ?? -1) !== -1) {
+                $formattingEndTagsPoppedByScope = [];
                 $this->appendComment($parent, str_replace("\0", "\u{FFFD}", $match['invalid_end_tag'][0]));
                 $offset = $tagEnd;
                 continue;
             }
 
             if (($match['bogus_comment'][1] ?? -1) !== -1) {
+                $formattingEndTagsPoppedByScope = [];
                 $this->appendComment($parent, str_replace("\0", "\u{FFFD}", $match['bogus_comment'][0]));
                 $offset = $tagEnd;
                 continue;
             }
 
             if (($match['bogus_declaration'][1] ?? -1) !== -1) {
+                $formattingEndTagsPoppedByScope = [];
                 $declaration = $match['bogus_declaration'][0];
                 if (str_starts_with($declaration, '[CDATA[') && self::isForeignContentCdataContext($parent, $root, $context)) {
                     [$cdata, $tagEnd] = self::consumeCdataSection($html, $tagStart);
@@ -239,15 +246,28 @@ final class Document extends Node
 
             if ($match['closing'][0] === '/') {
                 if ($this->isDocumentShellTag($root, $context, $tagName)) {
+                    $formattingEndTagsPoppedByScope = [];
                     $offset = $tagEnd;
                     continue;
                 }
 
                 if ($tagName === 'p' && ! $this->hasOpenElement($stack, 'p')) {
+                    $formattingEndTagsPoppedByScope = [];
                     $parent->appendChild($this->createElement('p'));
                     $offset = $tagEnd;
                     continue;
                 }
+
+                if (
+                    self::isFormattingElementTag($tagName)
+                    && ($formattingEndTagsPoppedByScope[$tagName] ?? 0) > 0
+                ) {
+                    $formattingEndTagsPoppedByScope[$tagName]--;
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                $formattingEndTagsPoppedByScope = [];
 
                 if ($this->handleFormattingEndTagWithFurthestBlock($stack, $tagName)) {
                     $offset = $tagEnd;
@@ -257,11 +277,13 @@ final class Document extends Node
                 if (self::isFormattingElementTag($tagName)) {
                     $this->closeElement($stack, $tagName);
                 } else {
-                    $this->closeElementInScope($stack, $tagName);
+                    $formattingEndTagsPoppedByScope = $this->closeElementInScope($stack, $tagName);
                 }
                 $offset = $tagEnd;
                 continue;
             }
+
+            $formattingEndTagsPoppedByScope = [];
 
             if ($this->isDocumentShellTag($root, $context, $tagName)) {
                 $offset = $tagEnd;
@@ -756,8 +778,9 @@ final class Document extends Node
 
     /**
      * @param list<Node> $stack
+     * @return array<string, int>
      */
-    private function closeElementInScope(array &$stack, string $tagName): void
+    private function closeElementInScope(array &$stack, string $tagName): array
     {
         for ($index = count($stack) - 1; $index > 0; $index--) {
             $node = $stack[$index];
@@ -767,14 +790,26 @@ final class Document extends Node
             }
 
             if ($node->tagName === $tagName) {
+                $formattingTags = [];
+                for ($poppedIndex = $index + 1; $poppedIndex < count($stack); $poppedIndex++) {
+                    $poppedNode = $stack[$poppedIndex];
+                    if (! $poppedNode instanceof Element || ! self::isHtmlFormattingElement($poppedNode)) {
+                        continue;
+                    }
+
+                    $formattingTags[$poppedNode->tagName] = ($formattingTags[$poppedNode->tagName] ?? 0) + 1;
+                }
+
                 array_splice($stack, $index);
-                return;
+                return $formattingTags;
             }
 
             if (self::isHtmlScopeBoundary($node->tagName)) {
-                return;
+                return [];
             }
         }
+
+        return [];
     }
 
     /**
@@ -1146,6 +1181,12 @@ final class Document extends Node
             'tt',
             'u',
         ], true);
+    }
+
+    private static function isHtmlFormattingElement(Element $element): bool
+    {
+        return $element->namespace === Element::NAMESPACE_HTML
+            && self::isFormattingElementTag($element->tagName);
     }
 
     private static function isHtmlScopeBoundary(string $tagName): bool

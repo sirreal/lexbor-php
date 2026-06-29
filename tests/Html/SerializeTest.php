@@ -22150,6 +22150,14 @@ final class SerializeTest extends TestCase
             ["            <p id=a><b><p id=b></b>TEST\n", "                <p id=\"a\">\n", "                <p id=\"b\">\n", '                  "TEST"'],
         ];
 
+        yield 'html5_test/tests1.ton #54 formatting stays open after paragraph end' => [
+            54,
+            '<b id=a><p><b id=b></p></b>TEST',
+            '<html><head></head><body><b id="a"><p><b id="b"></b></p>TEST</b></body></html>',
+            '<b id="a"><p><b id="b"></b></p>TEST</b>',
+            ["            <b id=a><p><b id=b></p></b>TEST\n", "                <b id=\"a\">\n", "                  <p>\n", "                    <b id=\"b\">\n", '                  "TEST"'],
+        ];
+
         yield 'html5_test/tests1.ton #55 title before body' => [
             55,
             '<!DOCTYPE html><title>U-test</title><body><div><p>Test<u></p></div></body>',
@@ -22455,6 +22463,17 @@ final class SerializeTest extends TestCase
         self::assertInstanceOf(Element::class, $image);
         self::assertSame('image', $image->tagName);
         self::assertSame(Element::NAMESPACE_SVG, $image->namespace);
+    }
+
+    public function testForeignFormattingElementPoppedByScopeDoesNotConsumeHtmlEndTag(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<b><svg><b></svg></b>TEST'));
+
+        self::assertSame(
+            '<b><svg><b></b></svg></b>TEST',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
     }
 
     public function testPostHeadWhitespaceStaysInBodyWhenNoHeadRecoveryFollows(): void
