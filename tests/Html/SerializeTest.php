@@ -22042,6 +22042,22 @@ final class SerializeTest extends TestCase
             ["            <h1>Hello<h2>World\n", "                <h1>\n", '                  "Hello"', "                <h2>\n", '                  "World"'],
         ];
 
+        yield 'html5_test/tests1.ton #24 button formatting adoption with text' => [
+            24,
+            '<b><button>foo</b>bar',
+            '<html><head></head><body><b></b><button><b>foo</b>bar</button></body></html>',
+            '<b></b><button><b>foo</b>bar</button>',
+            ["            <b><button>foo</b>bar\n", "                <b>\n", "                <button>\n", "                  <b>\n", '                    "foo"', '                  "bar"'],
+        ];
+
+        yield 'html5_test/tests1.ton #27 script and title stay in head' => [
+            27,
+            '<script><div></script></div><title><p></title><p><p>',
+            '<html><head><script><div></script><title>&lt;p&gt;</title></head><body><p></p><p></p></body></html>',
+            '<p></p><p></p>',
+            ["            <script><div></script></div><title><p></title><p><p>\n", "                <script>\n", '                  "<div>"', "                <title>\n", '                  "<p>"'],
+        ];
+
         yield 'html5_test/tests1.ton #29 hr closes paragraph and stray paragraph end opens empty paragraph' => [
             29,
             '<p><hr></p>',
