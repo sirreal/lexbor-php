@@ -51,7 +51,7 @@ final class Document extends Node
         $this->body->clearAttributes();
 
         $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
-        $html = $this->consumeDocumentPrologueComments($html);
+        $html = $this->consumeDocumentPrologueComments($html, $doctype !== null);
         $html = $this->consumeDocumentHeadContent($html);
         $bodyFragment = $this->bodyFragment($html);
         if ($bodyFragment !== null) {
@@ -2000,7 +2000,7 @@ final class Document extends Node
                 return $end;
             }
 
-            $comment = self::consumeDocumentPrologueComment($html, $markupStart);
+            $comment = self::consumeDocumentPrologueComment($html, $markupStart, false);
             if ($comment !== null) {
                 return $comment[1];
             }
@@ -2137,14 +2137,14 @@ final class Document extends Node
         return preg_replace('~^[ \t\n\f\r]*<!doctype(?=[ \t\n\f\r>])[^>]*>~i', '', $html, 1) ?? $html;
     }
 
-    private function consumeDocumentPrologueComments(string $html): string
+    private function consumeDocumentPrologueComments(string $html, bool $consumeHtmlComments): string
     {
         $offset = 0;
         $consumedComment = false;
 
         while (true) {
             $commentOffset = self::skipHtmlWhitespace($html, $offset);
-            $comment = self::consumeDocumentPrologueComment($html, $commentOffset);
+            $comment = self::consumeDocumentPrologueComment($html, $commentOffset, $consumeHtmlComments);
             if ($comment === null) {
                 return $consumedComment ? substr($html, $commentOffset) : $html;
             }
@@ -2158,9 +2158,13 @@ final class Document extends Node
     /**
      * @return array{string, int}|null
      */
-    private static function consumeDocumentPrologueComment(string $html, int $offset): ?array
+    private static function consumeDocumentPrologueComment(string $html, int $offset, bool $consumeHtmlComments): ?array
     {
         $tail = substr($html, $offset);
+
+        if ($consumeHtmlComments && str_starts_with($tail, '<!--')) {
+            return self::consumeHtmlComment($html, $offset);
+        }
 
         if (preg_match('~^</(?<invalid>[^A-Za-z>][^>]*)(?:>|\z)|^<(?<bogus>\?[^>]*)(?:>|\z)|^<!(?!doctype)(?!--)(?<declaration>[^>]*)(?:>|\z)~si', $tail, $match, PREG_UNMATCHED_AS_NULL) !== 1) {
             return null;

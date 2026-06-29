@@ -22974,6 +22974,57 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, list<string>}>
+     */
+    public static function html5TestTests2DocumentPrologueCommentProvider(): iterable
+    {
+        yield 'html5_test/tests2.ton #42 closed comment after doctype stays in prologue' => [
+            42,
+            '<!DOCTYPE html><!-- XXX - XXX -->',
+            '<!DOCTYPE html><!-- XXX - XXX --><html><head></head><body></body></html>',
+            ' XXX - XXX ',
+            [
+                "            <!DOCTYPE html><!-- XXX - XXX -->\n",
+                "            <!--  XXX - XXX  -->\n",
+                "              <body>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #43 EOF comment after doctype stays in prologue' => [
+            43,
+            '<!DOCTYPE html><!-- XXX - XXX',
+            '<!DOCTYPE html><!-- XXX - XXX--><html><head></head><body></body></html>',
+            ' XXX - XXX',
+            [
+                "            <!DOCTYPE html><!-- XXX - XXX\n",
+                "            <!--  XXX - XXX -->\n",
+                "              <body>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #44 longer closed comment after doctype stays in prologue' => [
+            44,
+            '<!DOCTYPE html><!-- XXX - XXX - XXX -->',
+            '<!DOCTYPE html><!-- XXX - XXX - XXX --><html><head></head><body></body></html>',
+            ' XXX - XXX - XXX ',
+            [
+                "            <!DOCTYPE html><!-- XXX - XXX - XXX -->\n",
+                "            <!--  XXX - XXX - XXX  -->\n",
+                "              <body>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #60 double-dash EOF comment after doctype stays in prologue' => [
+            60,
+            '<!DOCTYPE html><!--x--',
+            '<!DOCTYPE html><!--x--><html><head></head><body></body></html>',
+            'x',
+            [
+                "            <!DOCTYPE html><!--x--\n",
+                "            <!-- x -->\n",
+                "              <body>\n",
+            ],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function upstreamLegacyVoidElementProvider(): iterable
@@ -23253,6 +23304,48 @@ final class SerializeTest extends TestCase
         $item = $paragraph->next;
         self::assertInstanceOf(Element::class, $item);
         self::assertSame($itemTagName, $item->tagName);
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2DocumentPrologueCommentProvider')]
+    public function testHtml5TestTests2DocumentPrologueCommentFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedCommentData,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame('', Serializer::serializeDeep($document->bodyElement()));
+
+        $doctype = $document->documentType();
+        self::assertNotNull($doctype);
+
+        $comment = $doctype->next;
+        self::assertInstanceOf(Comment::class, $comment);
+        self::assertSame($expectedCommentData, $comment->data);
     }
 
     public function testSvgImageStartTagIsNotAliasedToHtmlImg(): void
