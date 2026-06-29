@@ -96,6 +96,8 @@ final class Serializer
     private static function serializeDocument(Document $document, bool $fullDoctype): string
     {
         $prefix = '';
+        $suffix = '';
+        $documentSuffix = '';
         $html = $document->htmlElement();
         $body = $document->bodyElement();
         $head = $document->headElement();
@@ -104,11 +106,21 @@ final class Serializer
             $prefix .= self::serialize($child, $fullDoctype);
         }
 
+        foreach ($document->bodySuffixNodes() as $node) {
+            $suffix .= self::serialize($node, $fullDoctype);
+        }
+
+        foreach ($document->documentSuffixNodes() as $node) {
+            $documentSuffix .= self::serialize($node, $fullDoctype);
+        }
+
         return $prefix
             . '<html' . self::serializeAttributes($html) . '>'
             . self::serializeElement($head, $fullDoctype)
             . self::serializeElement($body, $fullDoctype)
-            . '</html>';
+            . $suffix
+            . '</html>'
+            . $documentSuffix;
     }
 
     private static function serializeElement(Element $element, bool $fullDoctype): string

@@ -22873,6 +22873,155 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, string, list<string>}>
+     */
+    public static function html5TestTests2FramesetProvider(): iterable
+    {
+        yield 'html5_test/tests2.ton #6 frameset ignores non-whitespace text' => [
+            6,
+            '<!DOCTYPE html><frameset>test',
+            '<!DOCTYPE html><html><head></head><frameset></frameset></html>',
+            '<frameset></frameset>',
+            '',
+            [
+                "            <!DOCTYPE html><frameset>test\n",
+                "              <frameset>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #7 frameset keeps only whitespace characters' => [
+            7,
+            '<!DOCTYPE html><frameset> te st',
+            '<!DOCTYPE html><html><head></head><frameset>  </frameset></html>',
+            '<frameset>  </frameset>',
+            '',
+            [
+                "            <!DOCTYPE html><frameset> te st\n",
+                "              <frameset>\n",
+                "                \"  \"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #8 after frameset keeps only whitespace characters' => [
+            8,
+            '<!DOCTYPE html><frameset></frameset> te st',
+            '<!DOCTYPE html><html><head></head><frameset></frameset>  </html>',
+            '<frameset></frameset>',
+            '  ',
+            [
+                "            <!DOCTYPE html><frameset></frameset> te st\n",
+                "              <frameset>\n",
+                "              \"  \"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #9 frameset ignores unexpected doctype' => [
+            9,
+            '<!DOCTYPE html><frameset><!DOCTYPE html>',
+            '<!DOCTYPE html><html><head></head><frameset></frameset></html>',
+            '<frameset></frameset>',
+            '',
+            [
+                "            <!DOCTYPE html><frameset><!DOCTYPE html>\n",
+                "              <frameset>\n",
+            ],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{int, string, string, list<string>}>
+     */
+    public static function html5TestTests19FramesetProvider(): iterable
+    {
+        yield 'html5_test/tests19.ton #38 html start after frameset merges root attributes' => [
+            38,
+            '<!doctype html><html c=d><frameset></frameset></html><html a=b>',
+            '<!DOCTYPE html><html c="d" a="b"><head></head><frameset></frameset></html>',
+            [
+                "            <!doctype html><html c=d><frameset></frameset></html><html a=b>\n",
+                "            <html c=\"d\" a=\"b\">\n",
+                "              <frameset>\n",
+            ],
+        ];
+        yield 'html5_test/tests19.ton #39 comment after frameset html end stays after root' => [
+            39,
+            '<!doctype html><html><frameset></frameset></html><!--foo-->',
+            '<!DOCTYPE html><html><head></head><frameset></frameset></html><!--foo-->',
+            [
+                "            <!doctype html><html><frameset></frameset></html><!--foo-->\n",
+                "              <frameset>\n",
+                "            <!-- foo -->\n",
+            ],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{int, string, string, list<string>}>
+     */
+    public static function html5TestTests18FramesetNoframesProvider(): iterable
+    {
+        yield 'html5_test/tests18.ton #31 noframes after frameset starts before EOF' => [
+            31,
+            '<!doctype html><frameset></frameset><noframes>abc',
+            '<!DOCTYPE html><html><head></head><frameset></frameset><noframes>abc</noframes></html>',
+            [
+                "            <!doctype html><frameset></frameset><noframes>abc\n",
+                "              <frameset>\n",
+                "              <noframes>\n",
+                "                \"abc\"\n",
+            ],
+        ];
+        yield 'html5_test/tests18.ton #32 noframes and comment after frameset' => [
+            32,
+            '<!doctype html><frameset></frameset><noframes>abc</noframes><!--abc-->',
+            '<!DOCTYPE html><html><head></head><frameset></frameset><noframes>abc</noframes><!--abc--></html>',
+            [
+                "            <!doctype html><frameset></frameset><noframes>abc</noframes><!--abc-->\n",
+                "              <noframes>\n",
+                "                \"abc\"\n",
+                "              <!-- abc -->\n",
+            ],
+        ];
+        yield 'html5_test/tests18.ton #33 noframes after frameset html end starts before EOF' => [
+            33,
+            '<!doctype html><frameset></frameset></html><noframes>abc',
+            '<!DOCTYPE html><html><head></head><frameset></frameset><noframes>abc</noframes></html>',
+            [
+                "            <!doctype html><frameset></frameset></html><noframes>abc\n",
+                "              <noframes>\n",
+                "                \"abc\"\n",
+            ],
+        ];
+        yield 'html5_test/tests18.ton #34 noframes after html end precedes trailing comment' => [
+            34,
+            '<!doctype html><frameset></frameset></html><noframes>abc</noframes><!--abc-->',
+            '<!DOCTYPE html><html><head></head><frameset></frameset><noframes>abc</noframes></html><!--abc-->',
+            [
+                "            <!doctype html><frameset></frameset></html><noframes>abc</noframes><!--abc-->\n",
+                "              <noframes>\n",
+                "                \"abc\"\n",
+                "            <!-- abc -->\n",
+            ],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{int, string, string, list<string>}>
+     */
+    public static function html5TestWebkit01FramesetProvider(): iterable
+    {
+        yield 'html5_test/webkit01.ton #31 frameset comments and noframes placement' => [
+            31,
+            '<html><frameset><!--1--><noframes>A</noframes><!--2--></frameset><!--3--><noframes>B</noframes><!--4--></html><!--5--><noframes>C</noframes><!--6-->',
+            '<html><head></head><frameset><!--1--><noframes>A</noframes><!--2--></frameset><!--3--><noframes>B</noframes><!--4--><noframes>C</noframes></html><!--5--><!--6-->',
+            [
+                "            <html><frameset><!--1--><noframes>A</noframes><!--2--></frameset><!--3--><noframes>B</noframes><!--4--></html><!--5--><noframes>C</noframes><!--6-->\n",
+                "                <!-- 1 -->\n",
+                "                <noframes>\n",
+                "              <!-- 3 -->\n",
+                "            <!-- 5 -->\n",
+            ],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{int, string, string, string, array<string, string>, array<string, string>, list<string>}>
      */
     public static function html5TestTests2ShellAttributeProvider(): iterable
@@ -23511,6 +23660,175 @@ final class SerializeTest extends TestCase
 
         self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2FramesetProvider')]
+    public function testHtml5TestTests2FramesetFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedFrameset,
+        string $expectedSuffixHtml,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame('frameset', $document->bodyElement()->tagName);
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedFrameset, Serializer::serializeDeep($document->bodyElement()));
+        $suffixHtml = '';
+        foreach ($document->bodySuffixNodes() as $node) {
+            $suffixHtml .= Serializer::serialize($node);
+        }
+        self::assertSame($expectedSuffixHtml, $suffixHtml);
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests19FramesetProvider')]
+    public function testHtml5TestTests19FramesetFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests19.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame('frameset', $document->bodyElement()->tagName);
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests18FramesetNoframesProvider')]
+    public function testHtml5TestTests18FramesetNoframesFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests18.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame('frameset', $document->bodyElement()->tagName);
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestWebkit01FramesetProvider')]
+    public function testHtml5TestWebkit01FramesetFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/webkit01.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame('frameset', $document->bodyElement()->tagName);
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    public function testNormalParsePreservesBodyElementIdentity(): void
+    {
+        $document = new Document();
+        $body = $document->bodyElement();
+
+        self::assertSame(Status::Ok, $document->parse('<p>first</p>'));
+        self::assertSame($body, $document->bodyElement());
+        self::assertSame('<p>first</p>', Serializer::serializeDeep($body));
+
+        self::assertSame(Status::Ok, $document->parse('<div>second</div>'));
+        self::assertSame($body, $document->bodyElement());
+        self::assertSame('<div>second</div>', Serializer::serializeDeep($body));
+    }
+
+    public function testFramesetWhitespaceCharacterReferencesSurvive(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><frameset>&#32;x&#x09;'));
+
+        self::assertSame(
+            "<!DOCTYPE html><html><head></head><frameset> \t</frameset></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
     }
 
     /**

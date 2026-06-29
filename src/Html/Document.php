@@ -21,6 +21,10 @@ final class Document extends Node
     private TagRegistry $tags;
     private bool $quirksMode = false;
     private bool $scripting = false;
+    /** @var list<Node> */
+    private array $bodySuffixNodes = [];
+    /** @var list<Node> */
+    private array $documentSuffixNodes = [];
 
     public function __construct()
     {
@@ -29,7 +33,7 @@ final class Document extends Node
         $this->tags = new TagRegistry();
         $this->html = new Element('html', tagId: Tag::HTML, ownerDocument: $this);
         $this->head = new Element('head', tagId: Tag::HEAD, ownerDocument: $this);
-        $this->body = new Element('body', tagId: Tag::BODY, ownerDocument: $this);
+        $this->body = $this->createElement('body');
         $this->appendChild($this->body);
     }
 
@@ -38,12 +42,11 @@ final class Document extends Node
         $html = self::normalizeTokenizedNewlines($html);
         $doctype = $this->parseLeadingDoctype($html);
         $this->quirksMode = self::doctypeRequiresQuirks($doctype);
+        $this->bodySuffixNodes = [];
+        $this->documentSuffixNodes = [];
+        $this->resetDocumentBodyElement('body');
         $this->clearDocumentPrologueNodes();
         $this->setDocumentTypeFromParsedDoctype($doctype);
-
-        while ($this->body->firstChild !== null) {
-            $this->body->firstChild->remove();
-        }
 
         while ($this->head->firstChild !== null) {
             $this->head->firstChild->remove();
@@ -56,6 +59,17 @@ final class Document extends Node
         $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
         $html = $this->consumeDocumentPrologueComments($html, $doctype !== null);
         $html = $this->consumeDocumentHeadContent($html);
+        $framesetFragment = $this->framesetFragment($html);
+        if ($framesetFragment !== null) {
+            $this->resetDocumentBodyElement('frameset');
+            foreach ($this->parseAttributes($framesetFragment['attributes']) as $attribute) {
+                $this->body->setAttribute($attribute['name'], $attribute['value']);
+            }
+
+            $this->parseFramesetContent($framesetFragment['content']);
+            return Status::Ok;
+        }
+
         $bodyFragment = $this->bodyFragment($html);
         if ($bodyFragment !== null) {
             foreach ($this->parseAttributes($bodyFragment['attributes']) as $attribute) {
@@ -83,6 +97,42 @@ final class Document extends Node
     public function bodyElement(): Element
     {
         return $this->body;
+    }
+
+    /**
+     * @return list<Node>
+     */
+    public function bodySuffixNodes(): array
+    {
+        return $this->bodySuffixNodes;
+    }
+
+    /**
+     * @return list<Node>
+     */
+    public function documentSuffixNodes(): array
+    {
+        return $this->documentSuffixNodes;
+    }
+
+    private function resetDocumentBodyElement(string $tagName): void
+    {
+        if ($this->body->tagName !== $tagName || $this->body->parent !== $this) {
+            $body = $this->createElement($tagName);
+            if ($this->body->parent === $this) {
+                $this->replaceChild($body, $this->body);
+            } else {
+                $this->appendChild($body);
+            }
+
+            $this->body = $body;
+        }
+
+        while ($this->body->firstChild !== null) {
+            $this->body->firstChild->remove();
+        }
+
+        $this->body->clearAttributes();
     }
 
     public function documentType(): ?DocumentType
@@ -546,6 +596,150 @@ final class Document extends Node
             $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
             $this->appendText($stack[count($stack) - 1], substr($html, $offset));
         }
+    }
+
+    private function parseFramesetContent(string $html): void
+    {
+        $stack = [$this->body];
+        $afterFrameset = false;
+        $afterHtml = false;
+        $pattern = '~(?<comment_start><!--)|(?<doctype><!doctype(?=[\t\n\f\r >])[^>]*(?:>|\z))|<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
+        $offset = 0;
+
+        while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
+            $tagStart = $match[0][1];
+            if ($tagStart > $offset) {
+                $this->appendFramesetWhitespace($stack, $afterFrameset, substr($html, $offset, $tagStart - $offset));
+            }
+
+            if (($match['comment_start'][1] ?? -1) !== -1) {
+                [$comment, $offset] = self::consumeHtmlComment($html, $tagStart);
+                $node = $this->createComment($comment);
+                if ($afterFrameset) {
+                    $this->appendFramesetSuffixNode($node, $afterHtml);
+                } else {
+                    $stack[count($stack) - 1]->appendChild($node);
+                }
+                continue;
+            }
+
+            if (($match['doctype'][1] ?? -1) !== -1) {
+                $offset = $tagStart + strlen($match[0][0]);
+                continue;
+            }
+
+            $tagName = self::normalizeTagTokenName($match['tag'][0]);
+            $tagEnd = $tagStart + strlen($match[0][0]);
+            if ($match['closing'][0] === '/') {
+                $endTag = self::consumeNamedEndTagAt($html, $tagStart, $tagName);
+                if ($endTag === null) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                if (! $afterFrameset && $tagName === 'frameset') {
+                    if (count($stack) > 1) {
+                        array_pop($stack);
+                    } else {
+                        $afterFrameset = true;
+                    }
+                }
+
+                if ($afterFrameset && $tagName === 'html') {
+                    $afterHtml = true;
+                }
+
+                $offset = $endTag;
+                continue;
+            }
+
+            $startTag = self::consumeStartTag($html, $tagEnd);
+            if ($startTag === null) {
+                return;
+            }
+
+            [$attributes, $offset, $selfClosing] = $startTag;
+            if ($afterFrameset && $tagName === 'html') {
+                $this->mergeMissingAttributes($this->html, $this->parseAttributes($attributes));
+                continue;
+            }
+
+            if ($tagName === 'noframes') {
+                $element = $this->createElement('noframes');
+                foreach ($this->parseAttributes($attributes) as $attribute) {
+                    $element->setAttribute($attribute['name'], $attribute['value']);
+                }
+
+                if (! $selfClosing) {
+                    $offset = $this->appendTextOnlyElementContent($element, $html, $offset);
+                }
+
+                if ($afterFrameset) {
+                    $this->appendFramesetSuffixNode($element);
+                } else {
+                    $stack[count($stack) - 1]->appendChild($element);
+                }
+                continue;
+            }
+
+            if ($afterFrameset) {
+                continue;
+            }
+
+            if ($tagName === 'frameset') {
+                $element = $this->createElement('frameset');
+                foreach ($this->parseAttributes($attributes) as $attribute) {
+                    $element->setAttribute($attribute['name'], $attribute['value']);
+                }
+
+                $stack[count($stack) - 1]->appendChild($element);
+                if (! $selfClosing) {
+                    $stack[] = $element;
+                }
+                continue;
+            }
+
+            if ($tagName === 'frame') {
+                $element = $this->createElement('frame');
+                foreach ($this->parseAttributes($attributes) as $attribute) {
+                    $element->setAttribute($attribute['name'], $attribute['value']);
+                }
+
+                $stack[count($stack) - 1]->appendChild($element);
+            }
+        }
+
+        if ($offset < strlen($html)) {
+            $this->appendFramesetWhitespace($stack, $afterFrameset, substr($html, $offset));
+        }
+    }
+
+    /**
+     * @param list<Element> $stack
+     */
+    private function appendFramesetWhitespace(array $stack, bool $afterFrameset, string $text): void
+    {
+        $whitespace = preg_replace('~[^ \t\n\f\r]+~', '', $this->decodeCharacterReferences($text)) ?? '';
+        if ($whitespace === '') {
+            return;
+        }
+
+        if ($afterFrameset) {
+            $this->appendFramesetSuffixNode($this->createTextNode($whitespace));
+            return;
+        }
+
+        $stack[count($stack) - 1]->appendChild($this->createTextNode($whitespace));
+    }
+
+    private function appendFramesetSuffixNode(Node $node, bool $documentLevel = false): void
+    {
+        if ($documentLevel) {
+            $this->documentSuffixNodes[] = $node;
+            return;
+        }
+
+        $this->bodySuffixNodes[] = $node;
     }
 
     /**
@@ -2326,6 +2520,25 @@ final class Document extends Node
         }
 
         return false;
+    }
+
+    /**
+     * @return array{attributes: string, content: string}|null
+     */
+    private function framesetFragment(string $html): ?array
+    {
+        $offset = self::skipHtmlWhitespace($html, 0);
+        $frameset = self::consumeNamedStartTagAt($html, $offset, 'frameset');
+        if ($frameset === null) {
+            return null;
+        }
+
+        [$attributes, $contentStart] = $frameset;
+
+        return [
+            'attributes' => $attributes,
+            'content' => substr($html, $contentStart),
+        ];
     }
 
     /**
