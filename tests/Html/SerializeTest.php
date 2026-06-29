@@ -21980,6 +21980,34 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, list<string>}>
+     */
+    public static function html5TestTests1BasicTreeProvider(): iterable
+    {
+        yield 'html5_test/tests1.ton #1 text body tree' => [
+            1,
+            'Test',
+            '<html><head></head><body>Test</body></html>',
+            'Test',
+            ["            Test\n", '                "Test"'],
+        ];
+        yield 'html5_test/tests1.ton #2 repeated paragraph tree' => [
+            2,
+            '<p>One<p>Two',
+            '<html><head></head><body><p>One</p><p>Two</p></body></html>',
+            '<p>One</p><p>Two</p>',
+            ["            <p>One<p>Two\n", '                  "One"', '                  "Two"'],
+        ];
+        yield 'html5_test/tests1.ton #3 br-separated text tree' => [
+            3,
+            'Line1<br>Line2<br>Line3<br>Line4',
+            '<html><head></head><body>Line1<br>Line2<br>Line3<br>Line4</body></html>',
+            'Line1<br>Line2<br>Line3<br>Line4',
+            ["            Line1<br>Line2<br>Line3<br>Line4\n", '                "Line1"', '                "Line4"'],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function upstreamLegacyVoidElementProvider(): iterable
@@ -22034,6 +22062,41 @@ final class SerializeTest extends TestCase
         self::assertSame(Status::Ok, $document->parse($html));
 
         self::assertSame($expected, Serializer::serializeDeep($document, fullDoctype: $fullDoctype));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests1BasicTreeProvider')]
+    public function testHtml5TestTests1BasicTreeFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests1.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
     }
 
     public function testRemovedParsedDocumentTypeIsNotSerialized(): void
