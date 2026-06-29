@@ -442,7 +442,11 @@ final class Document extends Node
                     continue;
                 }
 
-                if ($this->closeOpenSelectInScope($stack)) {
+                $selectFormattingTailClones = $this->closeOpenSelectInScope($stack);
+                if ($selectFormattingTailClones !== null) {
+                    if ($selectFormattingTailClones !== []) {
+                        $pendingFormattingTailClones = $selectFormattingTailClones;
+                    }
                     $offset = $tagEnd;
                     continue;
                 }
@@ -1707,8 +1711,9 @@ final class Document extends Node
 
     /**
      * @param list<Node> $stack
+     * @return list<Element>|null
      */
-    private function closeOpenSelectInScope(array &$stack): bool
+    private function closeOpenSelectInScope(array &$stack): ?array
     {
         for ($index = count($stack) - 1; $index > 0; $index--) {
             $node = $stack[$index];
@@ -1717,16 +1722,26 @@ final class Document extends Node
             }
 
             if ($node->namespace === Element::NAMESPACE_HTML && $node->tagName === 'select') {
+                $tailClones = [];
+                for ($poppedIndex = $index + 1; $poppedIndex < count($stack); $poppedIndex++) {
+                    $poppedNode = $stack[$poppedIndex];
+                    if (! $poppedNode instanceof Element || ! self::isHtmlFormattingElement($poppedNode)) {
+                        continue;
+                    }
+
+                    $tailClones[] = $this->cloneElementShallow($poppedNode);
+                }
+
                 array_splice($stack, $index);
-                return true;
+                return $tailClones;
             }
 
             if (self::isNormalScopeBoundary($node)) {
-                return false;
+                return null;
             }
         }
 
-        return false;
+        return null;
     }
 
     /**

@@ -22340,6 +22340,35 @@ final class SerializeTest extends TestCase
             ["            <p><hr></p>\n", "                <p>\n", "                <hr>\n"],
         ];
 
+        yield 'html5_test/tests1.ton #30 nested select preserves formatting tail' => [
+            30,
+            '<select><b><option><select><option></b></select>X',
+            '<html><head></head><body><select><b><option></option></b></select><b><option></option></b>X</body></html>',
+            '<select><b><option></option></b></select><b><option></option></b>X',
+            [
+                "            <select><b><option><select><option></b></select>X\n",
+                "                <select>\n",
+                "                  <b>\n",
+                "                    <option>\n",
+                '                "X"',
+            ],
+        ];
+
+        yield 'html5_test/tests1.ton #35 option optgroup select text recovery' => [
+            35,
+            '<!DOCTYPE html>A<option>B<optgroup>C<select>D</option>E',
+            '<!DOCTYPE html><html><head></head><body>A<option>B</option><optgroup>C<select>DE</select></optgroup></body></html>',
+            'A<option>B</option><optgroup>C<select>DE</select></optgroup>',
+            [
+                "            <!DOCTYPE html>A<option>B<optgroup>C<select>D</option>E\n",
+                '                "A"',
+                "                <option>\n",
+                "                <optgroup>\n",
+                "                  <select>\n",
+                '                    "DE"',
+            ],
+        ];
+
         yield 'html5_test/tests1.ton #36 eof after less-than sign text' => [
             36,
             '<',
