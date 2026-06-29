@@ -413,16 +413,34 @@ final class Document extends Node
                 $namespaceParent = ($parent === $root && $context !== null && ! $mathAnnotationXmlBreakout) ? $context : $parent;
             }
 
-            if (
-                $tagName === 'option'
-                && self::isHtmlInsertionContext($namespaceParent)
-                && $parent instanceof Element
-                && $parent->namespace === Element::NAMESPACE_HTML
-                && $parent->tagName === 'option'
-            ) {
-                array_pop($stack);
+            $htmlTreeConstructionStartTagContext = self::isHtmlTreeConstructionStartTagContext($namespaceParent, $tagName);
+
+            if ($tagName === 'option' && $htmlTreeConstructionStartTagContext) {
+                $this->closeOpenOptionForOptionStart($stack);
                 $parent = $stack[count($stack) - 1];
                 $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            }
+
+            if ($tagName === 'optgroup' && $htmlTreeConstructionStartTagContext) {
+                $this->closeOpenOptionOptgroupForOptgroupStart($stack);
+                $parent = $stack[count($stack) - 1];
+                $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            }
+
+            if ($tagName === 'select' && $htmlTreeConstructionStartTagContext) {
+                if (
+                    $context !== null
+                    && $context->namespace === Element::NAMESPACE_HTML
+                    && $context->tagName === 'select'
+                ) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                if ($this->closeOpenSelectInScope($stack)) {
+                    $offset = $tagEnd;
+                    continue;
+                }
             }
 
             if (($tagName === 'dd' || $tagName === 'dt') && self::isHtmlInsertionContext($namespaceParent)) {
@@ -1323,6 +1341,112 @@ final class Document extends Node
     /**
      * @param list<Node> $stack
      */
+    private function closeOpenOptionForOptionStart(array &$stack): void
+    {
+        if ($this->htmlElementNormalScopeState($stack, 'select') === 'visible') {
+            $this->generateImpliedEndTags($stack, 'optgroup');
+            return;
+        }
+
+        $currentNode = $stack[count($stack) - 1];
+        if (
+            $currentNode instanceof Element
+            && $currentNode->namespace === Element::NAMESPACE_HTML
+            && $currentNode->tagName === 'option'
+        ) {
+            array_pop($stack);
+        }
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeOpenOptionOptgroupForOptgroupStart(array &$stack): void
+    {
+        if ($this->htmlElementNormalScopeState($stack, 'select') === 'visible') {
+            $this->generateImpliedEndTags($stack);
+            return;
+        }
+
+        $currentNode = $stack[count($stack) - 1];
+        if (
+            $currentNode instanceof Element
+            && $currentNode->namespace === Element::NAMESPACE_HTML
+            && $currentNode->tagName === 'option'
+        ) {
+            array_pop($stack);
+        }
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeOpenSelectInScope(array &$stack): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->namespace === Element::NAMESPACE_HTML && $node->tagName === 'select') {
+                array_splice($stack, $index);
+                return true;
+            }
+
+            if (self::isNormalScopeBoundary($node)) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function generateImpliedEndTags(array &$stack, ?string $exceptHtmlTagName = null): void
+    {
+        while (count($stack) > 1) {
+            $node = $stack[count($stack) - 1];
+            if (
+                ! $node instanceof Element
+                || ! self::isImpliedEndTagElement($node)
+            ) {
+                return;
+            }
+
+            if (
+                $exceptHtmlTagName !== null
+                && $node->namespace === Element::NAMESPACE_HTML
+                && $node->tagName === $exceptHtmlTagName
+            ) {
+                return;
+            }
+
+            array_pop($stack);
+        }
+    }
+
+    private static function isImpliedEndTagElement(Element $element): bool
+    {
+        return in_array($element->tagName, [
+            'dd',
+            'dt',
+            'li',
+            'optgroup',
+            'option',
+            'p',
+            'rb',
+            'rp',
+            'rt',
+            'rtc',
+        ], true);
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
     private function closeOpenDescriptionListItem(array &$stack): void
     {
         for ($index = count($stack) - 1; $index > 0; $index--) {
@@ -1715,6 +1839,16 @@ final class Document extends Node
 
         return $parent->namespace === Element::NAMESPACE_SVG
             && $parent->tagName === 'foreignobject';
+    }
+
+    private static function isHtmlTreeConstructionStartTagContext(Node $parent, string $tagName): bool
+    {
+        return self::isHtmlInsertionContext($parent)
+            || (
+                self::isMathTextIntegrationPoint($parent)
+                && $tagName !== 'mglyph'
+                && $tagName !== 'malignmark'
+            );
     }
 
     private static function isMathTextIntegrationPoint(Node $parent): bool

@@ -22865,6 +22865,45 @@ final class SerializeTest extends TestCase
                 "                  <optgroup>\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #37 optgroup start closes open option in select' => [
+            37,
+            '<!DOCTYPE html><select><option><optgroup>',
+            '<!DOCTYPE html><html><head></head><body><select><option></option><optgroup></optgroup></select></body></html>',
+            '<select><option></option><optgroup></optgroup></select>',
+            [
+                "            <!DOCTYPE html><select><option><optgroup>\n",
+                "                <select>\n",
+                "                  <option>\n",
+                "                  <optgroup>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #38 nested select closes open select' => [
+            38,
+            '<!DOCTYPE html><select><optgroup><option></optgroup><option><select><option>',
+            '<!DOCTYPE html><html><head></head><body><select><optgroup><option></option></optgroup><option></option></select><option></option></body></html>',
+            '<select><optgroup><option></option></optgroup><option></option></select><option></option>',
+            [
+                "            <!DOCTYPE html><select><optgroup><option></optgroup><option><select><option>\n",
+                "                <select>\n",
+                "                  <optgroup>\n",
+                "                    <option>\n",
+                "                  <option>\n",
+                "                <option>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #39 optgroup start closes option and previous optgroup' => [
+            39,
+            '<!DOCTYPE html><select><optgroup><option><optgroup>',
+            '<!DOCTYPE html><html><head></head><body><select><optgroup><option></option></optgroup><optgroup></optgroup></select></body></html>',
+            '<select><optgroup><option></option></optgroup><optgroup></optgroup></select>',
+            [
+                "            <!DOCTYPE html><select><optgroup><option><optgroup>\n",
+                "                <select>\n",
+                "                  <optgroup>\n",
+                "                    <option>\n",
+                "                  <optgroup>\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #63 form closes before sibling div' => [
             63,
             '<!doctype html><div><form></form><div></div></div>',
@@ -25009,6 +25048,37 @@ final class SerializeTest extends TestCase
             '<dt><math><annotation-xml encoding="text/html"><dd>x</dd></annotation-xml></math></dt>',
             Serializer::serializeDeep($document->bodyElement()),
         );
+    }
+
+    public function testSelectOptionStartsGenerateImpliedEndTags(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><select><p>x<option>y'));
+
+        self::assertSame('<select><p>x</p><option>y</option></select>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><select><p>x<optgroup><option>y'));
+
+        self::assertSame('<select><p>x</p><optgroup><option>y</option></optgroup></select>', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testSelectFragmentIgnoresNestedSelectStartTag(): void
+    {
+        $document = new Document();
+        $select = $document->createElement('select');
+
+        $fragment = $document->createFragmentForElement($select, '<select><option>x');
+
+        self::assertSame('<option>x</option>', Serializer::serializeDeep($fragment));
+
+        $fragment = $document->createFragmentForElement($select, '<option><select><option>x');
+
+        self::assertSame('<option></option><option>x</option>', Serializer::serializeDeep($fragment));
+
+        $fragment = $document->createFragmentForElement($select, '<math><mtext><select><option>x');
+
+        self::assertSame('<math><mtext><option>x</option></mtext></math>', Serializer::serializeDeep($fragment));
     }
 
     public function testDocumentPrologueBogusCommentsIgnoreInterleavedWhitespace(): void
