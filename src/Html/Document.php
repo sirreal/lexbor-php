@@ -797,10 +797,42 @@ final class Document extends Node
     private function appendText(Node $parent, string $data, bool $decodeCharacterReferences = true): void
     {
         if ($data !== '') {
-            $parent->appendChild($this->createTextNode(
-                $decodeCharacterReferences ? $this->decodeCharacterReferences($data) : $data,
-            ));
+            $text = $decodeCharacterReferences ? $this->decodeCharacterReferences($data) : $data;
+            $textNode = $this->createTextNode($text);
+            $table = $this->tableForFosterParentedText($parent, $text);
+
+            if ($table !== null && $table->parent !== null) {
+                $table->parent->insertBeforeSpec($textNode, $table);
+                return;
+            }
+
+            $parent->appendChild($textNode);
         }
+    }
+
+    private function tableForFosterParentedText(Node $parent, string $text): ?Element
+    {
+        if (
+            $text === ''
+            || strspn($text, " \t\n\f\r") === strlen($text)
+            || ! $parent instanceof Element
+            || $parent->namespace !== Element::NAMESPACE_HTML
+            || ! self::isTableTextFosterParentingContext($parent->tagName)
+        ) {
+            return null;
+        }
+
+        for ($node = $parent; $node !== null; $node = $node->parent) {
+            if (
+                $node instanceof Element
+                && $node->namespace === Element::NAMESPACE_HTML
+                && $node->tagName === 'table'
+            ) {
+                return $node;
+            }
+        }
+
+        return null;
     }
 
     private function appendTextOnlyElementContent(Element $element, string $html, int $offset): int
@@ -1476,6 +1508,13 @@ final class Document extends Node
         return $tagName === 'tbody'
             || $tagName === 'tfoot'
             || $tagName === 'thead';
+    }
+
+    private static function isTableTextFosterParentingContext(string $tagName): bool
+    {
+        return $tagName === 'table'
+            || $tagName === 'tr'
+            || self::isTableSectionTag($tagName);
     }
 
     /**

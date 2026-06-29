@@ -22802,6 +22802,19 @@ final class SerializeTest extends TestCase
                 "                        \"test\"\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #15 table row text is foster parented' => [
+            15,
+            '<!DOCTYPE html><table><tr>TEST',
+            '<!DOCTYPE html><html><head></head><body>TEST<table><tbody><tr></tr></tbody></table></body></html>',
+            'TEST<table><tbody><tr></tr></tbody></table>',
+            [
+                "            <!DOCTYPE html><table><tr>TEST\n",
+                "                \"TEST\"\n",
+                "                <table>\n",
+                "                  <tbody>\n",
+                "                    <tr>\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #61 table row creates implied tbody' => [
             61,
             '<!DOCTYPE html><table><tr><td></p></table>',
