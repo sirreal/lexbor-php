@@ -22583,6 +22583,193 @@ final class SerializeTest extends TestCase
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
     }
 
+    /**
+     * @return iterable<string, array{int, string}>
+     */
+    public static function html5TestTests20VisibleParagraphBlockStartProvider(): iterable
+    {
+        yield 'html5_test/tests20.ton #44 figcaption closes visible paragraph' => [44, 'figcaption'];
+        yield 'html5_test/tests20.ton #45 summary closes visible paragraph' => [45, 'summary'];
+    }
+
+    #[DataProvider('html5TestTests20VisibleParagraphBlockStartProvider')]
+    public function testHtml5TestTests20VisibleParagraphBlockStartFixtures(int $testNumber, string $tagName): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ([
+            "            <!doctype html><p><{$tagName}>\n",
+            "                <p>\n",
+            "                <{$tagName}>\n",
+        ] as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse("<!doctype html><p><{$tagName}>"));
+
+        $expectedBody = "<p></p><{$tagName}></{$tagName}>";
+        self::assertSame(
+            "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testParagraphClosingBlockStartDoesNotCrossObjectButtonScopeBoundary(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><p><object><section>x'));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body><p><object><section>x</section></object></p></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<p><object><section>x</section></object></p>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function objectBoundaryParagraphClosingStartProvider(): iterable
+    {
+        yield 'p start tag stays inside object' => [
+            '<!doctype html><p><object><p>x',
+            '<p><object><p>x</p></object></p>',
+        ];
+        yield 'hr start tag stays inside object' => [
+            '<!doctype html><p><object><hr>x',
+            '<p><object><hr>x</object></p>',
+        ];
+    }
+
+    #[DataProvider('objectBoundaryParagraphClosingStartProvider')]
+    public function testParagraphClosingStartTagDoesNotCrossObjectBoundary(string $input, string $expectedBody): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame(
+            "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @return iterable<string, array{string, string, string, string, string, bool}>
+     */
+    public static function foreignBreakoutParagraphClosingStartNamespaceProvider(): iterable
+    {
+        yield 'p start after SVG breakout is HTML' => [
+            '<!doctype html><p><svg><p><span>x',
+            '<p><svg></svg></p><p><span>x</span></p>',
+            'svg',
+            Element::NAMESPACE_SVG,
+            'p',
+            true,
+        ];
+        yield 'hr start after SVG breakout is HTML' => [
+            '<!doctype html><p><svg><hr>x',
+            '<p><svg></svg></p><hr>x',
+            'svg',
+            Element::NAMESPACE_SVG,
+            'hr',
+            false,
+        ];
+        yield 'hr start after MathML breakout is HTML' => [
+            '<!doctype html><p><math><hr>x',
+            '<p><math></math></p><hr>x',
+            'math',
+            Element::NAMESPACE_MATH,
+            'hr',
+            false,
+        ];
+    }
+
+    #[DataProvider('foreignBreakoutParagraphClosingStartNamespaceProvider')]
+    public function testParagraphClosingStartTagRefreshesNamespaceAfterForeignBreakout(
+        string $input,
+        string $expectedBody,
+        string $foreignTag,
+        string $foreignNamespace,
+        string $htmlTag,
+        bool $assertSpanChild,
+    ): void {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame(
+            "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        $paragraph = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $paragraph);
+        $foreign = $paragraph->firstChild;
+        self::assertInstanceOf(Element::class, $foreign);
+        self::assertSame($foreignTag, $foreign->tagName);
+        self::assertSame($foreignNamespace, $foreign->namespace);
+
+        $htmlElement = $paragraph->next;
+        self::assertInstanceOf(Element::class, $htmlElement);
+        self::assertSame($htmlTag, $htmlElement->tagName);
+        self::assertSame(Element::NAMESPACE_HTML, $htmlElement->namespace);
+
+        if ($assertSpanChild) {
+            $span = $htmlElement->firstChild;
+            self::assertInstanceOf(Element::class, $span);
+            self::assertSame('span', $span->tagName);
+            self::assertSame(Element::NAMESPACE_HTML, $span->namespace);
+        }
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function svgNonBreakoutParagraphBlockStartProvider(): iterable
+    {
+        yield 'figcaption remains SVG content' => ['figcaption'];
+        yield 'summary remains SVG content' => ['summary'];
+    }
+
+    #[DataProvider('svgNonBreakoutParagraphBlockStartProvider')]
+    public function testNonBreakoutParagraphBlockStartStaysInSvg(string $tagName): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse("<!doctype html><p><svg><{$tagName}>x"));
+
+        $expectedBody = "<p><svg><{$tagName}>x</{$tagName}></svg></p>";
+        self::assertSame(
+            "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        $paragraph = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $paragraph);
+        $svg = $paragraph->firstChild;
+        self::assertInstanceOf(Element::class, $svg);
+        self::assertSame(Element::NAMESPACE_SVG, $svg->namespace);
+        $child = $svg->firstChild;
+        self::assertInstanceOf(Element::class, $child);
+        self::assertSame($tagName, $child->tagName);
+        self::assertSame(Element::NAMESPACE_SVG, $child->namespace);
+    }
+
     public function testHtml5TestTests20ButtonScopeParagraphEndTagRecoveryFixture(): void
     {
         $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');

@@ -308,18 +308,26 @@ final class Document extends Node
             }
 
             $formattingTailClones = [];
-            if ($tagName === 'div') {
+            $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            if (
+                $tagName === 'div'
+                || (
+                    self::isHtmlInsertionContext($namespaceParent)
+                    && self::isParagraphClosingBlockStartTag($tagName)
+                )
+            ) {
                 $formattingTailClones = $this->closeOpenParagraphAndCloneFormattingTail($stack);
                 $parent = $stack[count($stack) - 1];
+                $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             }
 
             if ($tagName === 'p') {
-                $this->closeElementInScope($stack, 'p');
+                $this->closeOpenParagraphAndCloneFormattingTail($stack);
                 $parent = $stack[count($stack) - 1];
             }
 
             if ($tagName === 'hr') {
-                $this->closeElementInScope($stack, 'p');
+                $this->closeOpenParagraphAndCloneFormattingTail($stack);
                 $parent = $stack[count($stack) - 1];
             }
 
@@ -941,7 +949,7 @@ final class Document extends Node
                 break;
             }
 
-            if (self::isHtmlScopeBoundaryElement($node)) {
+            if (self::isButtonScopeBoundaryElement($node)) {
                 return [];
             }
         }
@@ -1340,6 +1348,20 @@ final class Document extends Node
         return Element::NAMESPACE_HTML;
     }
 
+    private static function isHtmlInsertionContext(Node $parent): bool
+    {
+        if (! $parent instanceof Element) {
+            return true;
+        }
+
+        if ($parent->namespace === Element::NAMESPACE_HTML) {
+            return true;
+        }
+
+        return $parent->namespace === Element::NAMESPACE_SVG
+            && $parent->tagName === 'foreignobject';
+    }
+
     private static function isHeadingTag(string $tagName): bool
     {
         return $tagName === 'h1'
@@ -1391,6 +1413,36 @@ final class Document extends Node
         ], true);
     }
 
+    private static function isParagraphClosingBlockStartTag(string $tagName): bool
+    {
+        return in_array($tagName, [
+            'address',
+            'article',
+            'aside',
+            'blockquote',
+            'center',
+            'details',
+            'dialog',
+            'dir',
+            'div',
+            'dl',
+            'fieldset',
+            'figcaption',
+            'figure',
+            'footer',
+            'header',
+            'hgroup',
+            'main',
+            'menu',
+            'nav',
+            'ol',
+            'search',
+            'section',
+            'summary',
+            'ul',
+        ], true);
+    }
+
     private static function isFormattingElementTag(string $tagName): bool
     {
         return in_array($tagName, [
@@ -1430,6 +1482,40 @@ final class Document extends Node
     {
         return $element->namespace === Element::NAMESPACE_HTML
             && self::isHtmlScopeBoundary($element->tagName);
+    }
+
+    private static function isButtonScopeBoundaryElement(Element $element): bool
+    {
+        if ($element->namespace === Element::NAMESPACE_HTML) {
+            return $element->tagName === 'applet'
+                || $element->tagName === 'button'
+                || $element->tagName === 'caption'
+                || $element->tagName === 'html'
+                || $element->tagName === 'marquee'
+                || $element->tagName === 'object'
+                || $element->tagName === 'select'
+                || $element->tagName === 'table'
+                || $element->tagName === 'td'
+                || $element->tagName === 'template'
+                || $element->tagName === 'th';
+        }
+
+        if ($element->namespace === Element::NAMESPACE_MATH) {
+            return $element->tagName === 'annotation-xml'
+                || $element->tagName === 'mi'
+                || $element->tagName === 'mn'
+                || $element->tagName === 'mo'
+                || $element->tagName === 'ms'
+                || $element->tagName === 'mtext';
+        }
+
+        if ($element->namespace === Element::NAMESPACE_SVG) {
+            return $element->tagName === 'desc'
+                || $element->tagName === 'foreignobject'
+                || $element->tagName === 'title';
+        }
+
+        return false;
     }
 
     private static function isNormalScopeBoundary(Element $element): bool
