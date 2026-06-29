@@ -22297,6 +22297,14 @@ final class SerializeTest extends TestCase
             ["            <h1><h2>\n", "                <h1>\n", "                <h2>\n"],
         ];
 
+        yield 'html5_test/tests1.ton #97 button formatting adoption' => [
+            97,
+            '<b><button></b></button></b>',
+            '<html><head></head><body><b></b><button><b></b></button></body></html>',
+            '<b></b><button><b></b></button>',
+            ["            <b><button></b></button></b>\n", "                <b>\n", "                <button>\n", "                  <b>\n"],
+        ];
+
         yield 'html5_test/tests1.ton #99 leading script and title stay in head' => [
             99,
             '<script></script></div><title></title><p><p>',

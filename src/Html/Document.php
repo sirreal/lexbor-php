@@ -1123,7 +1123,8 @@ final class Document extends Node
 
     private static function isFormattingFurthestBlock(string $tagName): bool
     {
-        return $tagName === 'div'
+        return $tagName === 'button'
+            || $tagName === 'div'
             || $tagName === 'p';
     }
 
