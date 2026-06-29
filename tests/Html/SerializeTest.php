@@ -21024,6 +21024,124 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, ?string, list<string>}>
+     */
+    public static function html5TestTests21SvgCdataProvider(): iterable
+    {
+        yield 'tests21.ton #4 unterminated SVG CDATA preserves text' => [
+            4,
+            '<svg><![CDATA[foo',
+            '<svg>foo</svg>',
+            'foo',
+            [
+                "            <svg><![CDATA[foo\n",
+                "                <svg:svg>\n",
+                "                  \"foo\"\n",
+            ],
+        ];
+        yield 'tests21.ton #5 empty unterminated SVG CDATA' => [
+            5,
+            '<svg><![CDATA[',
+            '<svg></svg>',
+            null,
+            [
+                "            <svg><![CDATA[\n",
+                "                <svg:svg>\n",
+            ],
+        ];
+        yield 'tests21.ton #6 empty SVG CDATA' => [
+            6,
+            '<svg><![CDATA[]]>',
+            '<svg></svg>',
+            null,
+            [
+                "            <svg><![CDATA[]]>\n",
+                "                <svg:svg>\n",
+            ],
+        ];
+        yield 'tests21.ton #7 SVG CDATA permits split closing marker' => [
+            7,
+            '<svg><![CDATA[]] >]]>',
+            '<svg>]] &gt;</svg>',
+            ']] >',
+            [
+                "            <svg><![CDATA[]] >]]>\n",
+                "                <svg:svg>\n",
+                "                  \"]] >\"\n",
+            ],
+        ];
+        yield 'tests21.ton #8 unterminated SVG CDATA preserves two closing brackets' => [
+            8,
+            '<svg><![CDATA[]]',
+            '<svg>]]</svg>',
+            ']]',
+            [
+                "            <svg><![CDATA[]]\n",
+                "                <svg:svg>\n",
+                "                  \"]]\"\n",
+            ],
+        ];
+        yield 'tests21.ton #9 unterminated SVG CDATA preserves closing bracket' => [
+            9,
+            '<svg><![CDATA[]',
+            '<svg>]</svg>',
+            ']',
+            [
+                "            <svg><![CDATA[]\n",
+                "                <svg:svg>\n",
+                "                  \"]\"\n",
+            ],
+        ];
+        yield 'tests21.ton #10 unterminated SVG CDATA preserves bracket text' => [
+            10,
+            '<svg><![CDATA[]>a',
+            '<svg>]&gt;a</svg>',
+            ']>a',
+            [
+                "            <svg><![CDATA[]>a\n",
+                "                <svg:svg>\n",
+                "                  \"]>a\"\n",
+            ],
+        ];
+        yield 'tests21.ton #11 doctype SVG CDATA preserves extra bracket' => [
+            11,
+            '<!DOCTYPE html><svg><![CDATA[foo]]]>',
+            '<svg>foo]</svg>',
+            'foo]',
+            [
+                "            <!DOCTYPE html><svg><![CDATA[foo]]]>\n",
+                "            <!DOCTYPE html>\n",
+                "                <svg:svg>\n",
+                "                  \"foo]\"\n",
+            ],
+        ];
+        yield 'tests21.ton #12 doctype SVG CDATA preserves two extra brackets' => [
+            12,
+            '<!DOCTYPE html><svg><![CDATA[foo]]]]>',
+            '<svg>foo]]</svg>',
+            'foo]]',
+            [
+                "            <!DOCTYPE html><svg><![CDATA[foo]]]]>\n",
+                "            <!DOCTYPE html>\n",
+                "                <svg:svg>\n",
+                "                  \"foo]]\"\n",
+            ],
+        ];
+        yield 'tests21.ton #13 doctype SVG CDATA preserves three extra brackets' => [
+            13,
+            '<!DOCTYPE html><svg><![CDATA[foo]]]]]>',
+            '<svg>foo]]]</svg>',
+            'foo]]]',
+            [
+                "            <!DOCTYPE html><svg><![CDATA[foo]]]]]>\n",
+                "            <!DOCTYPE html>\n",
+                "                <svg:svg>\n",
+                "                  \"foo]]]\"\n",
+            ],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string, string, 2?: bool}>
      */
     public static function html5libCdataSectionStateProvider(): iterable
@@ -32163,6 +32281,58 @@ final class SerializeTest extends TestCase
         }
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests21SvgCdataProvider')]
+    public function testHtml5TestTests21SvgCdataFixtures(
+        int $testNumber,
+        string $input,
+        string $expectedBody,
+        ?string $expectedText,
+        array $fixtureSnippets,
+    ): void {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests21.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        $expectedDocument = (str_starts_with($input, '<!DOCTYPE html>') ? '<!DOCTYPE html>' : '')
+            . "<html><head></head><body>{$expectedBody}</body></html>";
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+
+        $svg = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $svg);
+        self::assertSame(Element::NAMESPACE_SVG, $svg->namespace);
+        self::assertSame('svg', $svg->tagName);
+        self::assertNull($svg->next);
+
+        if ($expectedText === null) {
+            self::assertNull($svg->firstChild);
+            return;
+        }
+
+        $text = $svg->firstChild;
+        self::assertInstanceOf(Text::class, $text);
+        self::assertSame($expectedText, $text->data);
+        self::assertNull($text->next);
     }
 
     #[DataProvider('html5libCdataSectionStateProvider')]
