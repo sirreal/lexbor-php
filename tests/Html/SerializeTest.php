@@ -10423,6 +10423,60 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNumericEntitiesOverflowControlExactFixtureProvider(): iterable
+    {
+        foreach ([
+            0 => ['Invalid unterminated numeric entity character overflow before EOF', '&#11111111111', "\u{FFFD}", [['missing-semicolon-after-character-reference', 1, 14], ['character-reference-outside-unicode-range', 1, 14]]],
+            1 => ['Invalid unterminated numeric entity character overflow before EOF', '&#1111111111', "\u{FFFD}", [['missing-semicolon-after-character-reference', 1, 13], ['character-reference-outside-unicode-range', 1, 13]]],
+            2 => ['Invalid unterminated numeric entity character overflow before EOF', '&#111111111111', "\u{FFFD}", [['missing-semicolon-after-character-reference', 1, 15], ['character-reference-outside-unicode-range', 1, 15]]],
+            3 => ['Invalid unterminated numeric entity character overflow', '&#11111111111x', "\u{FFFD}x", [['missing-semicolon-after-character-reference', 1, 14], ['character-reference-outside-unicode-range', 1, 14]]],
+            4 => ['Invalid unterminated numeric entity character overflow', '&#1111111111x', "\u{FFFD}x", [['missing-semicolon-after-character-reference', 1, 13], ['character-reference-outside-unicode-range', 1, 13]]],
+            5 => ['Invalid unterminated numeric entity character overflow', '&#111111111111x', "\u{FFFD}x", [['missing-semicolon-after-character-reference', 1, 15], ['character-reference-outside-unicode-range', 1, 15]]],
+            6 => ['Invalid numeric entity character overflow', '&#11111111111;', "\u{FFFD}", [['character-reference-outside-unicode-range', 1, 15]]],
+            7 => ['Invalid numeric entity character overflow', '&#1111111111;', "\u{FFFD}", [['character-reference-outside-unicode-range', 1, 14]]],
+            8 => ['Invalid numeric entity character overflow', '&#111111111111;', "\u{FFFD}", [['character-reference-outside-unicode-range', 1, 16]]],
+            9 => ['Invalid numeric entity character U+0000', '&#x0000;', "\u{FFFD}", [['null-character-reference', 1, 9]]],
+            10 => ['Invalid numeric entity character U+0001', '&#x0001;', "\u{0001}", [['control-character-reference', 1, 9]]],
+            11 => ['Invalid numeric entity character U+0002', '&#x0002;', "\u{0002}", [['control-character-reference', 1, 9]]],
+            12 => ['Invalid numeric entity character U+0003', '&#x0003;', "\u{0003}", [['control-character-reference', 1, 9]]],
+            13 => ['Invalid numeric entity character U+0004', '&#x0004;', "\u{0004}", [['control-character-reference', 1, 9]]],
+            14 => ['Invalid numeric entity character U+0005', '&#x0005;', "\u{0005}", [['control-character-reference', 1, 9]]],
+            15 => ['Invalid numeric entity character U+0006', '&#x0006;', "\u{0006}", [['control-character-reference', 1, 9]]],
+            16 => ['Invalid numeric entity character U+0007', '&#x0007;', "\u{0007}", [['control-character-reference', 1, 9]]],
+            17 => ['Invalid numeric entity character U+0008', '&#x0008;', "\u{0008}", [['control-character-reference', 1, 9]]],
+            18 => ['Invalid numeric entity character U+000B', '&#x000b;', "\u{000B}", [['control-character-reference', 1, 9]]],
+            19 => ['Invalid numeric entity character U+000E', '&#x000e;', "\u{000E}", [['control-character-reference', 1, 9]]],
+            20 => ['Invalid numeric entity character U+000F', '&#x000f;', "\u{000F}", [['control-character-reference', 1, 9]]],
+            21 => ['Invalid numeric entity character U+0010', '&#x0010;', "\u{0010}", [['control-character-reference', 1, 9]]],
+            22 => ['Invalid numeric entity character U+0011', '&#x0011;', "\u{0011}", [['control-character-reference', 1, 9]]],
+            23 => ['Invalid numeric entity character U+0012', '&#x0012;', "\u{0012}", [['control-character-reference', 1, 9]]],
+            24 => ['Invalid numeric entity character U+0013', '&#x0013;', "\u{0013}", [['control-character-reference', 1, 9]]],
+            25 => ['Invalid numeric entity character U+0014', '&#x0014;', "\u{0014}", [['control-character-reference', 1, 9]]],
+            26 => ['Invalid numeric entity character U+0015', '&#x0015;', "\u{0015}", [['control-character-reference', 1, 9]]],
+            27 => ['Invalid numeric entity character U+0016', '&#x0016;', "\u{0016}", [['control-character-reference', 1, 9]]],
+            28 => ['Invalid numeric entity character U+0017', '&#x0017;', "\u{0017}", [['control-character-reference', 1, 9]]],
+            29 => ['Invalid numeric entity character U+0018', '&#x0018;', "\u{0018}", [['control-character-reference', 1, 9]]],
+            30 => ['Invalid numeric entity character U+0019', '&#x0019;', "\u{0019}", [['control-character-reference', 1, 9]]],
+            31 => ['Invalid numeric entity character U+001A', '&#x001a;', "\u{001A}", [['control-character-reference', 1, 9]]],
+        ] as $testIndex => [$description, $html, $character, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "numericEntities.test $testIndex $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -25765,6 +25819,35 @@ final class SerializeTest extends TestCase
         self::assertArrayNotHasKey('errors', $fixture);
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNumericEntitiesOverflowControlExactFixtureProvider')]
+    public function testHtml5libNumericEntitiesOverflowControlExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/numericEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
     }
 
     /**
