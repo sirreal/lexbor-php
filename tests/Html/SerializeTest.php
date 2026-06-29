@@ -22625,6 +22625,188 @@ final class SerializeTest extends TestCase
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
     }
 
+    /**
+     * @return iterable<string, array{int, string, string, list<string>}>
+     */
+    public static function html5TestTests20FormPointerTableProvider(): iterable
+    {
+        yield 'html5_test/tests20.ton #46 nested form in table is ignored' => [
+            46,
+            '<!doctype html><form><table><form>',
+            '<form><table></table></form>',
+            [
+                "            <!doctype html><form><table><form>\n",
+                "                <form>\n",
+                "                  <table>\n",
+            ],
+        ];
+        yield 'html5_test/tests20.ton #47 second table form is ignored' => [
+            47,
+            '<!doctype html><table><form><form>',
+            '<table><form></form></table>',
+            [
+                "            <!doctype html><table><form><form>\n",
+                "                <table>\n",
+                "                  <form>\n",
+            ],
+        ];
+        yield 'html5_test/tests20.ton #48 post-table form is ignored while pointer is set' => [
+            48,
+            '<!doctype html><table><form></table><form>',
+            '<table><form></form></table>',
+            [
+                "            <!doctype html><table><form></table><form>\n",
+                "                <table>\n",
+                "                  <form>\n",
+            ],
+        ];
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests20FormPointerTableProvider')]
+    public function testHtml5TestTests20FormPointerTableFixtures(
+        int $testNumber,
+        string $input,
+        string $expectedBody,
+        array $fixtureSnippets,
+    ): void {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame(
+            "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testFormFragmentContextSeedsFormPointer(): void
+    {
+        $document = new Document();
+        $form = $document->createElement('form');
+        $form->setInnerHtml('<input><form><input>');
+
+        self::assertSame('<form><input><input></form>', Serializer::serializeDeep($form));
+    }
+
+    public function testForeignFormEndTagDoesNotClearHtmlFormPointer(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><form><svg><form></form></svg><form>x'));
+
+        self::assertSame(
+            '<form><svg><form></form></svg>x</form>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $outerForm = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $outerForm);
+        $svg = $outerForm->firstChild;
+        self::assertInstanceOf(Element::class, $svg);
+        $svgForm = $svg->firstChild;
+        self::assertInstanceOf(Element::class, $svgForm);
+        self::assertSame(Element::NAMESPACE_SVG, $svgForm->namespace);
+    }
+
+    public function testMismatchedForeignFormEndTagDoesNotCloseHtmlFormPointerElement(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><form><svg></form><form>x'));
+
+        self::assertSame(
+            '<form><svg><form>x</form></svg></form>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $outerForm = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $outerForm);
+        $svg = $outerForm->firstChild;
+        self::assertInstanceOf(Element::class, $svg);
+        $svgForm = $svg->firstChild;
+        self::assertInstanceOf(Element::class, $svgForm);
+        self::assertSame(Element::NAMESPACE_SVG, $svgForm->namespace);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function formPointerRemovalProvider(): iterable
+    {
+        yield 'formatting child remains current after form removal' => [
+            '<!doctype html><form><b></form>x',
+            '<form><b>x</b></form>',
+        ];
+        yield 'block child closes after form removal' => [
+            '<!doctype html><form><div></form></div>x',
+            '<form><div></div></form>x',
+        ];
+        yield 'second form is a sibling after pointed form removal' => [
+            '<!doctype html><form><div></form></div><form>x',
+            '<form><div></div></form><form>x</form>',
+        ];
+        yield 'self-closing syntax does not leave a stale unopen form pointer' => [
+            '<!doctype html><form/>x<form>y',
+            '<form>xy</form>',
+        ];
+    }
+
+    #[DataProvider('formPointerRemovalProvider')]
+    public function testFormPointerRemovalSemantics(string $input, string $expectedBody): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testFormEndTagTargetsPointerElementFromTests16TableShape(): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests16.ton');
+        self::assertIsString($contents);
+        $testMarker = '/* Test number: 197 */';
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ([
+            "            <!doctype html><form><table></form><form></table></form>\n",
+            "                <form>\n",
+            "                  <table>\n",
+            "                    <form>\n",
+        ] as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><form><table></form><form></table></form>x'));
+
+        self::assertSame(
+            '<form><table><form></form></table>x</form>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
     public function testParagraphClosingBlockStartDoesNotCrossObjectButtonScopeBoundary(): void
     {
         $document = new Document();

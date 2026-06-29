@@ -180,6 +180,11 @@ final class Document extends Node
     {
         $stack = [$root];
         $formattingEndTagsPoppedByScope = [];
+        $formElement = (
+            $context !== null
+            && $context->namespace === Element::NAMESPACE_HTML
+            && $context->tagName === 'form'
+        ) ? $context : null;
         $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
         $offset = 0;
 
@@ -269,6 +274,23 @@ final class Document extends Node
 
                 $formattingEndTagsPoppedByScope = [];
 
+                $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+                if ($tagName === 'form' && ! self::isHtmlInsertionContext($namespaceParent)) {
+                    $this->closeForeignElementBeforeHtml($stack, 'form');
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                if ($tagName === 'form' && self::isHtmlInsertionContext($namespaceParent)) {
+                    $targetFormElement = $formElement;
+                    $formElement = null;
+                    if ($targetFormElement !== null) {
+                        $formattingEndTagsPoppedByScope = $this->closeElementInScopeByNode($stack, $targetFormElement);
+                    }
+                    $offset = $tagEnd;
+                    continue;
+                }
+
                 if ($this->handleFormattingEndTagWithFurthestBlock($stack, $tagName)) {
                     $offset = $tagEnd;
                     continue;
@@ -309,6 +331,44 @@ final class Document extends Node
 
             $formattingTailClones = [];
             $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            if ($tagName === 'form' && self::isHtmlInsertionContext($namespaceParent)) {
+                if ($formElement !== null) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                $inTableFormInsertionMode = $namespaceParent instanceof Element
+                    && $namespaceParent->namespace === Element::NAMESPACE_HTML
+                    && $namespaceParent->tagName === 'table';
+
+                $formFormattingTailClones = [];
+                if (! $inTableFormInsertionMode) {
+                    $formFormattingTailClones = $this->closeOpenParagraphAndCloneFormattingTail($stack);
+                    $parent = $stack[count($stack) - 1];
+                    $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+                }
+
+                $element = $this->createElement('form', $this->namespaceForElement($namespaceParent, 'form'));
+                foreach ($this->parseAttributes($attributeSource) as $attribute) {
+                    $element->setAttribute($attribute['name'], $attribute['value']);
+                }
+
+                $stack[count($stack) - 1]->appendChild($element);
+                $formElement = $element;
+                $offset = $tagEnd;
+
+                if ($inTableFormInsertionMode) {
+                    continue;
+                }
+
+                $stack[] = $element;
+                foreach ($formFormattingTailClones as $clone) {
+                    $stack[count($stack) - 1]->appendChild($clone);
+                    $stack[] = $clone;
+                }
+                continue;
+            }
+
             if (
                 $tagName === 'div'
                 || (
@@ -845,6 +905,55 @@ final class Document extends Node
         }
 
         return [];
+    }
+
+    /**
+     * @param list<Node> $stack
+     * @return array<string, int>
+     */
+    private function closeElementInScopeByNode(array &$stack, Element $target): array
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node === $target) {
+                array_splice($stack, $index, 1);
+                return [];
+            }
+
+            if (self::isNormalScopeBoundary($node)) {
+                return [];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeForeignElementBeforeHtml(array &$stack, string $tagName): void
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->namespace === Element::NAMESPACE_HTML) {
+                return;
+            }
+
+            if ($node->tagName === $tagName) {
+                array_splice($stack, $index);
+                return;
+            }
+        }
     }
 
     /**
