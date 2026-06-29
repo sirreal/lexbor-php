@@ -10995,6 +10995,34 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNumericEntitiesSupplementaryTerminalExactFixtureProvider(): iterable
+    {
+        foreach ([
+            330 => ['Valid numeric entity character U+E0000', '&#xe0000;', "\u{E0000}", []],
+            331 => ['Valid numeric entity character U+EFFFD', '&#xefffd;', "\u{EFFFD}", []],
+            332 => ['Valid numeric entity character U+F0000', '&#xf0000;', "\u{F0000}", []],
+            333 => ['Valid numeric entity character U+FFFFD', '&#xffffd;', "\u{FFFFD}", []],
+            334 => ['Valid numeric entity character U+100000', '&#x100000;', "\u{100000}", []],
+            335 => ['Valid numeric entity character U+10FFFD', '&#x10fffd;', "\u{10FFFD}", []],
+        ] as $testIndex => [$description, $html, $character, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "numericEntities.test $testIndex $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -26659,6 +26687,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNumericEntitiesUnicodeBoundaryExactFixtureProvider')]
     public function testHtml5libNumericEntitiesUnicodeBoundaryExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/numericEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNumericEntitiesSupplementaryTerminalExactFixtureProvider')]
+    public function testHtml5libNumericEntitiesSupplementaryTerminalExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
