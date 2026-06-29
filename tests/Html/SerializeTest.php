@@ -22931,6 +22931,49 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, string, list<string>}>
+     */
+    public static function html5TestTests2ParagraphListItemProvider(): iterable
+    {
+        yield 'html5_test/tests2.ton #26 li start closes paragraph' => [
+            26,
+            '<!doctypehtml><p><li>',
+            '<!DOCTYPE html><html><head></head><body><p></p><li></li></body></html>',
+            '<p></p><li></li>',
+            'li',
+            [
+                "            <!doctypehtml><p><li>\n",
+                "                <p>\n",
+                "                <li>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #27 dt start closes paragraph' => [
+            27,
+            '<!doctypehtml><p><dt>',
+            '<!DOCTYPE html><html><head></head><body><p></p><dt></dt></body></html>',
+            '<p></p><dt></dt>',
+            'dt',
+            [
+                "            <!doctypehtml><p><dt>\n",
+                "                <p>\n",
+                "                <dt>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #28 dd start closes paragraph' => [
+            28,
+            '<!doctypehtml><p><dd>',
+            '<!DOCTYPE html><html><head></head><body><p></p><dd></dd></body></html>',
+            '<p></p><dd></dd>',
+            'dd',
+            [
+                "            <!doctypehtml><p><dd>\n",
+                "                <p>\n",
+                "                <dd>\n",
+            ],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function upstreamLegacyVoidElementProvider(): iterable
@@ -23166,6 +23209,50 @@ final class SerializeTest extends TestCase
 
         self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2ParagraphListItemProvider')]
+    public function testHtml5TestTests2ParagraphListItemFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        string $itemTagName,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        $paragraph = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $paragraph);
+        self::assertSame('p', $paragraph->tagName);
+
+        $item = $paragraph->next;
+        self::assertInstanceOf(Element::class, $item);
+        self::assertSame($itemTagName, $item->tagName);
     }
 
     public function testSvgImageStartTagIsNotAliasedToHtmlImg(): void
