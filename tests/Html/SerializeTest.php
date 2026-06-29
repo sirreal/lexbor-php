@@ -6077,6 +6077,55 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNamedEntitiesBoxHdBoxdRExactFixtureProvider(): iterable
+    {
+        foreach ([
+            1440 => ['Bad named entity: boxHd without a semi-colon', '&boxHd', '&boxHd'],
+            1441 => ['Named entity: boxHd; with a semi-colon', '&boxHd;', "\u{2564}"],
+            1442 => ['Bad named entity: boxHu without a semi-colon', '&boxHu', '&boxHu'],
+            1443 => ['Named entity: boxHu; with a semi-colon', '&boxHu;', "\u{2567}"],
+            1444 => ['Bad named entity: boxUL without a semi-colon', '&boxUL', '&boxUL'],
+            1445 => ['Named entity: boxUL; with a semi-colon', '&boxUL;', "\u{255D}"],
+            1446 => ['Bad named entity: boxUR without a semi-colon', '&boxUR', '&boxUR'],
+            1447 => ['Named entity: boxUR; with a semi-colon', '&boxUR;', "\u{255A}"],
+            1448 => ['Bad named entity: boxUl without a semi-colon', '&boxUl', '&boxUl'],
+            1449 => ['Named entity: boxUl; with a semi-colon', '&boxUl;', "\u{255C}"],
+            1450 => ['Bad named entity: boxUr without a semi-colon', '&boxUr', '&boxUr'],
+            1451 => ['Named entity: boxUr; with a semi-colon', '&boxUr;', "\u{2559}"],
+            1452 => ['Bad named entity: boxV without a semi-colon', '&boxV', '&boxV'],
+            1453 => ['Named entity: boxV; with a semi-colon', '&boxV;', "\u{2551}"],
+            1454 => ['Bad named entity: boxVH without a semi-colon', '&boxVH', '&boxVH'],
+            1455 => ['Named entity: boxVH; with a semi-colon', '&boxVH;', "\u{256C}"],
+            1456 => ['Bad named entity: boxVL without a semi-colon', '&boxVL', '&boxVL'],
+            1457 => ['Named entity: boxVL; with a semi-colon', '&boxVL;', "\u{2563}"],
+            1458 => ['Bad named entity: boxVR without a semi-colon', '&boxVR', '&boxVR'],
+            1459 => ['Named entity: boxVR; with a semi-colon', '&boxVR;', "\u{2560}"],
+            1460 => ['Bad named entity: boxVh without a semi-colon', '&boxVh', '&boxVh'],
+            1461 => ['Named entity: boxVh; with a semi-colon', '&boxVh;', "\u{256B}"],
+            1462 => ['Bad named entity: boxVl without a semi-colon', '&boxVl', '&boxVl'],
+            1463 => ['Named entity: boxVl; with a semi-colon', '&boxVl;', "\u{2562}"],
+            1464 => ['Bad named entity: boxVr without a semi-colon', '&boxVr', '&boxVr'],
+            1465 => ['Named entity: boxVr; with a semi-colon', '&boxVr;', "\u{255F}"],
+            1466 => ['Bad named entity: boxbox without a semi-colon', '&boxbox', '&boxbox'],
+            1467 => ['Named entity: boxbox; with a semi-colon', '&boxbox;', "\u{29C9}"],
+            1468 => ['Bad named entity: boxdL without a semi-colon', '&boxdL', '&boxdL'],
+            1469 => ['Named entity: boxdL; with a semi-colon', '&boxdL;', "\u{2555}"],
+            1470 => ['Bad named entity: boxdR without a semi-colon', '&boxdR', '&boxdR'],
+            1471 => ['Named entity: boxdR; with a semi-colon', '&boxdR;', "\u{2552}"],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                [],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -18829,6 +18878,39 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesBlk34BoxHUExactFixtureProvider')]
     public function testHtml5libNamedEntitiesBlk34BoxHUExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNamedEntitiesBoxHdBoxdRExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesBoxHdBoxdRExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
