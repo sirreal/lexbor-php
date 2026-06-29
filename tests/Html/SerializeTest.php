@@ -22667,6 +22667,98 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, list<string>}>
+     */
+    public static function html5TestTests2DocumentBoundaryProvider(): iterable
+    {
+        $sillyTagName = 'thisisasillytestelementnametomakesurecrazytagnamesareparsedcorrectly';
+
+        yield 'html5_test/tests2.ton #33 long mixed-case tag name is normalized' => [
+            33,
+            '<!DOCTYPE html><html><head></head><body><thisISasillyTESTelementNameToMakeSureCrazyTagNamesArePARSEDcorrectLY>',
+            "<!DOCTYPE html><html><head></head><body><{$sillyTagName}></{$sillyTagName}></body></html>",
+            "<{$sillyTagName}></{$sillyTagName}>",
+            [
+                "            <!DOCTYPE html><html><head></head><body><thisISasillyTESTelementNameToMakeSureCrazyTagNamesArePARSEDcorrectLY>\n",
+                "                <{$sillyTagName}>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #34 text after body end stays in body' => [
+            34,
+            '<!DOCTYPE html>X</body>X',
+            '<!DOCTYPE html><html><head></head><body>XX</body></html>',
+            'XX',
+            [
+                "            <!DOCTYPE html>X</body>X\n",
+                "                \"XX\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #46 multiline text body' => [
+            46,
+            "test\ntest",
+            "<html><head></head><body>test\ntest</body></html>",
+            "test\ntest",
+            [
+                "            test\n            test\n",
+                "                \"test\n            test\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #51 html start after doctype shell' => [
+            51,
+            '<!DOCTYPE html>  <html>',
+            '<!DOCTYPE html><html><head></head><body></body></html>',
+            '',
+            [
+                "            <!DOCTYPE html>  <html>\n",
+                "              <body>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #56 text after html end stays in body' => [
+            56,
+            '<!DOCTYPE html>X</html>X',
+            '<!DOCTYPE html><html><head></head><body>XX</body></html>',
+            'XX',
+            [
+                "            <!DOCTYPE html>X</html>X\n",
+                "                \"XX\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #57 whitespace after html end stays in body' => [
+            57,
+            '<!DOCTYPE html>X</html> ',
+            '<!DOCTYPE html><html><head></head><body>X </body></html>',
+            'X ',
+            [
+                "            <!DOCTYPE html>X</html> \n",
+                "                \"X \"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #58 start tag after html end stays in body' => [
+            58,
+            '<!DOCTYPE html>X</html><p>X',
+            '<!DOCTYPE html><html><head></head><body>X<p>X</p></body></html>',
+            'X<p>X</p>',
+            [
+                "            <!DOCTYPE html>X</html><p>X\n",
+                "                \"X\"\n",
+                "                <p>\n",
+                "                  \"X\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #59 slash-separated attributes recover as empty attributes' => [
+            59,
+            '<!DOCTYPE html>X<p/x/y/z>',
+            '<!DOCTYPE html><html><head></head><body>X<p x="" y="" z=""></p></body></html>',
+            'X<p x="" y="" z=""></p>',
+            [
+                "            <!DOCTYPE html>X<p/x/y/z>\n",
+                "                \"X\"\n",
+                "                <p x=\"\" y=\"\" z=\"\">\n",
+            ],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function upstreamLegacyVoidElementProvider(): iterable
@@ -22797,6 +22889,41 @@ final class SerializeTest extends TestCase
         self::assertInstanceOf(Text::class, $text);
         self::assertSame($expectedText, $text->data);
         self::assertNull($text->next);
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2DocumentBoundaryProvider')]
+    public function testHtml5TestTests2DocumentBoundaryFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
     }
 
     public function testSvgImageStartTagIsNotAliasedToHtmlImg(): void
