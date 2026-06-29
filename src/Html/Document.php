@@ -381,6 +381,18 @@ final class Document extends Node
                 $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             }
 
+            if (
+                $tagName === 'option'
+                && self::isHtmlInsertionContext($namespaceParent)
+                && $parent instanceof Element
+                && $parent->namespace === Element::NAMESPACE_HTML
+                && $parent->tagName === 'option'
+            ) {
+                array_pop($stack);
+                $parent = $stack[count($stack) - 1];
+                $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            }
+
             if ($tagName === 'p') {
                 $this->closeOpenParagraphAndCloneFormattingTail($stack);
                 $parent = $stack[count($stack) - 1];

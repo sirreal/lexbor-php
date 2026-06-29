@@ -22697,6 +22697,69 @@ final class SerializeTest extends TestCase
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
     }
 
+    /**
+     * @return iterable<string, array{int, string, string, list<string>}>
+     */
+    public static function html5TestTests20OptionStartProvider(): iterable
+    {
+        yield 'html5_test/tests20.ton #51 option inside span does not close outer option' => [
+            51,
+            '<option><span><option>',
+            '<option><span><option></option></span></option>',
+            [
+                "            <option><span><option>\n",
+                "                <option>\n",
+                "                  <span>\n",
+                "                    <option>\n",
+            ],
+        ];
+        yield 'html5_test/tests20.ton #52 option closes current option' => [
+            52,
+            '<option><option>',
+            '<option></option><option></option>',
+            [
+                "            <option><option>\n",
+                "                <option>\n",
+                "                <option>\n",
+            ],
+        ];
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests20OptionStartProvider')]
+    public function testHtml5TestTests20OptionStartFixtures(
+        int $testNumber,
+        string $input,
+        string $expectedBody,
+        array $fixtureSnippets,
+    ): void {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame(
+            "<html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
     public function testFormFragmentContextSeedsFormPointer(): void
     {
         $document = new Document();
