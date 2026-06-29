@@ -11054,6 +11054,60 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libEntitiesDecimalWindows1252ExactFixtureProvider(): iterable
+    {
+        foreach ([
+            12 => ['CR as numeric entity', '&#013;', "\r", [['control-character-reference', 1, 7]]],
+            13 => ['CR as hexadecimal numeric entity', '&#x00D;', "\r", [['control-character-reference', 1, 8]]],
+            14 => ['Windows-1252 EURO SIGN numeric entity.', '&#0128;', "\u{20AC}", [['control-character-reference', 1, 8]]],
+            15 => ['Windows-1252 REPLACEMENT CHAR numeric entity.', '&#0129;', "\u{0081}", [['control-character-reference', 1, 8]]],
+            16 => ['Windows-1252 SINGLE LOW-9 QUOTATION MARK numeric entity.', '&#0130;', "\u{201A}", [['control-character-reference', 1, 8]]],
+            17 => ['Windows-1252 LATIN SMALL LETTER F WITH HOOK numeric entity.', '&#0131;', "\u{0192}", [['control-character-reference', 1, 8]]],
+            18 => ['Windows-1252 DOUBLE LOW-9 QUOTATION MARK numeric entity.', '&#0132;', "\u{201E}", [['control-character-reference', 1, 8]]],
+            19 => ['Windows-1252 HORIZONTAL ELLIPSIS numeric entity.', '&#0133;', "\u{2026}", [['control-character-reference', 1, 8]]],
+            20 => ['Windows-1252 DAGGER numeric entity.', '&#0134;', "\u{2020}", [['control-character-reference', 1, 8]]],
+            21 => ['Windows-1252 DOUBLE DAGGER numeric entity.', '&#0135;', "\u{2021}", [['control-character-reference', 1, 8]]],
+            22 => ['Windows-1252 MODIFIER LETTER CIRCUMFLEX ACCENT numeric entity.', '&#0136;', "\u{02C6}", [['control-character-reference', 1, 8]]],
+            23 => ['Windows-1252 PER MILLE SIGN numeric entity.', '&#0137;', "\u{2030}", [['control-character-reference', 1, 8]]],
+            24 => ['Windows-1252 LATIN CAPITAL LETTER S WITH CARON numeric entity.', '&#0138;', "\u{0160}", [['control-character-reference', 1, 8]]],
+            25 => ['Windows-1252 SINGLE LEFT-POINTING ANGLE QUOTATION MARK numeric entity.', '&#0139;', "\u{2039}", [['control-character-reference', 1, 8]]],
+            26 => ['Windows-1252 LATIN CAPITAL LIGATURE OE numeric entity.', '&#0140;', "\u{0152}", [['control-character-reference', 1, 8]]],
+            27 => ['Windows-1252 REPLACEMENT CHAR numeric entity.', '&#0141;', "\u{008D}", [['control-character-reference', 1, 8]]],
+            28 => ['Windows-1252 LATIN CAPITAL LETTER Z WITH CARON numeric entity.', '&#0142;', "\u{017D}", [['control-character-reference', 1, 8]]],
+            29 => ['Windows-1252 REPLACEMENT CHAR numeric entity.', '&#0143;', "\u{008F}", [['control-character-reference', 1, 8]]],
+            30 => ['Windows-1252 REPLACEMENT CHAR numeric entity.', '&#0144;', "\u{0090}", [['control-character-reference', 1, 8]]],
+            31 => ['Windows-1252 LEFT SINGLE QUOTATION MARK numeric entity.', '&#0145;', "\u{2018}", [['control-character-reference', 1, 8]]],
+            32 => ['Windows-1252 RIGHT SINGLE QUOTATION MARK numeric entity.', '&#0146;', "\u{2019}", [['control-character-reference', 1, 8]]],
+            33 => ['Windows-1252 LEFT DOUBLE QUOTATION MARK numeric entity.', '&#0147;', "\u{201C}", [['control-character-reference', 1, 8]]],
+            34 => ['Windows-1252 RIGHT DOUBLE QUOTATION MARK numeric entity.', '&#0148;', "\u{201D}", [['control-character-reference', 1, 8]]],
+            35 => ['Windows-1252 BULLET numeric entity.', '&#0149;', "\u{2022}", [['control-character-reference', 1, 8]]],
+            36 => ['Windows-1252 EN DASH numeric entity.', '&#0150;', "\u{2013}", [['control-character-reference', 1, 8]]],
+            37 => ['Windows-1252 EM DASH numeric entity.', '&#0151;', "\u{2014}", [['control-character-reference', 1, 8]]],
+            38 => ['Windows-1252 SMALL TILDE numeric entity.', '&#0152;', "\u{02DC}", [['control-character-reference', 1, 8]]],
+            39 => ['Windows-1252 TRADE MARK SIGN numeric entity.', '&#0153;', "\u{2122}", [['control-character-reference', 1, 8]]],
+            40 => ['Windows-1252 LATIN SMALL LETTER S WITH CARON numeric entity.', '&#0154;', "\u{0161}", [['control-character-reference', 1, 8]]],
+            41 => ['Windows-1252 SINGLE RIGHT-POINTING ANGLE QUOTATION MARK numeric entity.', '&#0155;', "\u{203A}", [['control-character-reference', 1, 8]]],
+            42 => ['Windows-1252 LATIN SMALL LIGATURE OE numeric entity.', '&#0156;', "\u{0153}", [['control-character-reference', 1, 8]]],
+            43 => ['Windows-1252 REPLACEMENT CHAR numeric entity.', '&#0157;', "\u{009D}", [['control-character-reference', 1, 8]]],
+        ] as $testIndex => [$description, $html, $character, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "entities.test $testIndex $description decimal Windows-1252 exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<string>, list<list<mixed>>, list<array{code: string, line: int, col: int}>}>
      */
     public static function html5libTest1DoctypeTagCommentFixtureProvider(): iterable
@@ -26887,6 +26941,35 @@ final class SerializeTest extends TestCase
         self::assertSame($description, $fixture['description']);
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libEntitiesDecimalWindows1252ExactFixtureProvider')]
+    public function testHtml5libEntitiesDecimalWindows1252ExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/entities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
     }
 
     /**
