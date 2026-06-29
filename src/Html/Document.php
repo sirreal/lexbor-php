@@ -1150,7 +1150,8 @@ final class Document extends Node
 
     private static function isHtmlScopeBoundary(string $tagName): bool
     {
-        return $tagName === 'div'
+        return $tagName === 'button'
+            || $tagName === 'div'
             || $tagName === 'p'
             || $tagName === 'table';
     }

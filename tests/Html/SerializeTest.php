@@ -22050,6 +22050,14 @@ final class SerializeTest extends TestCase
             ["            <b><button>foo</b>bar\n", "                <b>\n", "                <button>\n", "                  <b>\n", '                    "foo"', '                  "bar"'],
         ];
 
+        yield 'html5_test/tests1.ton #25 button scope ignores span end tag' => [
+            25,
+            '<!DOCTYPE html><span><button>foo</span>bar',
+            '<!DOCTYPE html><html><head></head><body><span><button>foobar</button></span></body></html>',
+            '<span><button>foobar</button></span>',
+            ["            <!DOCTYPE html><span><button>foo</span>bar\n", "                <span>\n", "                  <button>\n", '                    "foobar"'],
+        ];
+
         yield 'html5_test/tests1.ton #27 script and title stay in head' => [
             27,
             '<script><div></script></div><title><p></title><p><p>',
