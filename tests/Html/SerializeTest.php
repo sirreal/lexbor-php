@@ -22174,6 +22174,14 @@ final class SerializeTest extends TestCase
             ["            <!DOCTYPE html><font><table></font></table></font>\n", "                <font>\n", "                  <table>\n"],
         ];
 
+        yield 'html5_test/tests1.ton #57 font adoption keeps following b active' => [
+            57,
+            '<font><p>hello<b>cruel</font>world',
+            '<html><head></head><body><font></font><p><font>hello<b>cruel</b></font><b>world</b></p></body></html>',
+            '<font></font><p><font>hello<b>cruel</b></font><b>world</b></p>',
+            ["            <font><p>hello<b>cruel</font>world\n", "                <font>\n", "                <p>\n", "                  <font>\n", '                    "hello"', "                    <b>\n", '                  <b>'],
+        ];
+
         yield 'html5_test/tests1.ton #58 formatting ignores stray end tag' => [
             58,
             '<b>Test</i>Test',

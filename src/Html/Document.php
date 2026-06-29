@@ -832,7 +832,7 @@ final class Document extends Node
      */
     private function handleFormattingEndTagWithFurthestBlock(array &$stack, string $tagName): bool
     {
-        if ($tagName !== 'b' && $tagName !== 'i') {
+        if ($tagName !== 'b' && $tagName !== 'font' && $tagName !== 'i') {
             return false;
         }
 
@@ -858,6 +858,16 @@ final class Document extends Node
         $furthestBlock = $stack[$furthestBlockIndex];
         if (! $formattingElement instanceof Element || ! $furthestBlock instanceof Element) {
             return false;
+        }
+
+        $tailClones = [];
+        for ($index = $furthestBlockIndex + 1; $index < count($stack); $index++) {
+            $node = $stack[$index];
+            if (! $node instanceof Element || ! self::isHtmlFormattingElement($node)) {
+                continue;
+            }
+
+            $tailClones[] = $this->cloneElementShallow($node);
         }
 
         $intermediateClones = [];
@@ -898,6 +908,10 @@ final class Document extends Node
         }
 
         $stack[] = $furthestBlock;
+        foreach ($tailClones as $clone) {
+            $stack[count($stack) - 1]->appendChild($clone);
+            $stack[] = $clone;
+        }
 
         return true;
     }
