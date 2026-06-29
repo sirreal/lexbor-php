@@ -22093,6 +22093,30 @@ final class SerializeTest extends TestCase
                 [$dataLine, $commentLine],
             ];
         }
+
+        yield 'html5_test/tests1.ton #56 table/font recovery' => [
+            56,
+            '<!DOCTYPE html><font><table></font></table></font>',
+            '<!DOCTYPE html><html><head></head><body><font><table></table></font></body></html>',
+            '<font><table></table></font>',
+            ["            <!DOCTYPE html><font><table></font></table></font>\n", "                <font>\n", "                  <table>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #58 formatting ignores stray end tag' => [
+            58,
+            '<b>Test</i>Test',
+            '<html><head></head><body><b>TestTest</b></body></html>',
+            '<b>TestTest</b>',
+            ["            <b>Test</i>Test\n", "                <b>\n", '                  "TestTest"'],
+        ];
+
+        yield 'html5_test/tests1.ton #59 formatting around body nesting' => [
+            59,
+            '<b>A<cite>B<div>C',
+            '<html><head></head><body><b>A<cite>B<div>C</div></cite></b></body></html>',
+            '<b>A<cite>B<div>C</div></cite></b>',
+            ["            <b>A<cite>B<div>C\n", "                <b>\n", '                  "A"', "                  <cite>\n", "                    <div>\n", '                      "C"'],
+        ];
     }
 
     /**
