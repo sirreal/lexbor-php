@@ -10585,6 +10585,38 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNumericEntitiesSupplementaryPlaneNoncharacterExactFixtureProvider(): iterable
+    {
+        foreach ([
+            96 => ['Invalid numeric entity character U+CFFFE', '&#xcfffe;', "\u{CFFFE}", [['noncharacter-character-reference', 1, 10]]],
+            97 => ['Invalid numeric entity character U+CFFFF', '&#xcffff;', "\u{CFFFF}", [['noncharacter-character-reference', 1, 10]]],
+            98 => ['Invalid numeric entity character U+DFFFE', '&#xdfffe;', "\u{DFFFE}", [['noncharacter-character-reference', 1, 10]]],
+            99 => ['Invalid numeric entity character U+DFFFF', '&#xdffff;', "\u{DFFFF}", [['noncharacter-character-reference', 1, 10]]],
+            100 => ['Invalid numeric entity character U+EFFFE', '&#xefffe;', "\u{EFFFE}", [['noncharacter-character-reference', 1, 10]]],
+            101 => ['Invalid numeric entity character U+EFFFF', '&#xeffff;', "\u{EFFFF}", [['noncharacter-character-reference', 1, 10]]],
+            102 => ['Invalid numeric entity character U+FFFFE', '&#xffffe;', "\u{FFFFE}", [['noncharacter-character-reference', 1, 10]]],
+            103 => ['Invalid numeric entity character U+FFFFF', '&#xfffff;', "\u{FFFFF}", [['noncharacter-character-reference', 1, 10]]],
+            104 => ['Invalid numeric entity character U+10FFFE', '&#x10fffe;', "\u{10FFFE}", [['noncharacter-character-reference', 1, 11]]],
+            105 => ['Invalid numeric entity character U+10FFFF', '&#x10ffff;', "\u{10FFFF}", [['noncharacter-character-reference', 1, 11]]],
+        ] as $testIndex => [$description, $html, $character, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "numericEntities.test $testIndex $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -25993,6 +26025,35 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNumericEntitiesNoncharacterExactFixtureProvider')]
     public function testHtml5libNumericEntitiesNoncharacterExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/numericEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNumericEntitiesSupplementaryPlaneNoncharacterExactFixtureProvider')]
+    public function testHtml5libNumericEntitiesSupplementaryPlaneNoncharacterExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
