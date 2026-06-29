@@ -22500,11 +22500,42 @@ final class SerializeTest extends TestCase
         );
     }
 
-    public function testDivInsideButtonDoesNotCloseParagraph(): void
+    /**
+     * @return iterable<string, array{int, string}>
+     */
+    public static function html5TestTests20ButtonScopeBlockStartProvider(): iterable
+    {
+        foreach ([
+            2 => 'address',
+            3 => 'article',
+            4 => 'aside',
+            5 => 'blockquote',
+            6 => 'center',
+            7 => 'details',
+            8 => 'dialog',
+            9 => 'dir',
+            10 => 'div',
+            11 => 'dl',
+            12 => 'fieldset',
+            13 => 'figcaption',
+            14 => 'figure',
+            15 => 'footer',
+            16 => 'header',
+            17 => 'hgroup',
+            18 => 'main',
+            19 => 'menu',
+            20 => 'nav',
+        ] as $testNumber => $tagName) {
+            yield "html5_test/tests20.ton #{$testNumber} {$tagName} inside button keeps paragraph open" => [$testNumber, $tagName];
+        }
+    }
+
+    #[DataProvider('html5TestTests20ButtonScopeBlockStartProvider')]
+    public function testHtml5TestTests20ButtonScopeBlockStartFixtures(int $testNumber, string $tagName): void
     {
         $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
         self::assertIsString($contents);
-        $testMarker = '/* Test number: 10 */';
+        $testMarker = "/* Test number: {$testNumber} */";
         $testOffset = strpos($contents, $testMarker);
         self::assertNotFalse($testOffset);
 
@@ -22514,22 +22545,23 @@ final class SerializeTest extends TestCase
             : substr($contents, $testOffset, $nextTestOffset - $testOffset);
 
         foreach ([
-            "            <!doctype html><p><button><div>\n",
+            "            <!doctype html><p><button><{$tagName}>\n",
             "                <p>\n",
             "                  <button>\n",
-            "                    <div>\n",
+            "                    <{$tagName}>\n",
         ] as $snippet) {
             self::assertStringContainsString($snippet, $fixtureBlock);
         }
 
         $document = new Document();
-        self::assertSame(Status::Ok, $document->parse('<!doctype html><p><button><div>'));
+        self::assertSame(Status::Ok, $document->parse("<!doctype html><p><button><{$tagName}>"));
 
+        $expectedBody = "<p><button><{$tagName}></{$tagName}></button></p>";
         self::assertSame(
-            '<!DOCTYPE html><html><head></head><body><p><button><div></div></button></p></body></html>',
+            "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
             Serializer::serializeDeep($document, fullDoctype: true),
         );
-        self::assertSame('<p><button><div></div></button></p>', Serializer::serializeDeep($document->bodyElement()));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
     }
 
     public function testFormattingEndTagDoesNotCrossMarqueeScope(): void
