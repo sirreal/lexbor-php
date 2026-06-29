@@ -22525,6 +22525,22 @@ final class SerializeTest extends TestCase
             18 => 'main',
             19 => 'menu',
             20 => 'nav',
+            21 => 'ol',
+            23 => 'search',
+            24 => 'section',
+            25 => 'summary',
+            26 => 'ul',
+            27 => 'h1',
+            28 => 'h6',
+            29 => 'listing',
+            30 => 'pre',
+            31 => 'form',
+            32 => 'li',
+            33 => 'dd',
+            34 => 'dt',
+            35 => 'plaintext',
+            36 => 'table',
+            38 => 'xmp',
         ] as $testNumber => $tagName) {
             yield "html5_test/tests20.ton #{$testNumber} {$tagName} inside button keeps paragraph open" => [$testNumber, $tagName];
         }
