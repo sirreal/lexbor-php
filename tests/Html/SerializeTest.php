@@ -10617,6 +10617,60 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNumericEntitiesAsciiWhitespacePunctuationDigitExactFixtureProvider(): iterable
+    {
+        foreach ([
+            106 => ['Valid numeric entity character U+0009', '&#x0009;', "\t", []],
+            107 => ['Valid numeric entity character U+000A', '&#x000a;', "\n", []],
+            108 => ['Valid numeric entity character U+0020', '&#x0020;', ' ', []],
+            109 => ['Valid numeric entity character U+0021', '&#x0021;', '!', []],
+            110 => ['Valid numeric entity character U+0022', '&#x0022;', '"', []],
+            111 => ['Valid numeric entity character U+0023', '&#x0023;', '#', []],
+            112 => ['Valid numeric entity character U+0024', '&#x0024;', '$', []],
+            113 => ['Valid numeric entity character U+0025', '&#x0025;', '%', []],
+            114 => ['Valid numeric entity character U+0026', '&#x0026;', '&', []],
+            115 => ['Valid numeric entity character U+0027', '&#x0027;', "'", []],
+            116 => ['Valid numeric entity character U+0028', '&#x0028;', '(', []],
+            117 => ['Valid numeric entity character U+0029', '&#x0029;', ')', []],
+            118 => ['Valid numeric entity character U+002A', '&#x002a;', '*', []],
+            119 => ['Valid numeric entity character U+002B', '&#x002b;', '+', []],
+            120 => ['Valid numeric entity character U+002C', '&#x002c;', ',', []],
+            121 => ['Valid numeric entity character U+002D', '&#x002d;', '-', []],
+            122 => ['Valid numeric entity character U+002E', '&#x002e;', '.', []],
+            123 => ['Valid numeric entity character U+002F', '&#x002f;', '/', []],
+            124 => ['Valid numeric entity character U+0030', '&#x0030;', '0', []],
+            125 => ['Valid numeric entity character U+0031', '&#x0031;', '1', []],
+            126 => ['Valid numeric entity character U+0032', '&#x0032;', '2', []],
+            127 => ['Valid numeric entity character U+0033', '&#x0033;', '3', []],
+            128 => ['Valid numeric entity character U+0034', '&#x0034;', '4', []],
+            129 => ['Valid numeric entity character U+0035', '&#x0035;', '5', []],
+            130 => ['Valid numeric entity character U+0036', '&#x0036;', '6', []],
+            131 => ['Valid numeric entity character U+0037', '&#x0037;', '7', []],
+            132 => ['Valid numeric entity character U+0038', '&#x0038;', '8', []],
+            133 => ['Valid numeric entity character U+0039', '&#x0039;', '9', []],
+            134 => ['Valid numeric entity character U+003A', '&#x003a;', ':', []],
+            135 => ['Valid numeric entity character U+003B', '&#x003b;', ';', []],
+            136 => ['Valid numeric entity character U+003C', '&#x003c;', '<', []],
+            137 => ['Valid numeric entity character U+003D', '&#x003d;', '=', []],
+        ] as $testIndex => [$description, $html, $character, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "numericEntities.test $testIndex $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -26075,6 +26129,39 @@ final class SerializeTest extends TestCase
         self::assertSame($html, $fixture['input']);
         self::assertSame($expectedOutput, $fixture['output']);
         self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNumericEntitiesAsciiWhitespacePunctuationDigitExactFixtureProvider')]
+    public function testHtml5libNumericEntitiesAsciiWhitespacePunctuationDigitExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/numericEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        if ($expectedErrors === []) {
+            self::assertArrayNotHasKey('errors', $fixture);
+        } else {
+            self::assertSame($expectedErrors, $fixture['errors']);
+        }
     }
 
     /**
