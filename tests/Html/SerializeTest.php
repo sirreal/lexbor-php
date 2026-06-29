@@ -20864,7 +20864,7 @@ final class SerializeTest extends TestCase
         yield 'html5lib test4 text CR CR CR text normalizes to LFs' => ["text\r\r\rtext", "text\n\n\ntext"];
         yield 'html5lib unicodeCharsProblematic CR before NUL normalizes and preserves NUL' => ["\r\0", "\n\0"];
         yield 'char_ref.ton comment CRLF is normalized to LF' => ["<div><!--\r\n--></div>", "<div><!--\n--></div>"];
-        yield 'char_ref.ton raw text CRLF is normalized to LF' => ["<script>\r\n</script>", "<script>\n</script>"];
+        yield 'char_ref.ton raw text CRLF is normalized to LF' => ["<body><script>\r\n</script>", "<script>\n</script>"];
     }
 
     /**
@@ -22297,6 +22297,14 @@ final class SerializeTest extends TestCase
             ["            <h1><h2>\n", "                <h1>\n", "                <h2>\n"],
         ];
 
+        yield 'html5_test/tests1.ton #99 leading script and title stay in head' => [
+            99,
+            '<script></script></div><title></title><p><p>',
+            '<html><head><script></script><title></title></head><body><p></p><p></p></body></html>',
+            '<p></p><p></p>',
+            ["            <script></script></div><title></title><p><p>\n", "                <script>\n", "                <title>\n", "                <p>\n"],
+        ];
+
         yield 'html5_test/tests1.ton #101 explicit shell with title' => [
             101,
             '<html><head><title></title><body></body></html>',
@@ -22521,7 +22529,7 @@ final class SerializeTest extends TestCase
     public function testHtml5libTokenizerContentModelRegressions(string $html, string $expected): void
     {
         $document = new Document();
-        self::assertSame(Status::Ok, $document->parse($html));
+        self::assertSame(Status::Ok, $document->parse('<body>' . $html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
     }
@@ -22547,7 +22555,7 @@ final class SerializeTest extends TestCase
     public function testHtml5libScriptDataEndTagTransitions(string $html, string $expected): void
     {
         $document = new Document();
-        self::assertSame(Status::Ok, $document->parse('<script>' . $html));
+        self::assertSame(Status::Ok, $document->parse('<body><script>' . $html));
 
         self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
     }
@@ -30881,7 +30889,7 @@ final class SerializeTest extends TestCase
     public function testRawTextParserKeepsCharacterReferencesLiteral(): void
     {
         $document = new Document();
-        self::assertSame(Status::Ok, $document->parse('<script>a &amp; b</script>'));
+        self::assertSame(Status::Ok, $document->parse('<body><script>a &amp; b</script>'));
 
         self::assertSame('<script>a &amp; b</script>', Serializer::serializeDeep($document->bodyElement()));
     }

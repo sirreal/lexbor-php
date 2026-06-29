@@ -92,7 +92,7 @@ final class InnerTest extends TestCase
     public function testParserFixtureKeepsRawTextContentsAsText(): void
     {
         $document = new Document();
-        self::assertSame(Status::Ok, $document->parse('<script>x < y > z</script>'));
+        self::assertSame(Status::Ok, $document->parse('<body><script>x < y > z</script>'));
 
         self::assertSame('<script>x < y > z</script>', Serializer::serializeDeep($document->bodyElement()));
     }
@@ -100,7 +100,7 @@ final class InnerTest extends TestCase
     public function testInnerHtmlNormalizesRawTextNewlines(): void
     {
         $document = new Document();
-        self::assertSame(Status::Ok, $document->parse('<script></script>'));
+        self::assertSame(Status::Ok, $document->parse('<body><script></script>'));
 
         $script = $document->bodyElement()->firstChild;
         self::assertInstanceOf(Element::class, $script);

@@ -52,7 +52,7 @@ final class Document extends Node
 
         $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
         $html = $this->consumeDocumentPrologueComments($html);
-        $html = $this->consumeDocumentHeadContent($html, $doctype !== null);
+        $html = $this->consumeDocumentHeadContent($html);
         $bodyFragment = $this->bodyFragment($html);
         if ($bodyFragment !== null) {
             foreach ($this->parseAttributes($bodyFragment['attributes']) as $attribute) {
@@ -927,7 +927,7 @@ final class Document extends Node
             && ($tagName === 'html' || $tagName === 'head' || $tagName === 'body');
     }
 
-    private function consumeDocumentHeadContent(string $html, bool $allowInitialScriptHeadContent): string
+    private function consumeDocumentHeadContent(string $html): string
     {
         $offset = 0;
         $headStarted = false;
@@ -998,10 +998,6 @@ final class Document extends Node
             }
 
             foreach (['title', 'style', 'script'] as $tagName) {
-                if ($tagName === 'script' && ! $headStarted && ! $allowInitialScriptHeadContent) {
-                    continue;
-                }
-
                 $startTag = self::consumeNamedStartTagAt($html, $offset, $tagName);
                 if ($startTag === null) {
                     continue;
