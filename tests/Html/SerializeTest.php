@@ -22908,6 +22908,146 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, list<string>, string}>
+     */
+    public static function html5TestTests20MathAnnotationXmlContentProvider(): iterable
+    {
+        yield 'html5_test/tests20.ton #60 annotation-xml preserves space text' => [
+            60,
+            '<math><annotation-xml> </annotation-xml>',
+            '<math><annotation-xml> </annotation-xml></math>',
+            [
+                "            <math><annotation-xml> </annotation-xml>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml>\n",
+                "                    \" \"\n",
+            ],
+            'space-text',
+        ];
+        yield 'html5_test/tests20.ton #61 annotation-xml preserves text' => [
+            61,
+            '<math><annotation-xml>c</annotation-xml>',
+            '<math><annotation-xml>c</annotation-xml></math>',
+            [
+                "            <math><annotation-xml>c</annotation-xml>\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml>\n",
+                "                    \"c\"\n",
+            ],
+            'c-text',
+        ];
+        yield 'html5_test/tests20.ton #62 annotation-xml preserves comment' => [
+            62,
+            '<math><annotation-xml><!--foo-->',
+            '<math><annotation-xml><!--foo--></annotation-xml></math>',
+            [
+                "            <math><annotation-xml><!--foo-->\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml>\n",
+                "                    <!-- foo -->\n",
+            ],
+            'comment',
+        ];
+        yield 'html5_test/tests20.ton #63 annotation-xml ignores stray SVG end tag' => [
+            63,
+            '<math><annotation-xml></svg>x',
+            '<math><annotation-xml>x</annotation-xml></math>',
+            [
+                "            <math><annotation-xml></svg>x\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml>\n",
+                "                    \"x\"\n",
+            ],
+            'x-text',
+        ];
+        yield 'html5_test/tests20.ton #64 annotation-xml keeps nested SVG content' => [
+            64,
+            '<math><annotation-xml><svg>x',
+            '<math><annotation-xml><svg>x</svg></annotation-xml></math>',
+            [
+                "            <math><annotation-xml><svg>x\n",
+                "                <math:math>\n",
+                "                  <math:annotation-xml>\n",
+                "                    <svg:svg>\n",
+                "                      \"x\"\n",
+            ],
+            'svg',
+        ];
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests20MathAnnotationXmlContentProvider')]
+    public function testHtml5TestTests20MathAnnotationXmlContentFixtures(
+        int $testNumber,
+        string $input,
+        string $expectedBody,
+        array $fixtureSnippets,
+        string $expectedChild,
+    ): void {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame(
+            "<html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        $math = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $math);
+        self::assertSame(Element::NAMESPACE_MATH, $math->namespace);
+        self::assertNull($math->next);
+        $annotationXml = $math->firstChild;
+        self::assertInstanceOf(Element::class, $annotationXml);
+        self::assertSame(Element::NAMESPACE_MATH, $annotationXml->namespace);
+
+        $child = $annotationXml->firstChild;
+        if ($expectedChild === 'comment') {
+            self::assertInstanceOf(Comment::class, $child);
+            self::assertSame('foo', $child->data);
+            self::assertNull($child->next);
+            return;
+        }
+
+        if ($expectedChild === 'svg') {
+            self::assertInstanceOf(Element::class, $child);
+            self::assertSame(Element::NAMESPACE_SVG, $child->namespace);
+            self::assertSame('svg', $child->tagName);
+            $text = $child->firstChild;
+            self::assertInstanceOf(Text::class, $text);
+            self::assertSame('x', $text->data);
+            self::assertNull($text->next);
+            self::assertNull($child->next);
+            return;
+        }
+
+        self::assertInstanceOf(Text::class, $child);
+        self::assertSame(match ($expectedChild) {
+            'space-text' => ' ',
+            'c-text' => 'c',
+            default => 'x',
+        }, $child->data);
+        self::assertNull($child->next);
+    }
+
+    /**
      * @return iterable<string, array{int, string, string, list<string>}>
      */
     public static function html5TestForeignFragmentMathAnnotationXmlProvider(): iterable
