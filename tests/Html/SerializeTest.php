@@ -22775,6 +22775,20 @@ final class SerializeTest extends TestCase
                 "                <p x=\"\" y=\"\" z=\"\">\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #61 table row creates implied tbody' => [
+            61,
+            '<!DOCTYPE html><table><tr><td></p></table>',
+            '<!DOCTYPE html><html><head></head><body><table><tbody><tr><td><p></p></td></tr></tbody></table></body></html>',
+            '<table><tbody><tr><td><p></p></td></tr></tbody></table>',
+            [
+                "            <!DOCTYPE html><table><tr><td></p></table>\n",
+                "                <table>\n",
+                "                  <tbody>\n",
+                "                    <tr>\n",
+                "                      <td>\n",
+                "                        <p>\n",
+            ],
+        ];
     }
 
     /**
@@ -25008,6 +25022,25 @@ final class SerializeTest extends TestCase
 
         self::assertSame('<!DOCTYPE html><html><head></head><body></body></html>', Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame('', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testTableCellStartCreatesImpliedSectionAndRow(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<table><td>x'));
+
+        self::assertSame(
+            '<table><tbody><tr><td>x</td></tr></tbody></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<table><thead><th>x'));
+
+        self::assertSame(
+            '<table><thead><tr><th>x</th></tr></thead></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
     }
 
     public function testDuplicateDoctypeBeforeBodyHandoffIsIgnored(): void

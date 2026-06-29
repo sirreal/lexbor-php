@@ -449,6 +449,33 @@ final class Document extends Node
                 $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             }
 
+            if (
+                ($tagName === 'tr' || $tagName === 'td' || $tagName === 'th')
+                && $parent instanceof Element
+                && $namespaceParent === $parent
+                && $namespaceParent->namespace === Element::NAMESPACE_HTML
+                && $namespaceParent->tagName === 'table'
+            ) {
+                $tbody = $this->createElement('tbody');
+                $parent->appendChild($tbody);
+                $stack[] = $tbody;
+                $parent = $tbody;
+                $namespaceParent = $tbody;
+            }
+
+            if (
+                ($tagName === 'td' || $tagName === 'th')
+                && $parent instanceof Element
+                && $namespaceParent === $parent
+                && $namespaceParent->namespace === Element::NAMESPACE_HTML
+                && self::isTableSectionTag($namespaceParent->tagName)
+            ) {
+                $tr = $this->createElement('tr');
+                $parent->appendChild($tr);
+                $stack[] = $tr;
+                $parent = $tr;
+            }
+
             if ($tagName === 'p') {
                 $this->closeOpenParagraphAndCloneFormattingTail($stack);
                 $parent = $stack[count($stack) - 1];
@@ -1442,6 +1469,13 @@ final class Document extends Node
             'rt',
             'rtc',
         ], true);
+    }
+
+    private static function isTableSectionTag(string $tagName): bool
+    {
+        return $tagName === 'tbody'
+            || $tagName === 'tfoot'
+            || $tagName === 'thead';
     }
 
     /**
