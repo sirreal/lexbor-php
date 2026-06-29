@@ -791,7 +791,7 @@ final class Document extends Node
      */
     private function handleFormattingEndTagWithFurthestBlock(array &$stack, string $tagName): bool
     {
-        if ($tagName !== 'b') {
+        if ($tagName !== 'b' && $tagName !== 'i') {
             return false;
         }
 
@@ -819,13 +819,31 @@ final class Document extends Node
             return false;
         }
 
-        $formattingClone = $this->createElement($formattingElement->tagName, $formattingElement->namespace);
-        foreach ($formattingElement->attributes as $name => $value) {
-            $formattingClone->setAttribute((string) $name, $value);
+        $intermediateClones = [];
+        for ($index = $formattingIndex + 1; $index < $furthestBlockIndex; $index++) {
+            $node = $stack[$index];
+            if (! $node instanceof Element || ! self::isFormattingElementTag($node->tagName)) {
+                continue;
+            }
+
+            $clone = $this->cloneElementShallow($node);
+            if ($intermediateClones === []) {
+                $formattingElement->insertAfter($clone);
+            } else {
+                $intermediateClones[count($intermediateClones) - 1]->appendChild($clone);
+            }
+
+            $intermediateClones[] = $clone;
         }
 
         $furthestBlock->remove();
-        $formattingElement->insertAfter($furthestBlock);
+        if ($intermediateClones === []) {
+            $formattingElement->insertAfter($furthestBlock);
+        } else {
+            $intermediateClones[count($intermediateClones) - 1]->appendChild($furthestBlock);
+        }
+
+        $formattingClone = $this->cloneElementShallow($formattingElement);
 
         while ($furthestBlock->firstChild !== null) {
             $formattingClone->appendChild($furthestBlock->firstChild);
@@ -833,10 +851,24 @@ final class Document extends Node
 
         $furthestBlock->appendChild($formattingClone);
 
-        array_splice($stack, $formattingIndex);
+        $stack = array_slice($stack, 0, $formattingIndex);
+        foreach ($intermediateClones as $clone) {
+            $stack[] = $clone;
+        }
+
         $stack[] = $furthestBlock;
 
         return true;
+    }
+
+    private function cloneElementShallow(Element $element): Element
+    {
+        $clone = $this->createElement($element->tagName, $element->namespace);
+        foreach ($element->attributes as $name => $value) {
+            $clone->setAttribute((string) $name, $value);
+        }
+
+        return $clone;
     }
 
     /**

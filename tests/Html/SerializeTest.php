@@ -22173,6 +22173,32 @@ final class SerializeTest extends TestCase
             '<b>A<cite>B</cite></b><div><b>C</b>D</div>',
             ["            <b>A<cite>B<div>C</b>D\n", "                <b>\n", "                <div>\n", "                  <b>\n", '                    "C"', '                  "D"'],
         ];
+
+        foreach ([
+            62 => ['empty document body tree', '', '', ["            <html>\n", "              <body>\n"]],
+            63 => ['uppercase div start tag', '<DIV>', '<div></div>', ["            <DIV>\n", "                <div>\n"]],
+            64 => ['uppercase div with text', '<DIV> abc', '<div> abc</div>', ["            <DIV> abc\n", '                  " abc"']],
+            65 => ['uppercase div and b tags', '<DIV> abc <B>', '<div> abc <b></b></div>', ["            <DIV> abc <B>\n", '                  " abc "', "                  <b>\n"]],
+            66 => ['uppercase div b text nesting', '<DIV> abc <B> def', '<div> abc <b> def</b></div>', ["            <DIV> abc <B> def\n", '                    " def"']],
+            67 => ['uppercase div b i open nesting', '<DIV> abc <B> def <I>', '<div> abc <b> def <i></i></b></div>', ["            <DIV> abc <B> def <I>\n", "                    <i>\n"]],
+            68 => ['uppercase div b i text nesting', '<DIV> abc <B> def <I> ghi', '<div> abc <b> def <i> ghi</i></b></div>', ["            <DIV> abc <B> def <I> ghi\n", '                      " ghi"']],
+            69 => ['uppercase div formatting paragraph open nesting', '<DIV> abc <B> def <I> ghi <P>', '<div> abc <b> def <i> ghi <p></p></i></b></div>', ["            <DIV> abc <B> def <I> ghi <P>\n", "                      <p>\n"]],
+            70 => ['uppercase div formatting paragraph text nesting', '<DIV> abc <B> def <I> ghi <P> jkl', '<div> abc <b> def <i> ghi <p> jkl</p></i></b></div>', ["            <DIV> abc <B> def <I> ghi <P> jkl\n", '                        " jkl"']],
+            71 => ['b adoption preserves intermediate i', '<DIV> abc <B> def <I> ghi <P> jkl </B>', '<div> abc <b> def <i> ghi </i></b><i><p><b> jkl </b></p></i></div>', ["            <DIV> abc <B> def <I> ghi <P> jkl </B>\n", '                        " jkl "']],
+            72 => ['b adoption keeps following text in paragraph', '<DIV> abc <B> def <I> ghi <P> jkl </B> mno', '<div> abc <b> def <i> ghi </i></b><i><p><b> jkl </b> mno</p></i></div>', ["            <DIV> abc <B> def <I> ghi <P> jkl </B> mno\n", '                      " mno"']],
+            73 => ['i adoption after b adoption', '<DIV> abc <B> def <I> ghi <P> jkl </B> mno </I>', '<div> abc <b> def <i> ghi </i></b><i></i><p><i><b> jkl </b> mno </i></p></div>', ["            <DIV> abc <B> def <I> ghi <P> jkl </B> mno </I>\n", '                      " mno "']],
+            74 => ['i adoption keeps following text in paragraph', '<DIV> abc <B> def <I> ghi <P> jkl </B> mno </I> pqr', '<div> abc <b> def <i> ghi </i></b><i></i><p><i><b> jkl </b> mno </i> pqr</p></div>', ["            <DIV> abc <B> def <I> ghi <P> jkl </B> mno </I> pqr\n", '                    " pqr"']],
+            75 => ['paragraph end after nested formatting adoption', '<DIV> abc <B> def <I> ghi <P> jkl </B> mno </I> pqr </P>', '<div> abc <b> def <i> ghi </i></b><i></i><p><i><b> jkl </b> mno </i> pqr </p></div>', ["            <DIV> abc <B> def <I> ghi <P> jkl </B> mno </I> pqr </P>\n", '                    " pqr "']],
+            76 => ['text after paragraph end in adopted formatting tree', '<DIV> abc <B> def <I> ghi <P> jkl </B> mno </I> pqr </P> stu', '<div> abc <b> def <i> ghi </i></b><i></i><p><i><b> jkl </b> mno </i> pqr </p> stu</div>', ["            <DIV> abc <B> def <I> ghi <P> jkl </B> mno </I> pqr </P> stu\n", '                  " stu"']],
+        ] as $testNumber => [$label, $html, $body, $fixtureSnippets]) {
+            yield "html5_test/tests1.ton #{$testNumber} {$label}" => [
+                $testNumber,
+                $html,
+                "<html><head></head><body>{$body}</body></html>",
+                $body,
+                $fixtureSnippets,
+            ];
+        }
     }
 
     /**
