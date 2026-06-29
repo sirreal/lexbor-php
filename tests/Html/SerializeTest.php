@@ -23028,6 +23028,17 @@ final class SerializeTest extends TestCase
                 "                  \"</x\"\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #14 plaintext end tag stays text' => [
+            14,
+            '<plaintext></plaintext>',
+            '<html><head></head><body><plaintext></plaintext></plaintext></body></html>',
+            '<plaintext></plaintext></plaintext>',
+            [
+                "            <plaintext></plaintext>\n",
+                "                <plaintext>\n",
+                "                  \"</plaintext>\"\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #17 incomplete end tag before body is ignored' => [
             17,
             '</b test',
