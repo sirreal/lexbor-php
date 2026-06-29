@@ -8907,6 +8907,54 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>}>
+     */
+    public static function html5libNamedEntitiesPrecapproxPropExactFixtureProvider(): iterable
+    {
+        foreach ([
+            3232 => ['Named entity: precapprox; with a semi-colon', '&precapprox;', "\u{2AB7}"],
+            3233 => ['Bad named entity: preccurlyeq without a semi-colon', '&preccurlyeq', '&preccurlyeq'],
+            3234 => ['Named entity: preccurlyeq; with a semi-colon', '&preccurlyeq;', "\u{227C}"],
+            3235 => ['Bad named entity: preceq without a semi-colon', '&preceq', '&preceq'],
+            3236 => ['Named entity: preceq; with a semi-colon', '&preceq;', "\u{2AAF}"],
+            3237 => ['Bad named entity: precnapprox without a semi-colon', '&precnapprox', '&precnapprox'],
+            3238 => ['Named entity: precnapprox; with a semi-colon', '&precnapprox;', "\u{2AB9}"],
+            3239 => ['Bad named entity: precneqq without a semi-colon', '&precneqq', '&precneqq'],
+            3240 => ['Named entity: precneqq; with a semi-colon', '&precneqq;', "\u{2AB5}"],
+            3241 => ['Bad named entity: precnsim without a semi-colon', '&precnsim', '&precnsim'],
+            3242 => ['Named entity: precnsim; with a semi-colon', '&precnsim;', "\u{22E8}"],
+            3243 => ['Bad named entity: precsim without a semi-colon', '&precsim', '&precsim'],
+            3244 => ['Named entity: precsim; with a semi-colon', '&precsim;', "\u{227E}"],
+            3245 => ['Bad named entity: prime without a semi-colon', '&prime', '&prime'],
+            3246 => ['Named entity: prime; with a semi-colon', '&prime;', "\u{2032}"],
+            3247 => ['Bad named entity: primes without a semi-colon', '&primes', '&primes'],
+            3248 => ['Named entity: primes; with a semi-colon', '&primes;', "\u{2119}"],
+            3249 => ['Bad named entity: prnE without a semi-colon', '&prnE', '&prnE'],
+            3250 => ['Named entity: prnE; with a semi-colon', '&prnE;', "\u{2AB5}"],
+            3251 => ['Bad named entity: prnap without a semi-colon', '&prnap', '&prnap'],
+            3252 => ['Named entity: prnap; with a semi-colon', '&prnap;', "\u{2AB9}"],
+            3253 => ['Bad named entity: prnsim without a semi-colon', '&prnsim', '&prnsim'],
+            3254 => ['Named entity: prnsim; with a semi-colon', '&prnsim;', "\u{22E8}"],
+            3255 => ['Bad named entity: prod without a semi-colon', '&prod', '&prod'],
+            3256 => ['Named entity: prod; with a semi-colon', '&prod;', "\u{220F}"],
+            3257 => ['Bad named entity: profalar without a semi-colon', '&profalar', '&profalar'],
+            3258 => ['Named entity: profalar; with a semi-colon', '&profalar;', "\u{232E}"],
+            3259 => ['Bad named entity: profline without a semi-colon', '&profline', '&profline'],
+            3260 => ['Named entity: profline; with a semi-colon', '&profline;', "\u{2312}"],
+            3261 => ['Bad named entity: profsurf without a semi-colon', '&profsurf', '&profsurf'],
+            3262 => ['Named entity: profsurf; with a semi-colon', '&profsurf;', "\u{2313}"],
+            3263 => ['Bad named entity: prop without a semi-colon', '&prop', '&prop'],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -23400,6 +23448,33 @@ final class SerializeTest extends TestCase
         } else {
             self::assertSame($expectedErrors, $fixture['errors']);
         }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libNamedEntitiesPrecapproxPropExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesPrecapproxPropExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertArrayNotHasKey('errors', $fixture);
     }
 
     /**
