@@ -21024,7 +21024,7 @@ final class SerializeTest extends TestCase
     }
 
     /**
-     * @return iterable<string, array{int, string, string, ?string, list<string>}>
+     * @return iterable<string, array{int, string, string, list<array{string, string}>, list<string>}>
      */
     public static function html5TestTests21SvgCdataProvider(): iterable
     {
@@ -21032,7 +21032,7 @@ final class SerializeTest extends TestCase
             4,
             '<svg><![CDATA[foo',
             '<svg>foo</svg>',
-            'foo',
+            [['text', 'foo']],
             [
                 "            <svg><![CDATA[foo\n",
                 "                <svg:svg>\n",
@@ -21043,7 +21043,7 @@ final class SerializeTest extends TestCase
             5,
             '<svg><![CDATA[',
             '<svg></svg>',
-            null,
+            [],
             [
                 "            <svg><![CDATA[\n",
                 "                <svg:svg>\n",
@@ -21053,7 +21053,7 @@ final class SerializeTest extends TestCase
             6,
             '<svg><![CDATA[]]>',
             '<svg></svg>',
-            null,
+            [],
             [
                 "            <svg><![CDATA[]]>\n",
                 "                <svg:svg>\n",
@@ -21063,7 +21063,7 @@ final class SerializeTest extends TestCase
             7,
             '<svg><![CDATA[]] >]]>',
             '<svg>]] &gt;</svg>',
-            ']] >',
+            [['text', ']] >']],
             [
                 "            <svg><![CDATA[]] >]]>\n",
                 "                <svg:svg>\n",
@@ -21074,7 +21074,7 @@ final class SerializeTest extends TestCase
             8,
             '<svg><![CDATA[]]',
             '<svg>]]</svg>',
-            ']]',
+            [['text', ']]']],
             [
                 "            <svg><![CDATA[]]\n",
                 "                <svg:svg>\n",
@@ -21085,7 +21085,7 @@ final class SerializeTest extends TestCase
             9,
             '<svg><![CDATA[]',
             '<svg>]</svg>',
-            ']',
+            [['text', ']']],
             [
                 "            <svg><![CDATA[]\n",
                 "                <svg:svg>\n",
@@ -21096,7 +21096,7 @@ final class SerializeTest extends TestCase
             10,
             '<svg><![CDATA[]>a',
             '<svg>]&gt;a</svg>',
-            ']>a',
+            [['text', ']>a']],
             [
                 "            <svg><![CDATA[]>a\n",
                 "                <svg:svg>\n",
@@ -21107,7 +21107,7 @@ final class SerializeTest extends TestCase
             11,
             '<!DOCTYPE html><svg><![CDATA[foo]]]>',
             '<svg>foo]</svg>',
-            'foo]',
+            [['text', 'foo]']],
             [
                 "            <!DOCTYPE html><svg><![CDATA[foo]]]>\n",
                 "            <!DOCTYPE html>\n",
@@ -21119,7 +21119,7 @@ final class SerializeTest extends TestCase
             12,
             '<!DOCTYPE html><svg><![CDATA[foo]]]]>',
             '<svg>foo]]</svg>',
-            'foo]]',
+            [['text', 'foo]]']],
             [
                 "            <!DOCTYPE html><svg><![CDATA[foo]]]]>\n",
                 "            <!DOCTYPE html>\n",
@@ -21131,12 +21131,111 @@ final class SerializeTest extends TestCase
             13,
             '<!DOCTYPE html><svg><![CDATA[foo]]]]]>',
             '<svg>foo]]]</svg>',
-            'foo]]]',
+            [['text', 'foo]]]']],
             [
                 "            <!DOCTYPE html><svg><![CDATA[foo]]]]]>\n",
                 "            <!DOCTYPE html>\n",
                 "                <svg:svg>\n",
                 "                  \"foo]]]\"\n",
+            ],
+        ];
+        yield 'tests21.ton #16 SVG CDATA can contain end-tag text' => [
+            16,
+            '<svg><![CDATA[</svg>a]]>',
+            '<svg>&lt;/svg&gt;a</svg>',
+            [['text', '</svg>a']],
+            [
+                "            <svg><![CDATA[</svg>a]]>\n",
+                "                <svg:svg>\n",
+                "                  \"</svg>a\"\n",
+            ],
+        ];
+        yield 'tests21.ton #17 unterminated SVG CDATA can contain start-tag text' => [
+            17,
+            '<svg><![CDATA[<svg>a',
+            '<svg>&lt;svg&gt;a</svg>',
+            [['text', '<svg>a']],
+            [
+                "            <svg><![CDATA[<svg>a\n",
+                "                <svg:svg>\n",
+                "                  \"<svg>a\"\n",
+            ],
+        ];
+        yield 'tests21.ton #18 unterminated SVG CDATA can contain end-tag text' => [
+            18,
+            '<svg><![CDATA[</svg>a',
+            '<svg>&lt;/svg&gt;a</svg>',
+            [['text', '</svg>a']],
+            [
+                "            <svg><![CDATA[</svg>a\n",
+                "                <svg:svg>\n",
+                "                  \"</svg>a\"\n",
+            ],
+        ];
+        yield 'tests21.ton #19 SVG CDATA is followed by SVG child element' => [
+            19,
+            '<svg><![CDATA[<svg>]]><path>',
+            '<svg>&lt;svg&gt;<path></path></svg>',
+            [
+                ['text', '<svg>'],
+                ['svg-element', 'path'],
+            ],
+            [
+                "            <svg><![CDATA[<svg>]]><path>\n",
+                "                <svg:svg>\n",
+                "                  \"<svg>\"\n",
+                "                  <svg:path>\n",
+            ],
+        ];
+        yield 'tests21.ton #20 SVG CDATA ignores unmatched following end tag' => [
+            20,
+            '<svg><![CDATA[<svg>]]></path>',
+            '<svg>&lt;svg&gt;</svg>',
+            [['text', '<svg>']],
+            [
+                "            <svg><![CDATA[<svg>]]></path>\n",
+                "                <svg:svg>\n",
+                "                  \"<svg>\"\n",
+            ],
+        ];
+        yield 'tests21.ton #21 SVG CDATA is followed by comment child' => [
+            21,
+            '<svg><![CDATA[<svg>]]><!--path-->',
+            '<svg>&lt;svg&gt;<!--path--></svg>',
+            [
+                ['text', '<svg>'],
+                ['comment', 'path'],
+            ],
+            [
+                "            <svg><![CDATA[<svg>]]><!--path-->\n",
+                "                <svg:svg>\n",
+                "                  \"<svg>\"\n",
+                "                  <!-- path -->\n",
+            ],
+        ];
+        yield 'tests21.ton #22 SVG CDATA is followed by text' => [
+            22,
+            '<svg><![CDATA[<svg>]]>path',
+            '<svg>&lt;svg&gt;path</svg>',
+            [
+                ['text', '<svg>'],
+                ['text', 'path'],
+            ],
+            [
+                "            <svg><![CDATA[<svg>]]>path\n",
+                "                <svg:svg>\n",
+                "                  \"<svg>path\"\n",
+            ],
+        ];
+        yield 'tests21.ton #23 SVG CDATA can contain comment syntax text' => [
+            23,
+            '<svg><![CDATA[<!--svg-->]]>',
+            '<svg>&lt;!--svg--&gt;</svg>',
+            [['text', '<!--svg-->']],
+            [
+                "            <svg><![CDATA[<!--svg-->]]>\n",
+                "                <svg:svg>\n",
+                "                  \"<!--svg-->\"\n",
             ],
         ];
     }
@@ -32284,6 +32383,7 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @param list<array{string, string}> $expectedChildren
      * @param list<string> $fixtureSnippets
      */
     #[DataProvider('html5TestTests21SvgCdataProvider')]
@@ -32291,7 +32391,7 @@ final class SerializeTest extends TestCase
         int $testNumber,
         string $input,
         string $expectedBody,
-        ?string $expectedText,
+        array $expectedChildren,
         array $fixtureSnippets,
     ): void {
         $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests21.ton');
@@ -32324,15 +32424,28 @@ final class SerializeTest extends TestCase
         self::assertSame('svg', $svg->tagName);
         self::assertNull($svg->next);
 
-        if ($expectedText === null) {
-            self::assertNull($svg->firstChild);
-            return;
+        $child = $svg->firstChild;
+        foreach ($expectedChildren as [$type, $value]) {
+            self::assertNotNull($child);
+
+            if ($type === 'text') {
+                self::assertInstanceOf(Text::class, $child);
+                self::assertSame($value, $child->data);
+            } elseif ($type === 'comment') {
+                self::assertInstanceOf(Comment::class, $child);
+                self::assertSame($value, $child->data);
+            } elseif ($type === 'svg-element') {
+                self::assertInstanceOf(Element::class, $child);
+                self::assertSame(Element::NAMESPACE_SVG, $child->namespace);
+                self::assertSame($value, $child->tagName);
+            } else {
+                self::fail("Unknown expected SVG child type: {$type}");
+            }
+
+            $child = $child->next;
         }
 
-        $text = $svg->firstChild;
-        self::assertInstanceOf(Text::class, $text);
-        self::assertSame($expectedText, $text->data);
-        self::assertNull($text->next);
+        self::assertNull($child);
     }
 
     #[DataProvider('html5libCdataSectionStateProvider')]
