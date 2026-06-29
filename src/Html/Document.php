@@ -275,7 +275,7 @@ final class Document extends Node
                 }
 
                 if (self::isFormattingElementTag($tagName)) {
-                    $this->closeElement($stack, $tagName);
+                    $formattingEndTagsPoppedByScope = $this->closeElementInScope($stack, $tagName);
                 } else {
                     $formattingEndTagsPoppedByScope = $this->closeElementInScope($stack, $tagName);
                 }
@@ -288,6 +288,12 @@ final class Document extends Node
             if ($this->isDocumentShellTag($root, $context, $tagName)) {
                 $offset = $tagEnd;
                 continue;
+            }
+
+            $formattingTailClones = [];
+            if ($tagName === 'div') {
+                $formattingTailClones = $this->closeOpenParagraphAndCloneFormattingTail($stack);
+                $parent = $stack[count($stack) - 1];
             }
 
             if ($tagName === 'p') {
@@ -330,6 +336,10 @@ final class Document extends Node
             }
 
             $stack[] = $element;
+            foreach ($formattingTailClones as $clone) {
+                $stack[count($stack) - 1]->appendChild($clone);
+                $stack[] = $clone;
+            }
         }
 
         if ($offset < strlen($html)) {
@@ -814,6 +824,48 @@ final class Document extends Node
 
     /**
      * @param list<Node> $stack
+     * @return list<Element>
+     */
+    private function closeOpenParagraphAndCloneFormattingTail(array &$stack): array
+    {
+        $paragraphIndex = null;
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->tagName === 'p') {
+                $paragraphIndex = $index;
+                break;
+            }
+
+            if (self::isHtmlScopeBoundary($node->tagName)) {
+                return [];
+            }
+        }
+
+        if ($paragraphIndex === null) {
+            return [];
+        }
+
+        $tailClones = [];
+        for ($index = $paragraphIndex + 1; $index < count($stack); $index++) {
+            $node = $stack[$index];
+            if (! $node instanceof Element || ! self::isHtmlFormattingElement($node)) {
+                continue;
+            }
+
+            $tailClones[] = $this->cloneElementShallow($node);
+        }
+
+        array_splice($stack, $paragraphIndex);
+
+        return $tailClones;
+    }
+
+    /**
+     * @param list<Node> $stack
      */
     private function closeElement(array &$stack, string $tagName): void
     {
@@ -847,6 +899,10 @@ final class Document extends Node
             if ($node instanceof Element && self::isFormattingFurthestBlock($node->tagName)) {
                 $furthestBlockIndex = $index;
                 break;
+            }
+
+            if ($node instanceof Element && self::isHtmlScopeBoundary($node->tagName)) {
+                return false;
             }
         }
 
@@ -1207,6 +1263,7 @@ final class Document extends Node
     {
         return $tagName === 'button'
             || $tagName === 'div'
+            || $tagName === 'marquee'
             || $tagName === 'p'
             || $tagName === 'table';
     }

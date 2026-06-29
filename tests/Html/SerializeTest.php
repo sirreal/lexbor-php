@@ -22058,6 +22058,14 @@ final class SerializeTest extends TestCase
             ["            <!DOCTYPE html><span><button>foo</span>bar\n", "                <span>\n", "                  <button>\n", '                    "foobar"'],
         ];
 
+        yield 'html5_test/tests1.ton #26 div closes paragraph and reconstructs formatting' => [
+            26,
+            '<p><b><div><marquee></p></b></div>X',
+            '<html><head></head><body><p><b></b></p><div><b><marquee><p></p>X</marquee></b></div></body></html>',
+            '<p><b></b></p><div><b><marquee><p></p>X</marquee></b></div>',
+            ["            <p><b><div><marquee></p></b></div>X\n", "                <p>\n", "                  <b>\n", "                <div>\n", "                    <marquee>\n", '                      "X"'],
+        ];
+
         yield 'html5_test/tests1.ton #27 script and title stay in head' => [
             27,
             '<script><div></script></div><title><p></title><p><p>',
@@ -22345,6 +22353,14 @@ final class SerializeTest extends TestCase
             ["            <b><button></b></button></b>\n", "                <b>\n", "                <button>\n", "                  <b>\n"],
         ];
 
+        yield 'html5_test/tests1.ton #98 div closes paragraph without trailing text' => [
+            98,
+            '<p><b><div><marquee></p></b></div>',
+            '<html><head></head><body><p><b></b></p><div><b><marquee><p></p></marquee></b></div></body></html>',
+            '<p><b></b></p><div><b><marquee><p></p></marquee></b></div>',
+            ["            <p><b><div><marquee></p></b></div>\n", "                <p>\n", "                  <b>\n", "                <div>\n", "                    <marquee>\n", "                      <p>\n"],
+        ];
+
         yield 'html5_test/tests1.ton #99 leading script and title stay in head' => [
             99,
             '<script></script></div><title></title><p><p>',
@@ -22480,6 +22496,49 @@ final class SerializeTest extends TestCase
 
         self::assertSame(
             '<b><svg><b></b></svg></b>TEST',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testDivInsideButtonDoesNotCloseParagraph(): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
+        self::assertIsString($contents);
+        $testMarker = '/* Test number: 10 */';
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ([
+            "            <!doctype html><p><button><div>\n",
+            "                <p>\n",
+            "                  <button>\n",
+            "                    <div>\n",
+        ] as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><p><button><div>'));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body><p><button><div></div></button></p></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<p><button><div></div></button></p>', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testFormattingEndTagDoesNotCrossMarqueeScope(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<b><marquee><div></b>X'));
+
+        self::assertSame(
+            '<b><marquee><div>X</div></marquee></b>',
             Serializer::serializeDeep($document->bodyElement()),
         );
     }
