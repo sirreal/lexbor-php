@@ -22759,6 +22759,62 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, array<string, string>, array<string, string>, list<string>}>
+     */
+    public static function html5TestTests2ShellAttributeProvider(): iterable
+    {
+        yield 'html5_test/tests2.ton #16 repeated body start tags merge attributes' => [
+            16,
+            '<!DOCTYPE html><body t1=1><body t2=2><body t3=3 t4=4>',
+            '<!DOCTYPE html><html><head></head><body t1="1" t2="2" t3="3" t4="4"></body></html>',
+            '',
+            [],
+            ['t1' => '1', 't2' => '2', 't3' => '3', 't4' => '4'],
+            [
+                "            <!DOCTYPE html><body t1=1><body t2=2><body t3=3 t4=4>\n",
+                "              <body t1=\"1\" t2=\"2\" t3=\"3\" t4=\"4\">\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #53 html start in body merges root attributes' => [
+            53,
+            '<!DOCTYPE html><html><body><html id=x>',
+            '<!DOCTYPE html><html id="x"><head></head><body></body></html>',
+            '',
+            ['id' => 'x'],
+            [],
+            [
+                "            <!DOCTYPE html><html><body><html id=x>\n",
+                "            <html id=\"x\">\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #54 html start after body end merges root attributes' => [
+            54,
+            '<!DOCTYPE html>X</body><html id="x">',
+            '<!DOCTYPE html><html id="x"><head></head><body>X</body></html>',
+            'X',
+            ['id' => 'x'],
+            [],
+            [
+                "            <!DOCTYPE html>X</body><html id=\"x\">\n",
+                "            <html id=\"x\">\n",
+                "                \"X\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #55 html start in head merges root attributes' => [
+            55,
+            '<!DOCTYPE html><head><html id=x>',
+            '<!DOCTYPE html><html id="x"><head></head><body></body></html>',
+            '',
+            ['id' => 'x'],
+            [],
+            [
+                "            <!DOCTYPE html><head><html id=x>\n",
+                "            <html id=\"x\">\n",
+            ],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{int, string, string, string, list<string>}>
      */
     public static function html5TestTests2ElementContainerProvider(): iterable
@@ -23190,6 +23246,47 @@ final class SerializeTest extends TestCase
 
         self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param array<string, string> $expectedHtmlAttributes
+     * @param array<string, string> $expectedBodyAttributes
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2ShellAttributeProvider')]
+    public function testHtml5TestTests2ShellAttributeFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        array $expectedHtmlAttributes,
+        array $expectedBodyAttributes,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+        self::assertSame($expectedHtmlAttributes, $document->htmlElement()->attributes);
+        self::assertSame($expectedBodyAttributes, $document->bodyElement()->attributes);
     }
 
     /**

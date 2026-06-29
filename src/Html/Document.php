@@ -15,6 +15,7 @@ use Lexbor\Dom\Text;
 
 final class Document extends Node
 {
+    private Element $html;
     private Element $head;
     private Element $body;
     private TagRegistry $tags;
@@ -26,6 +27,7 @@ final class Document extends Node
         parent::__construct(NodeType::Document, $this, Tag::DOCUMENT);
 
         $this->tags = new TagRegistry();
+        $this->html = new Element('html', tagId: Tag::HTML, ownerDocument: $this);
         $this->head = new Element('head', tagId: Tag::HEAD, ownerDocument: $this);
         $this->body = new Element('body', tagId: Tag::BODY, ownerDocument: $this);
         $this->appendChild($this->body);
@@ -49,6 +51,7 @@ final class Document extends Node
 
         $this->head->clearAttributes();
         $this->body->clearAttributes();
+        $this->html->clearAttributes();
 
         $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
         $html = $this->consumeDocumentPrologueComments($html, $doctype !== null);
@@ -65,6 +68,11 @@ final class Document extends Node
         $this->parseFragmentInto($this->body, $html);
 
         return Status::Ok;
+    }
+
+    public function htmlElement(): Element
+    {
+        return $this->html;
     }
 
     public function headElement(): Element
@@ -336,6 +344,12 @@ final class Document extends Node
             }
 
             if ($this->isDocumentShellTag($root, $context, $tagName)) {
+                if ($parent === $root && $tagName === 'html') {
+                    $this->mergeMissingAttributes($this->html, $attributes);
+                } elseif ($parent === $root && $tagName === 'body') {
+                    $this->mergeMissingAttributes($this->body, $attributes);
+                }
+
                 $offset = $tagEnd;
                 continue;
             }
@@ -1311,6 +1325,18 @@ final class Document extends Node
             && ($tagName === 'html' || $tagName === 'head' || $tagName === 'body');
     }
 
+    /**
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private function mergeMissingAttributes(Element $element, array $attributes): void
+    {
+        foreach ($attributes as $attribute) {
+            if (! $element->hasAttribute($attribute['name'])) {
+                $element->setAttribute($attribute['name'], $attribute['value']);
+            }
+        }
+    }
+
     private function consumeDocumentHeadContent(string $html): string
     {
         $offset = 0;
@@ -1349,7 +1375,8 @@ final class Document extends Node
 
             $htmlTag = self::consumeNamedStartTagAt($html, $offset, 'html');
             if ($htmlTag !== null) {
-                [, $offset] = $htmlTag;
+                [$attributes, $offset] = $htmlTag;
+                $this->mergeMissingAttributes($this->html, $this->parseAttributes($attributes));
                 continue;
             }
 

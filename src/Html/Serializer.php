@@ -96,6 +96,7 @@ final class Serializer
     private static function serializeDocument(Document $document, bool $fullDoctype): string
     {
         $prefix = '';
+        $html = $document->htmlElement();
         $body = $document->bodyElement();
         $head = $document->headElement();
 
@@ -103,10 +104,25 @@ final class Serializer
             $prefix .= self::serialize($child, $fullDoctype);
         }
 
-        return $prefix . '<html>' . self::serializeElement($head, $fullDoctype) . self::serializeElement($body, $fullDoctype) . '</html>';
+        return $prefix
+            . '<html' . self::serializeAttributes($html) . '>'
+            . self::serializeElement($head, $fullDoctype)
+            . self::serializeElement($body, $fullDoctype)
+            . '</html>';
     }
 
     private static function serializeElement(Element $element, bool $fullDoctype): string
+    {
+        $attributes = self::serializeAttributes($element);
+
+        if (VoidElements::is($element->tagName)) {
+            return sprintf('<%s%s>', $element->tagName, $attributes);
+        }
+
+        return sprintf('<%s%s>%s</%s>', $element->tagName, $attributes, self::serializeDeepChildren($element, $fullDoctype), $element->tagName);
+    }
+
+    private static function serializeAttributes(Element $element): string
     {
         $attributes = '';
 
@@ -118,11 +134,7 @@ final class Serializer
             );
         }
 
-        if (VoidElements::is($element->tagName)) {
-            return sprintf('<%s%s>', $element->tagName, $attributes);
-        }
-
-        return sprintf('<%s%s>%s</%s>', $element->tagName, $attributes, self::serializeDeepChildren($element, $fullDoctype), $element->tagName);
+        return $attributes;
     }
 
     private static function serializeDeepChildren(Node $node, bool $fullDoctype = false): string
