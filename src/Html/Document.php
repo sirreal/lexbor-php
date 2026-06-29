@@ -503,7 +503,12 @@ final class Document extends Node
                 $element->setAttribute($attribute['name'], $attribute['value']);
             }
 
-            $stack[count($stack) - 1]->appendChild($element);
+            $table = $this->tableForFosterParentedStartTag($stack[count($stack) - 1], $tagName, $attributes);
+            if ($table !== null && $table->parent !== null) {
+                $table->parent->insertBeforeSpec($element, $table);
+            } else {
+                $stack[count($stack) - 1]->appendChild($element);
+            }
             $offset = $tagEnd;
 
             if ($selfClosing || VoidElements::is($tagName)) {
@@ -815,9 +820,31 @@ final class Document extends Node
         if (
             $text === ''
             || strspn($text, " \t\n\f\r") === strlen($text)
-            || ! $parent instanceof Element
+        ) {
+            return null;
+        }
+
+        return $this->tableForFosterParentingContext($parent);
+    }
+
+    /**
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private function tableForFosterParentedStartTag(Node $parent, string $tagName, array $attributes): ?Element
+    {
+        if (self::isTableModeSpecialStartTag($tagName, $attributes)) {
+            return null;
+        }
+
+        return $this->tableForFosterParentingContext($parent);
+    }
+
+    private function tableForFosterParentingContext(Node $parent): ?Element
+    {
+        if (
+            ! $parent instanceof Element
             || $parent->namespace !== Element::NAMESPACE_HTML
-            || ! self::isTableTextFosterParentingContext($parent->tagName)
+            || ! self::isTableFosterParentingContext($parent->tagName)
         ) {
             return null;
         }
@@ -1510,11 +1537,39 @@ final class Document extends Node
             || $tagName === 'thead';
     }
 
-    private static function isTableTextFosterParentingContext(string $tagName): bool
+    private static function isTableFosterParentingContext(string $tagName): bool
     {
         return $tagName === 'table'
             || $tagName === 'tr'
             || self::isTableSectionTag($tagName);
+    }
+
+    /**
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private static function isTableModeSpecialStartTag(string $tagName, array $attributes): bool
+    {
+        if (in_array($tagName, [
+            'caption',
+            'col',
+            'colgroup',
+            'form',
+            'script',
+            'style',
+            'table',
+            'tbody',
+            'td',
+            'template',
+            'tfoot',
+            'th',
+            'thead',
+            'tr',
+        ], true)) {
+            return true;
+        }
+
+        return $tagName === 'input'
+            && strcasecmp(self::attributeValue($attributes, 'type') ?? '', 'hidden') === 0;
     }
 
     /**

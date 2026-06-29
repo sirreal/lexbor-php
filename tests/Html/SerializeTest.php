@@ -22802,6 +22802,18 @@ final class SerializeTest extends TestCase
                 "                        \"test\"\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #13 plaintext start tag is foster parented from table' => [
+            13,
+            '<table><plaintext><td>',
+            '<html><head></head><body><plaintext><td></plaintext><table></table></body></html>',
+            '<plaintext><td></plaintext><table></table>',
+            [
+                "            <table><plaintext><td>\n",
+                "                <plaintext>\n",
+                "                  \"<td>\"\n",
+                "                <table>\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #15 table row text is foster parented' => [
             15,
             '<!DOCTYPE html><table><tr>TEST',
