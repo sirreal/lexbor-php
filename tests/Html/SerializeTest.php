@@ -22005,6 +22005,34 @@ final class SerializeTest extends TestCase
             'Line1<br>Line2<br>Line3<br>Line4',
             ["            Line1<br>Line2<br>Line3<br>Line4\n", '                "Line1"', '                "Line4"'],
         ];
+
+        $emptyDocument = '<html><head></head><body></body></html>';
+        foreach ([
+            4 => ['html start shell tag', '<html>', "            <html>\n"],
+            5 => ['head start shell tag', '<head>', "            <head>\n"],
+            6 => ['body start shell tag', '<body>', "            <body>\n"],
+            7 => ['html head open shell tags', '<html><head>', "            <html><head>\n"],
+            8 => ['html closed head shell tags', '<html><head></head>', "            <html><head></head>\n"],
+            9 => ['html head body open shell tags', '<html><head></head><body>', "            <html><head></head><body>\n"],
+            10 => ['html head empty body shell tags', '<html><head></head><body></body>', "            <html><head></head><body></body>\n"],
+            11 => ['head body closed shell tags', '<html><head><body></body></html>', "            <html><head><body></body></html>\n"],
+            12 => ['head closed by body end shell tags', '<html><head></body></html>', "            <html><head></body></html>\n"],
+            13 => ['body closed by html end shell tags', '<html><head><body></html>', "            <html><head><body></html>\n"],
+            14 => ['html body closed shell tags', '<html><body></html>', "            <html><body></html>\n"],
+            15 => ['body then html end shell tags', '<body></html>', "            <body></html>\n"],
+            16 => ['head then html end shell tags', '<head></html>', "            <head></html>\n"],
+            17 => ['head end shell tag', '</head>', "            </head>\n"],
+            18 => ['body end shell tag', '</body>', "            </body>\n"],
+            19 => ['html end shell tag', '</html>', "            </html>\n"],
+        ] as $testNumber => [$label, $html, $dataLine]) {
+            yield "html5_test/tests1.ton #{$testNumber} {$label}" => [
+                $testNumber,
+                $html,
+                $emptyDocument,
+                '',
+                [$dataLine, "              <body>\n"],
+            ];
+        }
     }
 
     /**

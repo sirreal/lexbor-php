@@ -223,7 +223,17 @@ final class Document extends Node
             [$attributeSource, $tagEnd, $selfClosing] = $startTagEnd;
 
             if ($match['closing'][0] === '/') {
+                if ($this->isDocumentShellTag($root, $context, $tagName)) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
                 $this->closeElement($stack, $tagName);
+                $offset = $tagEnd;
+                continue;
+            }
+
+            if ($this->isDocumentShellTag($root, $context, $tagName)) {
                 $offset = $tagEnd;
                 continue;
             }
@@ -711,6 +721,13 @@ final class Document extends Node
                 return;
             }
         }
+    }
+
+    private function isDocumentShellTag(Node $root, ?Element $context, string $tagName): bool
+    {
+        return $root === $this->body
+            && $context === null
+            && ($tagName === 'html' || $tagName === 'head' || $tagName === 'body');
     }
 
     private function namespaceForElement(Node $parent, string $tagName): string
