@@ -22616,6 +22616,211 @@ final class SerializeTest extends TestCase
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
     }
 
+    /**
+     * @return iterable<string, array{int, string, string, list<string>}>
+     */
+    public static function html5TestTests20NormalScopeEndTagProvider(): iterable
+    {
+        yield 'html5_test/tests20.ton #40 button end tag closes implied paragraph' => [
+            40,
+            '<!doctype html><button><p></button>x',
+            '<button><p></p></button>x',
+            [
+                "            <!doctype html><button><p></button>x\n",
+                "                <button>\n",
+                "                  <p>\n",
+                '                "x"',
+            ],
+        ];
+
+        yield 'html5_test/tests20.ton #41 address end tag closes nested button' => [
+            41,
+            '<!doctype html><address><button></address>a',
+            '<address><button></button></address>a',
+            [
+                "            <!doctype html><address><button></address>a\n",
+                "                <address>\n",
+                "                  <button>\n",
+                '                "a"',
+            ],
+        ];
+    }
+
+    #[DataProvider('html5TestTests20NormalScopeEndTagProvider')]
+    public function testHtml5TestTests20NormalScopeEndTagFixtures(int $testNumber, string $input, string $expectedBody, array $snippets): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests20.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ($snippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($input));
+
+        self::assertSame(
+            "<!DOCTYPE html><html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testSearchEndTagUsesNormalScopeRecovery(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><search><button></search>x'));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body><search><button></button></search>x</body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<search><button></button></search>x', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testHtml5TestTests10ForeignObjectStopsNormalScopeEndTagFixture(): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests10.ton');
+        self::assertIsString($contents);
+        $testMarker = '/* Test number: 32 */';
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ([
+            "            <div><svg><path><foreignObject><p></div>a\n",
+            "                <div>\n",
+            "                  <svg:svg>\n",
+            "                    <svg:path>\n",
+            "                      <svg:foreignObject>\n",
+            "                        <p>\n",
+            '                          "a"',
+        ] as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<div><svg><path><foreignObject><p></div>a'));
+
+        $expectedBody = '<div><svg><path><foreignobject><p>a</p></foreignobject></path></svg></div>';
+        self::assertSame(
+            "<html><head></head><body>{$expectedBody}</body></html>",
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testForeignDivEndTagDoesNotUseHtmlNormalScopeRecovery(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><div></div><text>x</text></svg>'));
+
+        self::assertSame(
+            '<svg><div></div><text>x</text></svg>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testNormalScopeBoundaryBlocksHtmlBlockEndTagRecovery(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><address><object></address>x'));
+
+        self::assertSame(
+            '<address><object>x</object></address>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testForeignBlockEndTagWinsOverHtmlAncestorWithSameName(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<div><svg><div></div><text>x</text></svg>y'));
+
+        self::assertSame(
+            '<div><svg><div></div><text>x</text></svg>y</div>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testForeignBlockEndTagWinsWhenHtmlAncestorIsNormalScopeBlocked(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<address><object><svg><address></address><text>x</text></svg>y'));
+
+        self::assertSame(
+            '<address><object><svg><address></address><text>x</text></svg>y</object></address>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testForeignObjectBoundaryBlocksSameNameForeignEndTagFallback(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<div><svg><div><foreignObject><span></div>x'));
+
+        self::assertSame(
+            '<div><svg><div><foreignobject><span>x</span></foreignobject></div></svg></div>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testForeignObjectBoundaryBlocksAbsentHtmlTargetFallback(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><div><foreignObject><span></div>x'));
+
+        self::assertSame(
+            '<svg><div><foreignobject><span>x</span></foreignobject></div></svg>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testPureForeignEndTagClosesThroughSvgNormalScopeBoundary(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><address><desc></address>x'));
+
+        self::assertSame(
+            '<svg><address><desc></desc></address>x</svg>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testForeignHtmlScopeNameDoesNotBlockForeignEndTagClosure(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><address><button></address>x'));
+
+        self::assertSame(
+            '<svg><address><button></button></address>x</svg>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testSelectBoundaryBlocksHtmlBlockEndTagRecovery(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!doctype html><div><select></div>x'));
+
+        self::assertSame(
+            '<div><select>x</select></div>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
     public function testFormattingEndTagDoesNotCrossMarqueeScope(): void
     {
         $document = new Document();

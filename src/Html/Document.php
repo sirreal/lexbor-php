@@ -274,6 +274,23 @@ final class Document extends Node
                     continue;
                 }
 
+                if (
+                    self::isBlockEndTagClosedInNormalScope($tagName)
+                    && ! $this->currentNodeIsForeignWithTagInStack($stack, $tagName)
+                ) {
+                    $normalScopeState = $this->htmlElementNormalScopeState($stack, $tagName);
+                    if ($normalScopeState === 'visible') {
+                        $formattingEndTagsPoppedByScope = $this->closeElementInNormalScope($stack, $tagName);
+                        $offset = $tagEnd;
+                        continue;
+                    }
+
+                    if ($normalScopeState === 'blocked') {
+                        $offset = $tagEnd;
+                        continue;
+                    }
+                }
+
                 if (self::isFormattingElementTag($tagName)) {
                     $formattingEndTagsPoppedByScope = $this->closeElementInScope($stack, $tagName);
                 } else {
@@ -814,12 +831,96 @@ final class Document extends Node
                 return $formattingTags;
             }
 
-            if (self::isHtmlScopeBoundary($node->tagName)) {
+            if (self::isHtmlScopeBoundaryElement($node)) {
                 return [];
             }
         }
 
         return [];
+    }
+
+    /**
+     * @param list<Node> $stack
+     * @return array<string, int>
+     */
+    private function closeElementInNormalScope(array &$stack, string $tagName): array
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->namespace === Element::NAMESPACE_HTML && $node->tagName === $tagName) {
+                $formattingTags = [];
+                for ($poppedIndex = $index + 1; $poppedIndex < count($stack); $poppedIndex++) {
+                    $poppedNode = $stack[$poppedIndex];
+                    if (! $poppedNode instanceof Element || ! self::isHtmlFormattingElement($poppedNode)) {
+                        continue;
+                    }
+
+                    $formattingTags[$poppedNode->tagName] = ($formattingTags[$poppedNode->tagName] ?? 0) + 1;
+                }
+
+                array_splice($stack, $index);
+                return $formattingTags;
+            }
+
+            if (self::isNormalScopeBoundary($node)) {
+                return [];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function htmlElementNormalScopeState(array $stack, string $tagName): string
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->namespace === Element::NAMESPACE_HTML && $node->tagName === $tagName) {
+                return 'visible';
+            }
+
+            if (self::isNormalScopeBoundary($node)) {
+                return 'blocked';
+            }
+        }
+
+        return 'absent';
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function currentNodeIsForeignWithTagInStack(array $stack, string $tagName): bool
+    {
+        $currentNode = $stack[count($stack) - 1] ?? null;
+        if (! $currentNode instanceof Element || $currentNode->namespace === Element::NAMESPACE_HTML) {
+            return false;
+        }
+
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+
+            if ($node instanceof Element && $node->namespace !== Element::NAMESPACE_HTML && $node->tagName === $tagName) {
+                return true;
+            }
+
+            if ($node instanceof Element && $node->namespace === Element::NAMESPACE_HTML) {
+                return false;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -840,7 +941,7 @@ final class Document extends Node
                 break;
             }
 
-            if (self::isHtmlScopeBoundary($node->tagName)) {
+            if (self::isHtmlScopeBoundaryElement($node)) {
                 return [];
             }
         }
@@ -901,7 +1002,7 @@ final class Document extends Node
                 break;
             }
 
-            if ($node instanceof Element && self::isHtmlScopeBoundary($node->tagName)) {
+            if ($node instanceof Element && self::isHtmlScopeBoundaryElement($node)) {
                 return false;
             }
         }
@@ -1027,7 +1128,7 @@ final class Document extends Node
                 return true;
             }
 
-            if (self::isHtmlScopeBoundary($node->tagName)) {
+            if (self::isHtmlScopeBoundaryElement($node)) {
                 return false;
             }
         }
@@ -1256,6 +1357,40 @@ final class Document extends Node
             || $tagName === 'p';
     }
 
+    private static function isBlockEndTagClosedInNormalScope(string $tagName): bool
+    {
+        return in_array($tagName, [
+            'address',
+            'article',
+            'aside',
+            'blockquote',
+            'button',
+            'center',
+            'details',
+            'dialog',
+            'dir',
+            'div',
+            'dl',
+            'fieldset',
+            'figcaption',
+            'figure',
+            'footer',
+            'header',
+            'hgroup',
+            'listing',
+            'main',
+            'menu',
+            'nav',
+            'ol',
+            'pre',
+            'search',
+            'section',
+            'select',
+            'summary',
+            'ul',
+        ], true);
+    }
+
     private static function isFormattingElementTag(string $tagName): bool
     {
         return in_array($tagName, [
@@ -1289,6 +1424,45 @@ final class Document extends Node
             || $tagName === 'marquee'
             || $tagName === 'p'
             || $tagName === 'table';
+    }
+
+    private static function isHtmlScopeBoundaryElement(Element $element): bool
+    {
+        return $element->namespace === Element::NAMESPACE_HTML
+            && self::isHtmlScopeBoundary($element->tagName);
+    }
+
+    private static function isNormalScopeBoundary(Element $element): bool
+    {
+        if ($element->namespace === Element::NAMESPACE_HTML) {
+            return $element->tagName === 'applet'
+                || $element->tagName === 'caption'
+                || $element->tagName === 'html'
+                || $element->tagName === 'marquee'
+                || $element->tagName === 'object'
+                || $element->tagName === 'select'
+                || $element->tagName === 'table'
+                || $element->tagName === 'td'
+                || $element->tagName === 'template'
+                || $element->tagName === 'th';
+        }
+
+        if ($element->namespace === Element::NAMESPACE_MATH) {
+            return $element->tagName === 'annotation-xml'
+                || $element->tagName === 'mi'
+                || $element->tagName === 'mn'
+                || $element->tagName === 'mo'
+                || $element->tagName === 'ms'
+                || $element->tagName === 'mtext';
+        }
+
+        if ($element->namespace === Element::NAMESPACE_SVG) {
+            return $element->tagName === 'desc'
+                || $element->tagName === 'foreignobject'
+                || $element->tagName === 'title';
+        }
+
+        return false;
     }
 
     /**
