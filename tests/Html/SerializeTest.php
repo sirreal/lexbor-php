@@ -22789,6 +22789,19 @@ final class SerializeTest extends TestCase
                 "                        <p>\n",
             ],
         ];
+        yield 'html5_test/tests2.ton #62 malformed doctype nested comment recovery' => [
+            62,
+            '<!DOCTYPE <!DOCTYPE HTML>><!--<!--x-->-->',
+            '<!DOCTYPE <!doctype><html><head></head><body>&gt;<!--<!--x-->--&gt;</body></html>',
+            '&gt;<!--<!--x-->--&gt;',
+            [
+                "            <!DOCTYPE <!DOCTYPE HTML>><!--<!--x-->-->\n",
+                "            <!DOCTYPE <!doctype>\n",
+                "                \">\"\n",
+                "                <!-- <!--x -->\n",
+                "                \"-->\"\n",
+            ],
+        ];
     }
 
     /**
