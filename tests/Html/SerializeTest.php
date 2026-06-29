@@ -10531,6 +10531,60 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>, list<array{code: string, line: int, col: int}>}>
+     */
+    public static function html5libNumericEntitiesNoncharacterExactFixtureProvider(): iterable
+    {
+        foreach ([
+            64 => ['Invalid numeric entity character U+FDE8', '&#xfde8;', "\u{FDE8}", [['noncharacter-character-reference', 1, 9]]],
+            65 => ['Invalid numeric entity character U+FDE9', '&#xfde9;', "\u{FDE9}", [['noncharacter-character-reference', 1, 9]]],
+            66 => ['Invalid numeric entity character U+FDEA', '&#xfdea;', "\u{FDEA}", [['noncharacter-character-reference', 1, 9]]],
+            67 => ['Invalid numeric entity character U+FDEB', '&#xfdeb;', "\u{FDEB}", [['noncharacter-character-reference', 1, 9]]],
+            68 => ['Invalid numeric entity character U+FDEC', '&#xfdec;', "\u{FDEC}", [['noncharacter-character-reference', 1, 9]]],
+            69 => ['Invalid numeric entity character U+FDED', '&#xfded;', "\u{FDED}", [['noncharacter-character-reference', 1, 9]]],
+            70 => ['Invalid numeric entity character U+FDEE', '&#xfdee;', "\u{FDEE}", [['noncharacter-character-reference', 1, 9]]],
+            71 => ['Invalid numeric entity character U+FDEF', '&#xfdef;', "\u{FDEF}", [['noncharacter-character-reference', 1, 9]]],
+            72 => ['Invalid numeric entity character U+FFFE', '&#xfffe;', "\u{FFFE}", [['noncharacter-character-reference', 1, 9]]],
+            73 => ['Invalid numeric entity character U+FFFF', '&#xffff;', "\u{FFFF}", [['noncharacter-character-reference', 1, 9]]],
+            74 => ['Invalid numeric entity character U+1FFFE', '&#x1fffe;', "\u{1FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            75 => ['Invalid numeric entity character U+1FFFF', '&#x1ffff;', "\u{1FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            76 => ['Invalid numeric entity character U+2FFFE', '&#x2fffe;', "\u{2FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            77 => ['Invalid numeric entity character U+2FFFF', '&#x2ffff;', "\u{2FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            78 => ['Invalid numeric entity character U+3FFFE', '&#x3fffe;', "\u{3FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            79 => ['Invalid numeric entity character U+3FFFF', '&#x3ffff;', "\u{3FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            80 => ['Invalid numeric entity character U+4FFFE', '&#x4fffe;', "\u{4FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            81 => ['Invalid numeric entity character U+4FFFF', '&#x4ffff;', "\u{4FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            82 => ['Invalid numeric entity character U+5FFFE', '&#x5fffe;', "\u{5FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            83 => ['Invalid numeric entity character U+5FFFF', '&#x5ffff;', "\u{5FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            84 => ['Invalid numeric entity character U+6FFFE', '&#x6fffe;', "\u{6FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            85 => ['Invalid numeric entity character U+6FFFF', '&#x6ffff;', "\u{6FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            86 => ['Invalid numeric entity character U+7FFFE', '&#x7fffe;', "\u{7FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            87 => ['Invalid numeric entity character U+7FFFF', '&#x7ffff;', "\u{7FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            88 => ['Invalid numeric entity character U+8FFFE', '&#x8fffe;', "\u{8FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            89 => ['Invalid numeric entity character U+8FFFF', '&#x8ffff;', "\u{8FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            90 => ['Invalid numeric entity character U+9FFFE', '&#x9fffe;', "\u{9FFFE}", [['noncharacter-character-reference', 1, 10]]],
+            91 => ['Invalid numeric entity character U+9FFFF', '&#x9ffff;', "\u{9FFFF}", [['noncharacter-character-reference', 1, 10]]],
+            92 => ['Invalid numeric entity character U+AFFFE', '&#xafffe;', "\u{AFFFE}", [['noncharacter-character-reference', 1, 10]]],
+            93 => ['Invalid numeric entity character U+AFFFF', '&#xaffff;', "\u{AFFFF}", [['noncharacter-character-reference', 1, 10]]],
+            94 => ['Invalid numeric entity character U+BFFFE', '&#xbfffe;', "\u{BFFFE}", [['noncharacter-character-reference', 1, 10]]],
+            95 => ['Invalid numeric entity character U+BFFFF', '&#xbffff;', "\u{BFFFF}", [['noncharacter-character-reference', 1, 10]]],
+        ] as $testIndex => [$description, $html, $character, $errors]) {
+            $expectedErrors = array_map(
+                static fn (array $error): array => ['code' => $error[0], 'line' => $error[1], 'col' => $error[2]],
+                $errors,
+            );
+
+            yield "numericEntities.test $testIndex $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+                $expectedErrors,
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -25910,6 +25964,35 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNumericEntitiesControlNoncharacterExactFixtureProvider')]
     public function testHtml5libNumericEntitiesControlNoncharacterExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+        array $expectedErrors,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/numericEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertSame($expectedErrors, $fixture['errors']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     * @param list<array{code: string, line: int, col: int}> $expectedErrors
+     */
+    #[DataProvider('html5libNumericEntitiesNoncharacterExactFixtureProvider')]
+    public function testHtml5libNumericEntitiesNoncharacterExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
