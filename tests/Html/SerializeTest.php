@@ -22596,6 +22596,77 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, string, list<string>}>
+     */
+    public static function html5TestTests2CharacterReferenceTreeProvider(): iterable
+    {
+        yield 'html5_test/tests2.ton #20 bare ampersand text' => [
+            20,
+            '&',
+            '<html><head></head><body>&amp;</body></html>',
+            '&amp;',
+            '&',
+            ["            &\n", "                \"&\"\n"],
+        ];
+        yield 'html5_test/tests2.ton #21 numeric reference opener without digits' => [
+            21,
+            '&#',
+            '<html><head></head><body>&amp;#</body></html>',
+            '&amp;#',
+            '&#',
+            ["            &#\n", "                \"&#\"\n"],
+        ];
+        yield 'html5_test/tests2.ton #22 uppercase hex opener without digits' => [
+            22,
+            '&#X',
+            '<html><head></head><body>&amp;#X</body></html>',
+            '&amp;#X',
+            '&#X',
+            ["            &#X\n", "                \"&#X\"\n"],
+        ];
+        yield 'html5_test/tests2.ton #23 lowercase hex opener without digits' => [
+            23,
+            '&#x',
+            '<html><head></head><body>&amp;#x</body></html>',
+            '&amp;#x',
+            '&#x',
+            ["            &#x\n", "                \"&#x\"\n"],
+        ];
+        yield 'html5_test/tests2.ton #24 decimal reference without semicolon' => [
+            24,
+            '&#45',
+            '<html><head></head><body>-</body></html>',
+            '-',
+            '-',
+            ["            &#45\n", "                \"-\"\n"],
+        ];
+        yield 'html5_test/tests2.ton #25 unknown named reference-like text' => [
+            25,
+            '&x-test',
+            '<html><head></head><body>&amp;x-test</body></html>',
+            '&amp;x-test',
+            '&x-test',
+            ["            &x-test\n", "                \"&x-test\"\n"],
+        ];
+        yield 'html5_test/tests2.ton #31 uppercase ampersand reference without semicolon' => [
+            31,
+            '&AMP',
+            '<html><head></head><body>&amp;</body></html>',
+            '&amp;',
+            '&',
+            ["            &AMP\n", "                \"&\"\n"],
+        ];
+        yield 'html5_test/tests2.ton #32 mixed-case unknown ampersand reference' => [
+            32,
+            '&AMp;',
+            '<html><head></head><body>&amp;AMp;</body></html>',
+            '&amp;AMp;',
+            '&AMp;',
+            ["            &AMp;\n", "                \"&AMp;\"\n"],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function upstreamLegacyVoidElementProvider(): iterable
@@ -22685,6 +22756,47 @@ final class SerializeTest extends TestCase
 
         self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
         self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2CharacterReferenceTreeProvider')]
+    public function testHtml5TestTests2CharacterReferenceTreeFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        string $expectedText,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        $text = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Text::class, $text);
+        self::assertSame($expectedText, $text->data);
+        self::assertNull($text->next);
     }
 
     public function testSvgImageStartTagIsNotAliasedToHtmlImg(): void
