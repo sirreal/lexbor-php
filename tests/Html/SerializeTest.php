@@ -10190,6 +10190,54 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>}>
+     */
+    public static function html5libNamedEntitiesVertWedbarExactFixtureProvider(): iterable
+    {
+        foreach ([
+            4064 => ['Bad named entity: vert without a semi-colon', '&vert', '&vert'],
+            4065 => ['Named entity: vert; with a semi-colon', '&vert;', '|'],
+            4066 => ['Bad named entity: vfr without a semi-colon', '&vfr', '&vfr'],
+            4067 => ['Named entity: vfr; with a semi-colon', '&vfr;', "\u{1D533}"],
+            4068 => ['Bad named entity: vltri without a semi-colon', '&vltri', '&vltri'],
+            4069 => ['Named entity: vltri; with a semi-colon', '&vltri;', "\u{22B2}"],
+            4070 => ['Bad named entity: vnsub without a semi-colon', '&vnsub', '&vnsub'],
+            4071 => ['Named entity: vnsub; with a semi-colon', '&vnsub;', "\u{2282}\u{20D2}"],
+            4072 => ['Bad named entity: vnsup without a semi-colon', '&vnsup', '&vnsup'],
+            4073 => ['Named entity: vnsup; with a semi-colon', '&vnsup;', "\u{2283}\u{20D2}"],
+            4074 => ['Bad named entity: vopf without a semi-colon', '&vopf', '&vopf'],
+            4075 => ['Named entity: vopf; with a semi-colon', '&vopf;', "\u{1D567}"],
+            4076 => ['Bad named entity: vprop without a semi-colon', '&vprop', '&vprop'],
+            4077 => ['Named entity: vprop; with a semi-colon', '&vprop;', "\u{221D}"],
+            4078 => ['Bad named entity: vrtri without a semi-colon', '&vrtri', '&vrtri'],
+            4079 => ['Named entity: vrtri; with a semi-colon', '&vrtri;', "\u{22B3}"],
+            4080 => ['Bad named entity: vscr without a semi-colon', '&vscr', '&vscr'],
+            4081 => ['Named entity: vscr; with a semi-colon', '&vscr;', "\u{1D4CB}"],
+            4082 => ['Bad named entity: vsubnE without a semi-colon', '&vsubnE', '&vsubnE'],
+            4083 => ['Named entity: vsubnE; with a semi-colon', '&vsubnE;', "\u{2ACB}\u{FE00}"],
+            4084 => ['Bad named entity: vsubne without a semi-colon', '&vsubne', '&vsubne'],
+            4085 => ['Named entity: vsubne; with a semi-colon', '&vsubne;', "\u{228A}\u{FE00}"],
+            4086 => ['Bad named entity: vsupnE without a semi-colon', '&vsupnE', '&vsupnE'],
+            4087 => ['Named entity: vsupnE; with a semi-colon', '&vsupnE;', "\u{2ACC}\u{FE00}"],
+            4088 => ['Bad named entity: vsupne without a semi-colon', '&vsupne', '&vsupne'],
+            4089 => ['Named entity: vsupne; with a semi-colon', '&vsupne;', "\u{228B}\u{FE00}"],
+            4090 => ['Bad named entity: vzigzag without a semi-colon', '&vzigzag', '&vzigzag'],
+            4091 => ['Named entity: vzigzag; with a semi-colon', '&vzigzag;', "\u{299A}"],
+            4092 => ['Bad named entity: wcirc without a semi-colon', '&wcirc', '&wcirc'],
+            4093 => ['Named entity: wcirc; with a semi-colon', '&wcirc;', "\u{0175}"],
+            4094 => ['Bad named entity: wedbar without a semi-colon', '&wedbar', '&wedbar'],
+            4095 => ['Named entity: wedbar; with a semi-colon', '&wedbar;', "\u{2A5F}"],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -25371,6 +25419,33 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5libNamedEntitiesUpharpoonleftUtriExactFixtureProvider')]
     public function testHtml5libNamedEntitiesUpharpoonleftUtriExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertArrayNotHasKey('errors', $fixture);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libNamedEntitiesVertWedbarExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesVertWedbarExactFixtureRows(
         string $html,
         int $testIndex,
         string $description,
