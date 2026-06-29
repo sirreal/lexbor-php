@@ -8567,6 +8567,54 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>}>
+     */
+    public static function html5libNamedEntitiesNvdashNwnearExactFixtureProvider(): iterable
+    {
+        foreach ([
+            3008 => ['Bad named entity: nvdash without a semi-colon', '&nvdash', '&nvdash'],
+            3009 => ['Named entity: nvdash; with a semi-colon', '&nvdash;', "\u{22AC}"],
+            3010 => ['Bad named entity: nvge without a semi-colon', '&nvge', '&nvge'],
+            3011 => ['Named entity: nvge; with a semi-colon', '&nvge;', "\u{2265}\u{20D2}"],
+            3012 => ['Bad named entity: nvgt without a semi-colon', '&nvgt', '&nvgt'],
+            3013 => ['Named entity: nvgt; with a semi-colon', '&nvgt;', "\u{003E}\u{20D2}"],
+            3014 => ['Bad named entity: nvinfin without a semi-colon', '&nvinfin', '&nvinfin'],
+            3015 => ['Named entity: nvinfin; with a semi-colon', '&nvinfin;', "\u{29DE}"],
+            3016 => ['Bad named entity: nvlArr without a semi-colon', '&nvlArr', '&nvlArr'],
+            3017 => ['Named entity: nvlArr; with a semi-colon', '&nvlArr;', "\u{2902}"],
+            3018 => ['Bad named entity: nvle without a semi-colon', '&nvle', '&nvle'],
+            3019 => ['Named entity: nvle; with a semi-colon', '&nvle;', "\u{2264}\u{20D2}"],
+            3020 => ['Bad named entity: nvlt without a semi-colon', '&nvlt', '&nvlt'],
+            3021 => ['Named entity: nvlt; with a semi-colon', '&nvlt;', "\u{003C}\u{20D2}"],
+            3022 => ['Bad named entity: nvltrie without a semi-colon', '&nvltrie', '&nvltrie'],
+            3023 => ['Named entity: nvltrie; with a semi-colon', '&nvltrie;', "\u{22B4}\u{20D2}"],
+            3024 => ['Bad named entity: nvrArr without a semi-colon', '&nvrArr', '&nvrArr'],
+            3025 => ['Named entity: nvrArr; with a semi-colon', '&nvrArr;', "\u{2903}"],
+            3026 => ['Bad named entity: nvrtrie without a semi-colon', '&nvrtrie', '&nvrtrie'],
+            3027 => ['Named entity: nvrtrie; with a semi-colon', '&nvrtrie;', "\u{22B5}\u{20D2}"],
+            3028 => ['Bad named entity: nvsim without a semi-colon', '&nvsim', '&nvsim'],
+            3029 => ['Named entity: nvsim; with a semi-colon', '&nvsim;', "\u{223C}\u{20D2}"],
+            3030 => ['Bad named entity: nwArr without a semi-colon', '&nwArr', '&nwArr'],
+            3031 => ['Named entity: nwArr; with a semi-colon', '&nwArr;', "\u{21D6}"],
+            3032 => ['Bad named entity: nwarhk without a semi-colon', '&nwarhk', '&nwarhk'],
+            3033 => ['Named entity: nwarhk; with a semi-colon', '&nwarhk;', "\u{2923}"],
+            3034 => ['Bad named entity: nwarr without a semi-colon', '&nwarr', '&nwarr'],
+            3035 => ['Named entity: nwarr; with a semi-colon', '&nwarr;', "\u{2196}"],
+            3036 => ['Bad named entity: nwarrow without a semi-colon', '&nwarrow', '&nwarrow'],
+            3037 => ['Named entity: nwarrow; with a semi-colon', '&nwarrow;', "\u{2196}"],
+            3038 => ['Bad named entity: nwnear without a semi-colon', '&nwnear', '&nwnear'],
+            3039 => ['Named entity: nwnear; with a semi-colon', '&nwnear;', "\u{2927}"],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -22847,6 +22895,33 @@ final class SerializeTest extends TestCase
         } else {
             self::assertSame($expectedErrors, $fixture['errors']);
         }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libNamedEntitiesNvdashNwnearExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesNvdashNwnearExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertArrayNotHasKey('errors', $fixture);
     }
 
     /**
