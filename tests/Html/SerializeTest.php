@@ -22759,6 +22759,61 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{int, string, string, string, list<string>}>
+     */
+    public static function html5TestTests2ElementContainerProvider(): iterable
+    {
+        yield 'html5_test/tests2.ton #40 datalist keeps option and trailing text' => [
+            40,
+            '<!DOCTYPE html><datalist><option>foo</datalist>bar',
+            '<!DOCTYPE html><html><head></head><body><datalist><option>foo</option></datalist>bar</body></html>',
+            '<datalist><option>foo</option></datalist>bar',
+            [
+                "            <!DOCTYPE html><datalist><option>foo</datalist>bar\n",
+                "                <datalist>\n",
+                "                  <option>\n",
+                "                    \"foo\"\n",
+                "                \"bar\"\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #41 font keeps multiple input children' => [
+            41,
+            '<!DOCTYPE html><font><input><input></font>',
+            '<!DOCTYPE html><html><head></head><body><font><input><input></font></body></html>',
+            '<font><input><input></font>',
+            [
+                "            <!DOCTYPE html><font><input><input></font>\n",
+                "                <font>\n",
+                "                  <input>\n",
+                "                  <input>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #49 select keeps optgroup child' => [
+            49,
+            '<!DOCTYPE html><select><optgroup></optgroup></select>',
+            '<!DOCTYPE html><html><head></head><body><select><optgroup></optgroup></select></body></html>',
+            '<select><optgroup></optgroup></select>',
+            [
+                "            <!DOCTYPE html><select><optgroup></optgroup></select>\n",
+                "                <select>\n",
+                "                  <optgroup>\n",
+            ],
+        ];
+        yield 'html5_test/tests2.ton #63 form closes before sibling div' => [
+            63,
+            '<!doctype html><div><form></form><div></div></div>',
+            '<!DOCTYPE html><html><head></head><body><div><form></form><div></div></div></body></html>',
+            '<div><form></form><div></div></div>',
+            [
+                "            <!doctype html><div><form></form><div></div></div>\n",
+                "                <div>\n",
+                "                  <form>\n",
+                "                  <div>\n",
+            ],
+        ];
+    }
+
+    /**
      * @return iterable<string, array{string}>
      */
     public static function upstreamLegacyVoidElementProvider(): iterable
@@ -22896,6 +22951,41 @@ final class SerializeTest extends TestCase
      */
     #[DataProvider('html5TestTests2DocumentBoundaryProvider')]
     public function testHtml5TestTests2DocumentBoundaryFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2ElementContainerProvider')]
+    public function testHtml5TestTests2ElementContainerFixtures(
         int $testNumber,
         string $html,
         string $expectedDocument,
