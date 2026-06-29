@@ -58,6 +58,9 @@ final class Document extends Node
 
         $html = $doctype === null ? $this->stripLeadingDoctype($html) : substr($html, $doctype['offset']);
         $html = $this->consumeDocumentPrologueComments($html, $doctype !== null);
+        if ($doctype === null) {
+            $html = $this->consumeLeadingHtmlCommentBeforeBodyContent($html);
+        }
         $html = $this->consumeDocumentHeadContent($html);
         $framesetFragment = $this->framesetFragment($html);
         if ($framesetFragment !== null) {
@@ -2924,6 +2927,35 @@ final class Document extends Node
             $this->insertBeforeSpec($this->createComment($data), $this->body);
             $consumedComment = true;
         }
+    }
+
+    private function consumeLeadingHtmlCommentBeforeBodyContent(string $html): string
+    {
+        $commentOffset = self::skipHtmlWhitespace($html, 0);
+        if (! str_starts_with(substr($html, $commentOffset), '<!--')) {
+            return $html;
+        }
+
+        [$data, $offset] = self::consumeHtmlComment($html, $commentOffset);
+        $contentOffset = self::skipHtmlWhitespace($html, $offset);
+        if (! self::isBodyContentStartAfterLeadingComment($html, $contentOffset)) {
+            return $html;
+        }
+
+        $this->insertBeforeSpec($this->createComment($data), $this->body);
+
+        return substr($html, $contentOffset);
+    }
+
+    private static function isBodyContentStartAfterLeadingComment(string $html, int $offset): bool
+    {
+        foreach (['html', 'head', 'body'] as $tagName) {
+            if (self::consumeNamedStartTagAt($html, $offset, $tagName) !== null) {
+                return false;
+            }
+        }
+
+        return preg_match('~^<[A-Za-z]~', substr($html, $offset)) === 1;
     }
 
     /**

@@ -22251,6 +22251,33 @@ final class SerializeTest extends TestCase
             ];
         }
 
+        yield 'html5_test/tests1.ton #20 formatting table cell tree' => [
+            20,
+            '<b><table><td><i></table>',
+            '<html><head></head><body><b><table><tbody><tr><td><i></i></td></tr></tbody></table></b></body></html>',
+            '<b><table><tbody><tr><td><i></i></td></tr></tbody></table></b>',
+            [
+                "            <b><table><td><i></table>\n",
+                "                <b>\n",
+                "                  <table>\n",
+                "                        <td>\n",
+                "                          <i>\n",
+            ],
+        ];
+
+        yield 'html5_test/tests1.ton #21 formatting table cell keeps trailing text' => [
+            21,
+            '<b><table><td></b><i></table>X',
+            '<html><head></head><body><b><table><tbody><tr><td><i></i></td></tr></tbody></table>X</b></body></html>',
+            '<b><table><tbody><tr><td><i></i></td></tr></tbody></table>X</b>',
+            [
+                "            <b><table><td></b><i></table>X\n",
+                "                <b>\n",
+                "                  <table>\n",
+                '                  "X"',
+            ],
+        ];
+
         yield 'html5_test/tests1.ton #22 heading start tag closes current heading' => [
             22,
             '<h1>Hello<h2>World',
@@ -22289,6 +22316,20 @@ final class SerializeTest extends TestCase
             '<html><head><script><div></script><title>&lt;p&gt;</title></head><body><p></p><p></p></body></html>',
             '<p></p><p></p>',
             ["            <script><div></script></div><title><p></title><p><p>\n", "                <script>\n", '                  "<div>"', "                <title>\n", '                  "<p>"'],
+        ];
+
+        yield 'html5_test/tests1.ton #28 leading abrupt comment stays in prologue' => [
+            28,
+            '<!--><div>--<!-->',
+            '<!----><html><head></head><body><div>--<!----></div></body></html>',
+            '<div>--<!----></div>',
+            [
+                "            <!--><div>--<!-->\n",
+                "            <!--  -->\n",
+                "                <div>\n",
+                '                  "--"',
+                "                  <!--  -->\n",
+            ],
         ];
 
         yield 'html5_test/tests1.ton #29 hr closes paragraph and stray paragraph end opens empty paragraph' => [
