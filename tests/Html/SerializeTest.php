@@ -22225,6 +22225,30 @@ final class SerializeTest extends TestCase
             ["            <!DOCTYPE html><spacer>foo\n", "                <spacer>\n", '                  "foo"'],
         ];
 
+        yield 'html5_test/tests1.ton #84 implicit head title and link metadata' => [
+            84,
+            '<title><meta></title><link><title><meta></title>',
+            '<html><head><title>&lt;meta&gt;</title><link><title>&lt;meta&gt;</title></head><body></body></html>',
+            '',
+            ["            <title><meta></title><link><title><meta></title>\n", "                <title>\n", '                  "<meta>"', "                <link>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #85 implicit head style meta script metadata' => [
+            85,
+            '<style><!--</style><meta><script>--><link></script>',
+            '<html><head><style><!--</style><meta><script>--><link></script></head><body></body></html>',
+            '',
+            ["            <style><!--</style><meta><script>--><link></script>\n", "                <style>\n", '                  "<!--"', "                <script>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #86 out-of-head link stays in head' => [
+            86,
+            '<head><meta></head><link>',
+            '<html><head><meta><link></head><body></body></html>',
+            '',
+            ["            <head><meta></head><link>\n", "                <meta>\n", "                <link>\n", "              <body>\n"],
+        ];
+
         yield 'html5_test/tests1.ton #88 repeated body with body metadata' => [
             88,
             '<body><body><base><link><meta><title><p></title><body><p></body>',
@@ -22247,6 +22271,14 @@ final class SerializeTest extends TestCase
             '<html><head></head><body><p><img></p></body></html>',
             '<p><img></p>',
             ["            <p><image></p>\n", "                <p>\n", "                  <img>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #92 stray paragraph end before head metadata' => [
+            92,
+            '<head></p><meta><p>',
+            '<html><head><meta></head><body><p></p></body></html>',
+            '<p></p>',
+            ["            <head></p><meta><p>\n", "                <meta>\n", "              <body>\n", "                <p>\n"],
         ];
 
         yield 'html5_test/tests1.ton #93 head html end then body metadata' => [
@@ -22383,6 +22415,41 @@ final class SerializeTest extends TestCase
         self::assertInstanceOf(Element::class, $image);
         self::assertSame('image', $image->tagName);
         self::assertSame(Element::NAMESPACE_SVG, $image->namespace);
+    }
+
+    public function testPostHeadWhitespaceStaysInBodyWhenNoHeadRecoveryFollows(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<head></head> x'));
+
+        self::assertSame('<html><head></head><body> x</body></html>', Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertNull($document->headElement()->firstChild);
+        self::assertSame(' x', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<head></head> <link>x'));
+
+        self::assertSame('<html><head><link></head><body> x</body></html>', Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame('<head><link></head>', Serializer::serializeDeep($document->headElement()));
+        self::assertSame(' x', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<head></head></p>x'));
+
+        self::assertSame('<html><head></head><body><p></p>x</body></html>', Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame('<p></p>x', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<head></head> </p>x'));
+
+        self::assertSame('<html><head></head><body> <p></p>x</body></html>', Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame(' <p></p>x', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<head></head><head></p>x'));
+
+        self::assertSame('<html><head></head><body><p></p>x</body></html>', Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame('<p></p>x', Serializer::serializeDeep($document->bodyElement()));
     }
 
     public function testDocumentPrologueBogusCommentsIgnoreInterleavedWhitespace(): void

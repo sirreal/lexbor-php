@@ -927,10 +927,11 @@ final class Document extends Node
             && ($tagName === 'html' || $tagName === 'head' || $tagName === 'body');
     }
 
-    private function consumeDocumentHeadContent(string $html, bool $allowImplicitHeadContent): string
+    private function consumeDocumentHeadContent(string $html, bool $allowInitialScriptHeadContent): string
     {
         $offset = 0;
         $headStarted = false;
+        $headClosed = false;
 
         $length = strlen($html);
         while ($offset < $length) {
@@ -939,10 +940,24 @@ final class Document extends Node
 
             if ($headStarted && $whitespace > 0) {
                 if (self::consumeNamedStartTagAt($html, $tokenOffset, 'body') !== null) {
+                    if ($headClosed) {
+                        $this->appendText($this->body, substr($html, $offset, $whitespace));
+                        return substr($html, $tokenOffset);
+                    }
+
                     return substr($html, $offset);
                 }
 
-                $this->appendText($this->head, substr($html, $offset, $whitespace));
+                if ($headClosed) {
+                    if (! self::isRecoverableHeadStartTagAt($html, $tokenOffset)) {
+                        return substr($html, $offset);
+                    }
+
+                    $this->appendText($this->body, substr($html, $offset, $whitespace));
+                } else {
+                    $this->appendText($this->head, substr($html, $offset, $whitespace));
+                }
+
                 $offset = $tokenOffset;
             } else {
                 $offset = $tokenOffset;
@@ -955,26 +970,38 @@ final class Document extends Node
             }
 
             $headTag = self::consumeNamedStartTagAt($html, $offset, 'head');
-            if ($headTag !== null) {
+            if ($headTag !== null && ! $headClosed) {
                 [$attributes, $offset] = $headTag;
                 foreach ($this->parseAttributes($attributes) as $attribute) {
                     $this->head->setAttribute($attribute['name'], $attribute['value']);
                 }
 
                 $headStarted = true;
+                $headClosed = false;
                 continue;
             }
 
             $headClose = self::consumeNamedEndTagAt($html, $offset, 'head');
             if ($headClose !== null) {
-                return substr($html, $headClose);
+                $offset = $headClose;
+                $headStarted = true;
+                $headClosed = true;
+                continue;
             }
 
-            if (! $headStarted && ! $allowImplicitHeadContent) {
-                return $html;
+            if ($headStarted && ! $headClosed) {
+                $ignoredEndTag = self::consumeIgnorableHeadEndTagAt($html, $offset);
+                if ($ignoredEndTag !== null) {
+                    $offset = $ignoredEndTag;
+                    continue;
+                }
             }
 
             foreach (['title', 'style', 'script'] as $tagName) {
+                if ($tagName === 'script' && ! $headStarted && ! $allowInitialScriptHeadContent) {
+                    continue;
+                }
+
                 $startTag = self::consumeNamedStartTagAt($html, $offset, $tagName);
                 if ($startTag === null) {
                     continue;
@@ -988,6 +1015,23 @@ final class Document extends Node
 
                 $this->head->appendChild($element);
                 $offset = $selfClosing ? $startTagEnd : $this->appendTextOnlyElementContent($element, $html, $startTagEnd);
+                $headStarted = true;
+                continue 2;
+            }
+
+            foreach (['base', 'basefont', 'bgsound', 'link', 'meta'] as $tagName) {
+                $startTag = self::consumeNamedStartTagAt($html, $offset, $tagName);
+                if ($startTag === null) {
+                    continue;
+                }
+
+                [$attributes, $offset] = $startTag;
+                $element = $this->createElement($tagName);
+                foreach ($this->parseAttributes($attributes) as $attribute) {
+                    $element->setAttribute($attribute['name'], $attribute['value']);
+                }
+
+                $this->head->appendChild($element);
                 $headStarted = true;
                 continue 2;
             }
@@ -1021,6 +1065,29 @@ final class Document extends Node
         }
 
         return $offset + strlen($match[0]);
+    }
+
+    private static function consumeIgnorableHeadEndTagAt(string $html, int $offset): ?int
+    {
+        foreach (['div', 'p'] as $tagName) {
+            $endTag = self::consumeNamedEndTagAt($html, $offset, $tagName);
+            if ($endTag !== null) {
+                return $endTag;
+            }
+        }
+
+        return null;
+    }
+
+    private static function isRecoverableHeadStartTagAt(string $html, int $offset): bool
+    {
+        foreach (['base', 'basefont', 'bgsound', 'link', 'meta', 'script', 'style', 'title'] as $tagName) {
+            if (self::consumeNamedStartTagAt($html, $offset, $tagName) !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function namespaceForElement(Node $parent, string $tagName): string
