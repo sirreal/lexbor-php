@@ -9881,6 +9881,54 @@ final class SerializeTest extends TestCase
     }
 
     /**
+     * @return iterable<string, array{string, int, string, list<list<string>>}>
+     */
+    public static function html5libNamedEntitiesTriangleTscyExactFixtureProvider(): iterable
+    {
+        foreach ([
+            3872 => ['Bad named entity: triangle without a semi-colon', '&triangle', '&triangle'],
+            3873 => ['Named entity: triangle; with a semi-colon', '&triangle;', "\u{25B5}"],
+            3874 => ['Bad named entity: triangledown without a semi-colon', '&triangledown', '&triangledown'],
+            3875 => ['Named entity: triangledown; with a semi-colon', '&triangledown;', "\u{25BF}"],
+            3876 => ['Bad named entity: triangleleft without a semi-colon', '&triangleleft', '&triangleleft'],
+            3877 => ['Named entity: triangleleft; with a semi-colon', '&triangleleft;', "\u{25C3}"],
+            3878 => ['Bad named entity: trianglelefteq without a semi-colon', '&trianglelefteq', '&trianglelefteq'],
+            3879 => ['Named entity: trianglelefteq; with a semi-colon', '&trianglelefteq;', "\u{22B4}"],
+            3880 => ['Bad named entity: triangleq without a semi-colon', '&triangleq', '&triangleq'],
+            3881 => ['Named entity: triangleq; with a semi-colon', '&triangleq;', "\u{225C}"],
+            3882 => ['Bad named entity: triangleright without a semi-colon', '&triangleright', '&triangleright'],
+            3883 => ['Named entity: triangleright; with a semi-colon', '&triangleright;', "\u{25B9}"],
+            3884 => ['Bad named entity: trianglerighteq without a semi-colon', '&trianglerighteq', '&trianglerighteq'],
+            3885 => ['Named entity: trianglerighteq; with a semi-colon', '&trianglerighteq;', "\u{22B5}"],
+            3886 => ['Bad named entity: tridot without a semi-colon', '&tridot', '&tridot'],
+            3887 => ['Named entity: tridot; with a semi-colon', '&tridot;', "\u{25EC}"],
+            3888 => ['Bad named entity: trie without a semi-colon', '&trie', '&trie'],
+            3889 => ['Named entity: trie; with a semi-colon', '&trie;', "\u{225C}"],
+            3890 => ['Bad named entity: triminus without a semi-colon', '&triminus', '&triminus'],
+            3891 => ['Named entity: triminus; with a semi-colon', '&triminus;', "\u{2A3A}"],
+            3892 => ['Bad named entity: triplus without a semi-colon', '&triplus', '&triplus'],
+            3893 => ['Named entity: triplus; with a semi-colon', '&triplus;', "\u{2A39}"],
+            3894 => ['Bad named entity: trisb without a semi-colon', '&trisb', '&trisb'],
+            3895 => ['Named entity: trisb; with a semi-colon', '&trisb;', "\u{29CD}"],
+            3896 => ['Bad named entity: tritime without a semi-colon', '&tritime', '&tritime'],
+            3897 => ['Named entity: tritime; with a semi-colon', '&tritime;', "\u{2A3B}"],
+            3898 => ['Bad named entity: trpezium without a semi-colon', '&trpezium', '&trpezium'],
+            3899 => ['Named entity: trpezium; with a semi-colon', '&trpezium;', "\u{23E2}"],
+            3900 => ['Bad named entity: tscr without a semi-colon', '&tscr', '&tscr'],
+            3901 => ['Named entity: tscr; with a semi-colon', '&tscr;', "\u{1D4C9}"],
+            3902 => ['Bad named entity: tscy without a semi-colon', '&tscy', '&tscy'],
+            3903 => ['Named entity: tscy; with a semi-colon', '&tscy;', "\u{0446}"],
+        ] as $testIndex => [$description, $html, $character]) {
+            yield "namedEntities.test $description exact fixture row" => [
+                $html,
+                $testIndex,
+                $description,
+                [['Character', $character]],
+            ];
+        }
+    }
+
+    /**
      * @return iterable<string, array{string, int, string, list<list<mixed>>}>
      */
     public static function html5libXmlViolationFixtureProvider(): iterable
@@ -24962,6 +25010,33 @@ final class SerializeTest extends TestCase
         } else {
             self::assertSame($expectedErrors, $fixture['errors']);
         }
+    }
+
+    /**
+     * @param list<list<string>> $expectedOutput
+     */
+    #[DataProvider('html5libNamedEntitiesTriangleTscyExactFixtureProvider')]
+    public function testHtml5libNamedEntitiesTriangleTscyExactFixtureRows(
+        string $html,
+        int $testIndex,
+        string $description,
+        array $expectedOutput,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_tokenizer/namedEntities.test');
+        self::assertIsString($contents);
+
+        $data = json_decode($contents, true, flags: JSON_THROW_ON_ERROR);
+        self::assertIsArray($data);
+
+        $fixture = $data['tests'][$testIndex] ?? null;
+        self::assertIsArray($fixture);
+        self::assertSame($description, $fixture['description']);
+        self::assertArrayNotHasKey('doubleEscaped', $fixture);
+        self::assertSame([], $fixture['initialStates'] ?? []);
+        self::assertSame($html, $fixture['input']);
+        self::assertSame($expectedOutput, $fixture['output']);
+        self::assertArrayNotHasKey('errors', $fixture);
     }
 
     /**
