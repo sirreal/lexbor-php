@@ -22110,6 +22110,22 @@ final class SerializeTest extends TestCase
             ["            <!DOCTYPE html><script> <!-- </script> --> </script> EOF\n", "                <script>\n", '                  " <!-- "', '                " "', '                "-->  EOF"'],
         ];
 
+        yield 'html5_test/tests1.ton #52 b end tag around paragraph' => [
+            52,
+            '<b><p></b>TEST',
+            '<html><head></head><body><b></b><p><b></b>TEST</p></body></html>',
+            '<b></b><p><b></b>TEST</p>',
+            ["            <b><p></b>TEST\n", "                <b>\n", "                <p>\n", '                  "TEST"'],
+        ];
+
+        yield 'html5_test/tests1.ton #53 paragraphs around stray b end tag' => [
+            53,
+            '<p id=a><b><p id=b></b>TEST',
+            '<html><head></head><body><p id="a"><b></b></p><p id="b">TEST</p></body></html>',
+            '<p id="a"><b></b></p><p id="b">TEST</p>',
+            ["            <p id=a><b><p id=b></b>TEST\n", "                <p id=\"a\">\n", "                <p id=\"b\">\n", '                  "TEST"'],
+        ];
+
         yield 'html5_test/tests1.ton #55 title before body' => [
             55,
             '<!DOCTYPE html><title>U-test</title><body><div><p>Test<u></p></div></body>',
@@ -22140,6 +22156,22 @@ final class SerializeTest extends TestCase
             '<html><head></head><body><b>A<cite>B<div>C</div></cite></b></body></html>',
             '<b>A<cite>B<div>C</div></cite></b>',
             ["            <b>A<cite>B<div>C\n", "                <b>\n", '                  "A"', "                  <cite>\n", "                    <div>\n", '                      "C"'],
+        ];
+
+        yield 'html5_test/tests1.ton #60 scoped cite end tag inside div' => [
+            60,
+            '<b>A<cite>B<div>C</cite>D',
+            '<html><head></head><body><b>A<cite>B<div>CD</div></cite></b></body></html>',
+            '<b>A<cite>B<div>CD</div></cite></b>',
+            ["            <b>A<cite>B<div>C</cite>D\n", "                <b>\n", '                  "A"', "                  <cite>\n", "                    <div>\n", '                      "CD"'],
+        ];
+
+        yield 'html5_test/tests1.ton #61 b adoption around div' => [
+            61,
+            '<b>A<cite>B<div>C</b>D',
+            '<html><head></head><body><b>A<cite>B</cite></b><div><b>C</b>D</div></body></html>',
+            '<b>A<cite>B</cite></b><div><b>C</b>D</div>',
+            ["            <b>A<cite>B<div>C</b>D\n", "                <b>\n", "                <div>\n", "                  <b>\n", '                    "C"', '                  "D"'],
         ];
     }
 

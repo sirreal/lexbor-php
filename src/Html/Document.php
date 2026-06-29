@@ -249,7 +249,16 @@ final class Document extends Node
                     continue;
                 }
 
-                $this->closeElement($stack, $tagName);
+                if ($this->handleFormattingEndTagWithFurthestBlock($stack, $tagName)) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                if (self::isFormattingElementTag($tagName)) {
+                    $this->closeElement($stack, $tagName);
+                } else {
+                    $this->closeElementInScope($stack, $tagName);
+                }
                 $offset = $tagEnd;
                 continue;
             }
@@ -742,6 +751,29 @@ final class Document extends Node
     /**
      * @param list<Node> $stack
      */
+    private function closeElementInScope(array &$stack, string $tagName): void
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->tagName === $tagName) {
+                array_splice($stack, $index);
+                return;
+            }
+
+            if (self::isHtmlScopeBoundary($node->tagName)) {
+                return;
+            }
+        }
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
     private function closeElement(array &$stack, string $tagName): void
     {
         for ($index = count($stack) - 1; $index > 0; $index--) {
@@ -752,6 +784,74 @@ final class Document extends Node
                 return;
             }
         }
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function handleFormattingEndTagWithFurthestBlock(array &$stack, string $tagName): bool
+    {
+        if ($tagName !== 'b') {
+            return false;
+        }
+
+        $formattingIndex = $this->openElementIndex($stack, $tagName);
+        if ($formattingIndex === null) {
+            return true;
+        }
+
+        $furthestBlockIndex = null;
+        for ($index = $formattingIndex + 1; $index < count($stack); $index++) {
+            $node = $stack[$index];
+            if ($node instanceof Element && self::isFormattingFurthestBlock($node->tagName)) {
+                $furthestBlockIndex = $index;
+                break;
+            }
+        }
+
+        if ($furthestBlockIndex === null) {
+            return false;
+        }
+
+        $formattingElement = $stack[$formattingIndex];
+        $furthestBlock = $stack[$furthestBlockIndex];
+        if (! $formattingElement instanceof Element || ! $furthestBlock instanceof Element) {
+            return false;
+        }
+
+        $formattingClone = $this->createElement($formattingElement->tagName, $formattingElement->namespace);
+        foreach ($formattingElement->attributes as $name => $value) {
+            $formattingClone->setAttribute((string) $name, $value);
+        }
+
+        $furthestBlock->remove();
+        $formattingElement->insertAfter($furthestBlock);
+
+        while ($furthestBlock->firstChild !== null) {
+            $formattingClone->appendChild($furthestBlock->firstChild);
+        }
+
+        $furthestBlock->appendChild($formattingClone);
+
+        array_splice($stack, $formattingIndex);
+        $stack[] = $furthestBlock;
+
+        return true;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function openElementIndex(array $stack, string $tagName): ?int
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if ($node instanceof Element && $node->tagName === $tagName) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -918,6 +1018,39 @@ final class Document extends Node
             || $tagName === 'h4'
             || $tagName === 'h5'
             || $tagName === 'h6';
+    }
+
+    private static function isFormattingFurthestBlock(string $tagName): bool
+    {
+        return $tagName === 'div'
+            || $tagName === 'p';
+    }
+
+    private static function isFormattingElementTag(string $tagName): bool
+    {
+        return in_array($tagName, [
+            'a',
+            'b',
+            'big',
+            'code',
+            'em',
+            'font',
+            'i',
+            'nobr',
+            's',
+            'small',
+            'strike',
+            'strong',
+            'tt',
+            'u',
+        ], true);
+    }
+
+    private static function isHtmlScopeBoundary(string $tagName): bool
+    {
+        return $tagName === 'div'
+            || $tagName === 'p'
+            || $tagName === 'table';
     }
 
     /**
