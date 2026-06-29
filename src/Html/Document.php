@@ -425,6 +425,12 @@ final class Document extends Node
                 $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             }
 
+            if (($tagName === 'dd' || $tagName === 'dt') && self::isHtmlInsertionContext($namespaceParent)) {
+                $this->closeOpenDescriptionListItem($stack);
+                $parent = $stack[count($stack) - 1];
+                $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            }
+
             if ($tagName === 'p') {
                 $this->closeOpenParagraphAndCloneFormattingTail($stack);
                 $parent = $stack[count($stack) - 1];
@@ -1309,6 +1315,134 @@ final class Document extends Node
             if (self::isHtmlScopeBoundaryElement($node)) {
                 return false;
             }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeOpenDescriptionListItem(array &$stack): void
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->namespace === Element::NAMESPACE_HTML && ($node->tagName === 'dd' || $node->tagName === 'dt')) {
+                array_splice($stack, $index);
+                return;
+            }
+
+            if (self::isDescriptionListItemSpecialBoundaryElement($node)) {
+                return;
+            }
+        }
+    }
+
+    private static function isDescriptionListItemSpecialBoundaryElement(Element $element): bool
+    {
+        if ($element->namespace === Element::NAMESPACE_HTML) {
+            if (in_array($element->tagName, ['address', 'div', 'p'], true)) {
+                return false;
+            }
+
+            return in_array($element->tagName, [
+                'applet',
+                'area',
+                'article',
+                'aside',
+                'base',
+                'basefont',
+                'bgsound',
+                'blockquote',
+                'body',
+                'br',
+                'button',
+                'caption',
+                'center',
+                'col',
+                'colgroup',
+                'dd',
+                'details',
+                'dir',
+                'dl',
+                'dt',
+                'embed',
+                'fieldset',
+                'figcaption',
+                'figure',
+                'footer',
+                'form',
+                'frame',
+                'frameset',
+                'h1',
+                'h2',
+                'h3',
+                'h4',
+                'h5',
+                'h6',
+                'head',
+                'header',
+                'hgroup',
+                'hr',
+                'html',
+                'iframe',
+                'image',
+                'img',
+                'input',
+                'keygen',
+                'li',
+                'link',
+                'listing',
+                'main',
+                'marquee',
+                'menu',
+                'meta',
+                'nav',
+                'noembed',
+                'noframes',
+                'noscript',
+                'object',
+                'ol',
+                'param',
+                'plaintext',
+                'pre',
+                'script',
+                'search',
+                'section',
+                'select',
+                'source',
+                'style',
+                'summary',
+                'table',
+                'tbody',
+                'td',
+                'template',
+                'textarea',
+                'tfoot',
+                'th',
+                'thead',
+                'title',
+                'tr',
+                'track',
+                'ul',
+                'wbr',
+                'xmp',
+            ], true);
+        }
+
+        if ($element->namespace === Element::NAMESPACE_MATH) {
+            return $element->tagName === 'annotation-xml'
+                || self::isMathTextIntegrationPoint($element);
+        }
+
+        if ($element->namespace === Element::NAMESPACE_SVG) {
+            return $element->tagName === 'desc'
+                || $element->tagName === 'foreignobject'
+                || $element->tagName === 'title';
         }
 
         return false;

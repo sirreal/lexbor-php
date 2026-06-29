@@ -23052,6 +23052,25 @@ final class SerializeTest extends TestCase
     /**
      * @return iterable<string, array{int, string, string, string, list<string>}>
      */
+    public static function html5TestTests2DescriptionListProvider(): iterable
+    {
+        yield 'html5_test/tests2.ton #11 dd start closes previous dt' => [
+            11,
+            '<!DOCTYPE html><dt><div><dd>',
+            '<!DOCTYPE html><html><head></head><body><dt><div></div></dt><dd></dd></body></html>',
+            '<dt><div></div></dt><dd></dd>',
+            [
+                "            <!DOCTYPE html><dt><div><dd>\n",
+                "                <dt>\n",
+                "                  <div>\n",
+                "                <dd>\n",
+            ],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{int, string, string, string, list<string>}>
+     */
     public static function html5TestTests2DocumentPrologueCommentProvider(): iterable
     {
         yield 'html5_test/tests2.ton #35 EOF comment after doctype stays in prologue' => [
@@ -23432,6 +23451,48 @@ final class SerializeTest extends TestCase
         $item = $paragraph->next;
         self::assertInstanceOf(Element::class, $item);
         self::assertSame($itemTagName, $item->tagName);
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestTests2DescriptionListProvider')]
+    public function testHtml5TestTests2DescriptionListFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        array $fixtureSnippets,
+    ): void {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests2.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+
+        $term = $document->bodyElement()->firstChild;
+        self::assertInstanceOf(Element::class, $term);
+        self::assertSame('dt', $term->tagName);
+
+        $description = $term->next;
+        self::assertInstanceOf(Element::class, $description);
+        self::assertSame('dd', $description->tagName);
     }
 
     /**
@@ -24903,6 +24964,51 @@ final class SerializeTest extends TestCase
 
         $frameset->setInnerHtml('</frameset><frame>');
         self::assertSame('<frameset><frame></frameset>', Serializer::serializeDeep($frameset));
+    }
+
+    public function testDescriptionListStartTagsDoNotCloseThroughSpecialElements(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><dt><button><dd>'));
+
+        self::assertSame('<dt><button><dd></dd></button></dt>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><dt><ul><dd>'));
+
+        self::assertSame('<dt><ul><dd></dd></ul></dt>', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testDescriptionListStartTagsUseNamespaceSpecificSpecialBoundaries(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><dt><annotation-xml><dd>'));
+
+        self::assertSame('<dt><annotation-xml></annotation-xml></dt><dd></dd>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><dt><mi><dd>'));
+
+        self::assertSame('<dt><mi></mi></dt><dd></dd>', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testDescriptionListStartTagsStopAtForeignSpecialBoundariesInHtmlInsertionContext(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><dt><svg><foreignObject><dd>x'));
+
+        self::assertSame(
+            '<dt><svg><foreignobject><dd>x</dd></foreignobject></svg></dt>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><dt><math><annotation-xml encoding=text/html><dd>x'));
+
+        self::assertSame(
+            '<dt><math><annotation-xml encoding="text/html"><dd>x</dd></annotation-xml></math></dt>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
     }
 
     public function testDocumentPrologueBogusCommentsIgnoreInterleavedWhitespace(): void
