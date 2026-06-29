@@ -23044,6 +23044,17 @@ final class SerializeTest extends TestCase
      */
     public static function html5TestTests2DocumentPrologueCommentProvider(): iterable
     {
+        yield 'html5_test/tests2.ton #35 EOF comment after doctype stays in prologue' => [
+            35,
+            '<!DOCTYPE html><!-- X',
+            '<!DOCTYPE html><!-- X--><html><head></head><body></body></html>',
+            ' X',
+            [
+                "            <!DOCTYPE html><!-- X\n",
+                "            <!--  X -->\n",
+                "              <body>\n",
+            ],
+        ];
         yield 'html5_test/tests2.ton #42 closed comment after doctype stays in prologue' => [
             42,
             '<!DOCTYPE html><!-- XXX - XXX -->',
