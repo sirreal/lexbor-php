@@ -1715,7 +1715,7 @@ final class Document extends Node
      */
     private function handleFormattingEndTagWithFurthestBlock(array &$stack, string $tagName): ?array
     {
-        if ($tagName !== 'b' && $tagName !== 'font' && $tagName !== 'i') {
+        if ($tagName !== 'a' && $tagName !== 'b' && $tagName !== 'font' && $tagName !== 'i') {
             return null;
         }
 
@@ -1724,10 +1724,19 @@ final class Document extends Node
             return [];
         }
 
+        $formattingElement = $stack[$formattingIndex];
+        if (! $formattingElement instanceof Element || ! self::isHtmlFormattingElement($formattingElement)) {
+            return null;
+        }
+
         $furthestBlockIndex = null;
         for ($index = $formattingIndex + 1; $index < count($stack); $index++) {
             $node = $stack[$index];
-            if ($node instanceof Element && self::isFormattingFurthestBlock($node->tagName)) {
+            if ($node instanceof Element && $node->namespace !== Element::NAMESPACE_HTML) {
+                return null;
+            }
+
+            if ($node instanceof Element && self::isHtmlFormattingFurthestBlock($node)) {
                 $furthestBlockIndex = $index;
                 break;
             }
@@ -1741,9 +1750,8 @@ final class Document extends Node
             return null;
         }
 
-        $formattingElement = $stack[$formattingIndex];
         $furthestBlock = $stack[$furthestBlockIndex];
-        if (! $formattingElement instanceof Element || ! $furthestBlock instanceof Element) {
+        if (! $furthestBlock instanceof Element) {
             return null;
         }
 
@@ -1760,7 +1768,7 @@ final class Document extends Node
         $intermediateClones = [];
         for ($index = $formattingIndex + 1; $index < $furthestBlockIndex; $index++) {
             $node = $stack[$index];
-            if (! $node instanceof Element || ! self::isFormattingElementTag($node->tagName)) {
+            if (! $node instanceof Element || ! self::isHtmlFormattingElement($node)) {
                 continue;
             }
 
@@ -3013,6 +3021,12 @@ final class Document extends Node
         return $tagName === 'button'
             || $tagName === 'div'
             || $tagName === 'p';
+    }
+
+    private static function isHtmlFormattingFurthestBlock(Element $element): bool
+    {
+        return $element->namespace === Element::NAMESPACE_HTML
+            && self::isFormattingFurthestBlock($element->tagName);
     }
 
     private static function isBlockEndTagClosedInNormalScope(string $tagName): bool
