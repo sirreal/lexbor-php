@@ -59,4 +59,17 @@ final class OtherTest extends TestCase
         self::assertSame(2001, strlen($url->path));
         self::assertSame('/' . str_repeat('^', 2000), $url->path);
     }
+
+    public function testUpstreamErrorsUseLogAfterFreeParserReuse(): void
+    {
+        $parser = new Parser();
+
+        self::assertNull($parser->parse("x://:\n/"));
+
+        $url = $parser->parse('https://lexbor.com/');
+
+        self::assertNotNull($url);
+        self::assertSame('https://lexbor.com/', $url->serialize());
+        self::assertSame([], $url->errors());
+    }
 }
