@@ -13,6 +13,7 @@ class Node
     public ?Node $parent = null;
     public ?Node $firstChild = null;
     public ?Node $lastChild = null;
+    public int $styleSourceOrder = 0;
 
     public function __construct(
         public readonly NodeType $type,
@@ -299,10 +300,12 @@ class Node
 
         if ($child === null) {
             $this->insertChildWithoutEvents($node);
+            $this->notifyNodeInserted($node);
             return;
         }
 
         $this->insertBeforeWithoutEvents($node, $child);
+        $this->notifyNodeInserted($node);
     }
 
     private function insertChildWithoutEvents(Node $node): void
@@ -337,6 +340,15 @@ class Node
         $node->prev = $child->prev;
 
         $child->prev = $node;
+    }
+
+    private function notifyNodeInserted(Node $node): void
+    {
+        $document = $node->ownerDocument;
+
+        if (is_object($document) && method_exists($document, 'noteNodeInserted')) {
+            $document->noteNodeInserted($node);
+        }
     }
 
     private function preInsertValidity(Node $node, ?Node $child): ExceptionCode

@@ -12,6 +12,7 @@ use Lexbor\Css\Syntax\Token;
 use Lexbor\Css\Syntax\Tokenizer;
 use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
+use Lexbor\Dom\Text;
 use Lexbor\Html\Document;
 
 final class StyleEngine
@@ -56,8 +57,8 @@ final class StyleEngine
             $document = $element->ownerDocument;
 
             if ($document instanceof Document) {
-                foreach ($document->stylesheets() as $stylesheet) {
-                    $this->applyStylesheet($declarations, $element, $stylesheet);
+                foreach ($this->documentStyleSources($document) as $source) {
+                    $this->applyStylesheet($declarations, $element, $source['stylesheet']);
                 }
             }
         }
@@ -95,6 +96,80 @@ final class StyleEngine
 
             $this->applyDeclarations($declarations, $rule['declarations'], false, $specificity);
         }
+    }
+
+    /**
+     * @return list<array{stylesheet: Stylesheet, order: int}>
+     */
+    private function documentStyleSources(Document $document): array
+    {
+        $sources = $document->stylesheetEntries();
+
+        foreach ($this->connectedHtmlStyleElements($document) as $styleElement) {
+            $order = $styleElement->styleSourceOrder;
+            if ($order === 0) {
+                continue;
+            }
+
+            $sources[] = [
+                'stylesheet' => $this->parseStylesheet($this->textContent($styleElement)),
+                'order' => $order,
+            ];
+        }
+
+        usort(
+            $sources,
+            static fn (array $left, array $right): int => $left['order'] <=> $right['order'],
+        );
+
+        return $sources;
+    }
+
+    /**
+     * @return list<Element>
+     */
+    private function connectedHtmlStyleElements(Document $document): array
+    {
+        $styleElements = [];
+
+        $this->collectConnectedHtmlStyleElements($document->headElement(), $styleElements);
+        $this->collectConnectedHtmlStyleElements($document, $styleElements);
+
+        return $styleElements;
+    }
+
+    /**
+     * @param list<Element> $styleElements
+     */
+    private function collectConnectedHtmlStyleElements(Node $node, array &$styleElements): void
+    {
+        for ($child = $node->firstChild; $child !== null; $child = $child->next) {
+            if (
+                $child instanceof Element
+                && $child->namespace === Element::NAMESPACE_HTML
+                && $child->tagName === 'style'
+            ) {
+                $styleElements[] = $child;
+            }
+
+            $this->collectConnectedHtmlStyleElements($child, $styleElements);
+        }
+    }
+
+    private function textContent(Node $node): string
+    {
+        $content = '';
+
+        for ($child = $node->firstChild; $child !== null; $child = $child->next) {
+            if ($child instanceof Text) {
+                $content .= $child->data;
+                continue;
+            }
+
+            $content .= $this->textContent($child);
+        }
+
+        return $content;
     }
 
     /**

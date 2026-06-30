@@ -28,6 +28,9 @@ final class Document extends Node
     private array $documentSuffixNodes = [];
     /** @var list<Stylesheet> */
     private array $stylesheets = [];
+    /** @var list<array{stylesheet: Stylesheet, order: int}> */
+    private array $stylesheetEntries = [];
+    private int $styleSourceCounter = 0;
 
     public function __construct()
     {
@@ -228,6 +231,10 @@ final class Document extends Node
     public function attachStylesheet(Stylesheet $stylesheet): void
     {
         $this->stylesheets[] = $stylesheet;
+        $this->stylesheetEntries[] = [
+            'stylesheet' => $stylesheet,
+            'order' => $this->nextStyleSourceOrder(),
+        ];
     }
 
     public function removeStylesheet(Stylesheet $stylesheet): void
@@ -236,6 +243,14 @@ final class Document extends Node
             if ($candidate === $stylesheet) {
                 unset($this->stylesheets[$index]);
                 $this->stylesheets = array_values($this->stylesheets);
+                break;
+            }
+        }
+
+        foreach ($this->stylesheetEntries as $index => $entry) {
+            if ($entry['stylesheet'] === $stylesheet) {
+                unset($this->stylesheetEntries[$index]);
+                $this->stylesheetEntries = array_values($this->stylesheetEntries);
                 return;
             }
         }
@@ -244,6 +259,7 @@ final class Document extends Node
     public function clearStylesheets(): void
     {
         $this->stylesheets = [];
+        $this->stylesheetEntries = [];
     }
 
     /**
@@ -252,6 +268,39 @@ final class Document extends Node
     public function stylesheets(): array
     {
         return $this->stylesheets;
+    }
+
+    /**
+     * @return list<array{stylesheet: Stylesheet, order: int}>
+     */
+    public function stylesheetEntries(): array
+    {
+        return $this->stylesheetEntries;
+    }
+
+    public function noteNodeInserted(Node $node): void
+    {
+        $this->assignStyleSourceOrder($node);
+    }
+
+    private function nextStyleSourceOrder(): int
+    {
+        return ++$this->styleSourceCounter;
+    }
+
+    private function assignStyleSourceOrder(Node $node): void
+    {
+        if (
+            $node instanceof Element
+            && $node->namespace === Element::NAMESPACE_HTML
+            && $node->tagName === 'style'
+        ) {
+            $node->styleSourceOrder = $this->nextStyleSourceOrder();
+        }
+
+        for ($child = $node->firstChild; $child !== null; $child = $child->next) {
+            $this->assignStyleSourceOrder($child);
+        }
     }
 
     public function isQuirksMode(): bool
