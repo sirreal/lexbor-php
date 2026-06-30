@@ -31,6 +31,7 @@ final class Document extends Node
     /** @var list<array{stylesheet: Stylesheet, order: int}> */
     private array $stylesheetEntries = [];
     private int $styleSourceCounter = 0;
+    private int $clearedStyleSourceOrder = 0;
 
     public function __construct()
     {
@@ -260,6 +261,7 @@ final class Document extends Node
     {
         $this->stylesheets = [];
         $this->stylesheetEntries = [];
+        $this->clearedStyleSourceOrder = $this->styleSourceCounter;
     }
 
     /**
@@ -276,6 +278,11 @@ final class Document extends Node
     public function stylesheetEntries(): array
     {
         return $this->stylesheetEntries;
+    }
+
+    public function clearedStyleSourceOrder(): int
+    {
+        return $this->clearedStyleSourceOrder;
     }
 
     public function noteNodeInserted(Node $node): void

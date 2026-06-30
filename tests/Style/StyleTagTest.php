@@ -49,6 +49,56 @@ final class StyleTagTest extends TestCase
         self::assertStyle('width: 30%', $div);
     }
 
+    public function testUpstreamTwoStylesheetDestroyAllClearsParsedStyleElements(): void
+    {
+        $document = new Document();
+        self::assertSame(
+            Status::Ok,
+            $document->parse(
+                '<div class=alpha></div><span class=beta></span>'
+                . '<style>div.alpha {width: 20px}</style>'
+                . '<style>span.beta {height: 30px}</style>',
+            ),
+        );
+
+        $div = $document->elementsByTagName('div')[0] ?? null;
+        $span = $document->elementsByTagName('span')[0] ?? null;
+
+        self::assertInstanceOf(Element::class, $div);
+        self::assertInstanceOf(Element::class, $span);
+        self::assertStyle('width: 20px', $div);
+        self::assertStyle('height: 30px', $span);
+
+        $this->style->clearStylesheets($document);
+
+        self::assertStyle('', $div);
+        self::assertStyle('', $span);
+    }
+
+    public function testStyleElementReinsertAfterDestroyAllReattachesStylesheet(): void
+    {
+        $document = new Document();
+        self::assertSame(
+            Status::Ok,
+            $document->parse('<div class=target></div><style>div.target {width: 20px}</style>'),
+        );
+
+        $div = $document->elementsByTagName('div')[0] ?? null;
+        $styleElement = $document->elementsByTagName('style')[0] ?? null;
+
+        self::assertInstanceOf(Element::class, $div);
+        self::assertInstanceOf(Element::class, $styleElement);
+        self::assertStyle('width: 20px', $div);
+
+        $this->style->clearStylesheets($document);
+        self::assertStyle('', $div);
+
+        $styleElement->remove();
+        self::assertSame(ExceptionCode::Ok, $div->insertAfter($styleElement));
+
+        self::assertStyle('width: 20px', $div);
+    }
+
     public function testUpstreamBadStyleTagDoesNotApplyRules(): void
     {
         $document = new Document();

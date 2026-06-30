@@ -104,10 +104,11 @@ final class StyleEngine
     private function documentStyleSources(Document $document): array
     {
         $sources = $document->stylesheetEntries();
+        $clearedStyleSourceOrder = $document->clearedStyleSourceOrder();
 
         foreach ($this->connectedHtmlStyleElements($document) as $styleElement) {
             $order = $styleElement->styleSourceOrder;
-            if ($order === 0) {
+            if ($order === 0 || $order <= $clearedStyleSourceOrder) {
                 continue;
             }
 
