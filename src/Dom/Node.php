@@ -13,7 +13,13 @@ class Node
     public ?Node $parent = null;
     public ?Node $firstChild = null;
     public ?Node $lastChild = null;
+    public ?Node $processedNext = null;
+    public ?Node $processedPrev = null;
+    public ?Node $processedParent = null;
+    public ?Node $processedFirstChild = null;
+    public ?Node $processedLastChild = null;
     public int $styleSourceOrder = 0;
+    public bool $styleEventConnected = false;
 
     public function __construct(
         public readonly NodeType $type,
@@ -101,6 +107,11 @@ class Node
 
     public function remove(): void
     {
+        if ($this->styleEventsEnabled()) {
+            $this->detachProcessedLinks();
+            $this->clearStyleEventState();
+        }
+
         if ($this->parent !== null) {
             if ($this->parent->firstChild === $this) {
                 $this->parent->firstChild = $this->next;
@@ -300,11 +311,21 @@ class Node
 
         if ($child === null) {
             $this->insertChildWithoutEvents($node);
+            if ($this->styleEventsEnabled()) {
+                $this->insertProcessedNode($node, null);
+                $node->rebuildProcessedDescendantsFromRaw();
+                $node->processRawSubtreeForStyleEvents();
+            }
             $this->notifyNodeInserted($node);
             return;
         }
 
         $this->insertBeforeWithoutEvents($node, $child);
+        if ($this->styleEventsEnabled()) {
+            $this->insertProcessedNode($node, $child);
+            $node->rebuildProcessedDescendantsFromRaw();
+            $node->processRawSubtreeForStyleEvents();
+        }
         $this->notifyNodeInserted($node);
     }
 
@@ -348,6 +369,178 @@ class Node
 
         if (is_object($document) && method_exists($document, 'noteNodeInserted')) {
             $document->noteNodeInserted($node);
+        }
+    }
+
+    private function insertProcessedNode(Node $node, ?Node $rawReference): void
+    {
+        $node->detachProcessedLinks();
+        $reference = $this->processedReferenceFor($rawReference);
+
+        if ($reference === null) {
+            $this->appendProcessedChild($node);
+            return;
+        }
+
+        $node->processedParent = $this;
+        $node->processedNext = $reference;
+        $node->processedPrev = $reference->processedPrev;
+
+        if ($reference->processedPrev !== null) {
+            $reference->processedPrev->processedNext = $node;
+        } else {
+            $this->processedFirstChild = $node;
+        }
+
+        $reference->processedPrev = $node;
+    }
+
+    private function appendProcessedChild(Node $node): void
+    {
+        if ($this->processedLastChild !== null) {
+            $this->processedLastChild->processedNext = $node;
+        } else {
+            $this->processedFirstChild = $node;
+        }
+
+        $node->processedParent = $this;
+        $node->processedNext = null;
+        $node->processedPrev = $this->processedLastChild;
+
+        $this->processedLastChild = $node;
+    }
+
+    private function processedReferenceFor(?Node $rawReference): ?Node
+    {
+        for ($candidate = $rawReference; $candidate !== null; $candidate = $candidate->next) {
+            if ($candidate->processedParent === $this) {
+                return $candidate;
+            }
+        }
+
+        return null;
+    }
+
+    private function detachProcessedLinks(): void
+    {
+        if ($this->processedParent !== null) {
+            if ($this->processedParent->processedFirstChild === $this) {
+                $this->processedParent->processedFirstChild = $this->processedNext;
+            }
+
+            if ($this->processedParent->processedLastChild === $this) {
+                $this->processedParent->processedLastChild = $this->processedPrev;
+            }
+        }
+
+        if ($this->processedNext !== null) {
+            $this->processedNext->processedPrev = $this->processedPrev;
+        }
+
+        if ($this->processedPrev !== null) {
+            $this->processedPrev->processedNext = $this->processedNext;
+        }
+
+        $this->processedParent = null;
+        $this->processedNext = null;
+        $this->processedPrev = null;
+    }
+
+    private function rebuildProcessedDescendantsFromRaw(): void
+    {
+        $processedChildren = $this->processedChildNodes();
+        foreach ($processedChildren as $child) {
+            $child->clearProcessedSubtreeLinks();
+        }
+
+        $this->processedFirstChild = null;
+        $this->processedLastChild = null;
+
+        for ($child = $this->firstChild; $child !== null; $child = $child->next) {
+            $child->clearProcessedSubtreeLinks();
+            $this->appendProcessedChild($child);
+            $child->rebuildProcessedDescendantsFromRaw();
+        }
+    }
+
+    /**
+     * @return list<Node>
+     */
+    private function processedChildNodes(): array
+    {
+        $nodes = [];
+
+        for ($child = $this->processedFirstChild; $child !== null; $child = $child->processedNext) {
+            $nodes[] = $child;
+        }
+
+        return $nodes;
+    }
+
+    private function clearProcessedSubtreeLinks(): void
+    {
+        $processedChildren = $this->processedChildNodes();
+        $this->detachProcessedLinks();
+
+        foreach ($processedChildren as $child) {
+            $child->clearProcessedSubtreeLinks();
+        }
+
+        $this->processedFirstChild = null;
+        $this->processedLastChild = null;
+    }
+
+    private function processRawSubtreeForStyleEvents(): void
+    {
+        if ($this instanceof Element) {
+            $this->processedAttributes = array_change_key_case($this->attributes, CASE_LOWER);
+            $this->processedInlineStyle = $this->processedAttributes['style'] ?? null;
+        }
+
+        if ($this instanceof Text) {
+            $this->processRawDataForStyleEvents();
+        }
+
+        for ($child = $this->firstChild; $child !== null; $child = $child->next) {
+            $child->processRawSubtreeForStyleEvents();
+        }
+    }
+
+    private function styleEventsEnabled(): bool
+    {
+        $document = $this->ownerDocument;
+
+        return ! is_object($document)
+            || ! method_exists($document, 'withoutEvents')
+            || ! $document->withoutEvents();
+    }
+
+    private function clearStyleEventState(): void
+    {
+        $seen = [];
+        $this->clearStyleEventStateRecursive($seen);
+    }
+
+    /**
+     * @param array<int, true> $seen
+     */
+    private function clearStyleEventStateRecursive(array &$seen): void
+    {
+        $id = spl_object_id($this);
+        if (isset($seen[$id])) {
+            return;
+        }
+
+        $seen[$id] = true;
+        $this->styleEventConnected = false;
+        $this->styleSourceOrder = 0;
+
+        for ($child = $this->firstChild; $child !== null; $child = $child->next) {
+            $child->clearStyleEventStateRecursive($seen);
+        }
+
+        for ($child = $this->processedFirstChild; $child !== null; $child = $child->processedNext) {
+            $child->clearStyleEventStateRecursive($seen);
         }
     }
 

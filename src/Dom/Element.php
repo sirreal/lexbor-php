@@ -10,6 +10,10 @@ final class Element extends Node
     public const string NAMESPACE_MATH = 'math';
     public const string NAMESPACE_SVG = 'svg';
 
+    public ?string $processedInlineStyle = null;
+    /** @var array<string, string> */
+    public array $processedAttributes = [];
+
     /**
      * @var array<string, Attr>
      */
@@ -26,6 +30,10 @@ final class Element extends Node
         public readonly string $namespace = self::NAMESPACE_HTML,
     ) {
         parent::__construct(NodeType::Element, $ownerDocument, $tagId);
+        if ($this->styleAttributeEventsEnabled()) {
+            $this->processedAttributes = array_change_key_case($attributes, CASE_LOWER);
+            $this->processedInlineStyle = $this->processedAttributes['style'] ?? null;
+        }
     }
 
     public function getAttribute(string $name): ?string
@@ -37,6 +45,14 @@ final class Element extends Node
     {
         $normalized = strtolower($name);
         $this->attributes[$normalized] = $value;
+
+        if ($this->attributeEventsEnabled()) {
+            $this->processedAttributes[$normalized] = $value;
+        }
+
+        if ($normalized === 'style' && $this->styleAttributeEventsEnabled()) {
+            $this->processedInlineStyle = $value;
+        }
 
         if (isset($this->attributeNodes[$normalized])) {
             $this->attributeNodes[$normalized]->value = $value;
@@ -76,6 +92,14 @@ final class Element extends Node
         }
 
         unset($this->attributes[$normalized]);
+
+        if ($this->attributeEventsEnabled()) {
+            unset($this->processedAttributes[$normalized]);
+        }
+
+        if ($normalized === 'style' && $this->styleAttributeEventsEnabled()) {
+            $this->processedInlineStyle = null;
+        }
     }
 
     public function clearAttributes(): void
@@ -117,5 +141,27 @@ final class Element extends Node
         }
 
         $this->attributes[$attr->name] = $value;
+
+        if ($this->attributeEventsEnabled()) {
+            $this->processedAttributes[$attr->name] = $value;
+        }
+
+        if ($attr->name === 'style' && $this->styleAttributeEventsEnabled()) {
+            $this->processedInlineStyle = $value;
+        }
+    }
+
+    private function styleAttributeEventsEnabled(): bool
+    {
+        return $this->attributeEventsEnabled();
+    }
+
+    private function attributeEventsEnabled(): bool
+    {
+        $document = $this->ownerDocument;
+
+        return ! is_object($document)
+            || ! method_exists($document, 'withoutEvents')
+            || ! $document->withoutEvents();
     }
 }

@@ -16,12 +16,16 @@ use Lexbor\Style\Stylesheet;
 
 final class Document extends Node
 {
+    public const int OPT_UNDEF = 0x00;
+    public const int OPT_WITHOUT_EVENTS = 1 << 0;
+
     private Element $html;
     private Element $head;
     private Element $body;
     private TagRegistry $tags;
     private bool $quirksMode = false;
     private bool $scripting = false;
+    private int $domOptions = self::OPT_UNDEF;
     /** @var list<Node> */
     private array $bodySuffixNodes = [];
     /** @var list<Node> */
@@ -33,15 +37,17 @@ final class Document extends Node
     private int $styleSourceCounter = 0;
     private int $clearedStyleSourceOrder = 0;
 
-    public function __construct()
+    public function __construct(int $domOptions = self::OPT_UNDEF)
     {
         parent::__construct(NodeType::Document, $this, Tag::DOCUMENT);
 
+        $this->domOptions = $domOptions;
         $this->tags = new TagRegistry();
         $this->html = new Element('html', tagId: Tag::HTML, ownerDocument: $this);
         $this->head = new Element('head', tagId: Tag::HEAD, ownerDocument: $this);
         $this->body = $this->createElement('body');
         $this->appendChild($this->body);
+        $this->connectDocumentShell();
     }
 
     public function parse(string $html): Status
@@ -143,6 +149,23 @@ final class Document extends Node
         }
 
         $this->body->clearAttributes();
+        $this->connectDocumentShell();
+    }
+
+    private function connectDocumentShell(): void
+    {
+        if ($this->processedFirstChild !== null && $this->processedFirstChild !== $this->body) {
+            $this->processedFirstChild->processedParent = null;
+            $this->processedFirstChild->processedNext = null;
+            $this->processedFirstChild->processedPrev = null;
+        }
+
+        $this->processedFirstChild = $this->body;
+        $this->processedLastChild = $this->body;
+        $this->body->processedParent = $this;
+        $this->body->processedNext = null;
+        $this->body->processedPrev = null;
+        $this->body->styleEventConnected = true;
     }
 
     public function documentType(): ?DocumentType
@@ -287,6 +310,10 @@ final class Document extends Node
 
     public function noteNodeInserted(Node $node): void
     {
+        if ($this->withoutEvents()) {
+            return;
+        }
+
         $this->assignStyleSourceOrder($node);
     }
 
@@ -297,6 +324,10 @@ final class Document extends Node
 
     private function assignStyleSourceOrder(Node $node): void
     {
+        if ($node instanceof Element) {
+            $node->styleEventConnected = true;
+        }
+
         if (
             $node instanceof Element
             && $node->namespace === Element::NAMESPACE_HTML
@@ -323,6 +354,78 @@ final class Document extends Node
     public function setScriptingEnabled(bool $scripting): void
     {
         $this->scripting = $scripting;
+    }
+
+    public function domOptions(): int
+    {
+        return $this->domOptions;
+    }
+
+    public function setDomOptions(int $options): void
+    {
+        $wasWithoutEvents = $this->withoutEvents();
+        $willBeWithoutEvents = ($options & self::OPT_WITHOUT_EVENTS) !== 0;
+
+        if (! $wasWithoutEvents && $willBeWithoutEvents) {
+            $seen = [];
+            $this->syncProcessedTextDataForStyleEvents($this->head, $seen);
+            $this->syncProcessedTextDataForStyleEvents($this, $seen);
+        }
+
+        $this->domOptions = $options;
+
+        if ($wasWithoutEvents && ! $this->withoutEvents()) {
+            $seen = [];
+            $this->observeRawTextDataWithoutProcessing($this->head, $seen);
+            $this->observeRawTextDataWithoutProcessing($this, $seen);
+        }
+    }
+
+    public function withoutEvents(): bool
+    {
+        return ($this->domOptions & self::OPT_WITHOUT_EVENTS) !== 0;
+    }
+
+    /**
+     * @param array<int, true> $seen
+     */
+    private function syncProcessedTextDataForStyleEvents(Node $node, array &$seen): void
+    {
+        $id = spl_object_id($node);
+        if (isset($seen[$id])) {
+            return;
+        }
+
+        $seen[$id] = true;
+
+        if ($node instanceof Text) {
+            $node->syncProcessedDataForStyleEvents();
+        }
+
+        for ($child = $node->processedFirstChild; $child !== null; $child = $child->processedNext) {
+            $this->syncProcessedTextDataForStyleEvents($child, $seen);
+        }
+    }
+
+    /**
+     * @param array<int, true> $seen
+     */
+    private function observeRawTextDataWithoutProcessing(Node $node, array &$seen): void
+    {
+        $id = spl_object_id($node);
+        if (isset($seen[$id])) {
+            return;
+        }
+
+        $seen[$id] = true;
+
+        if ($node instanceof Text) {
+            $node->observeRawDataWithoutProcessing();
+        }
+
+        for ($child = $node->processedFirstChild; $child !== null; $child = $child->processedNext) {
+            $this->observeRawTextDataWithoutProcessing($child, $seen);
+        }
     }
 
     private function parseFragmentInto(Node $root, string $html, ?Element $context = null): void

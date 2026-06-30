@@ -52,18 +52,17 @@ final class StyleEngine
     public function serializeElementStyle(Element $element): string
     {
         $declarations = [];
+        $document = $element->ownerDocument;
 
-        if ($this->isConnectedToOwnerDocument($element)) {
-            $document = $element->ownerDocument;
-
-            if ($document instanceof Document) {
-                foreach ($this->documentStyleSources($document) as $source) {
-                    $this->applyStylesheet($declarations, $element, $source['stylesheet']);
-                }
-            }
+        if (
+            $document instanceof Document
+            && $element->styleEventConnected
+            && $this->isProcessedConnectedToOwnerDocument($element, $document)
+        ) {
+            $this->applyDocumentStyleSources($declarations, $element, $document);
         }
 
-        $inlineStyle = $element->getAttribute('style');
+        $inlineStyle = $element->processedInlineStyle;
         if ($inlineStyle !== null) {
             $this->applyDeclarations($declarations, $this->declarationsParser->parseList($inlineStyle), true);
         }
@@ -95,6 +94,121 @@ final class StyleEngine
             }
 
             $this->applyDeclarations($declarations, $rule['declarations'], false, $specificity);
+        }
+    }
+
+    /**
+     * @param array<string, array{value: string, important: bool, rank: int, specificity: array{a: int, b: int, c: int}}> $declarations
+     */
+    private function applyDocumentStyleSources(
+        array &$declarations,
+        Element $element,
+        Document $document,
+    ): void {
+        if (! $document->withoutEvents()) {
+            $this->syncProcessedTextDataForStyleEvents($document, $element);
+        }
+
+        $snapshots = $this->useProcessedSnapshots($document, $element);
+
+        try {
+            foreach ($this->documentStyleSources($document) as $source) {
+                $this->applyStylesheet($declarations, $element, $source['stylesheet']);
+            }
+        } finally {
+            foreach ($snapshots as $snapshot) {
+                if ($snapshot['element'] !== null && $snapshot['attributes'] !== null) {
+                    $snapshot['element']->attributes = $snapshot['attributes'];
+                }
+
+                if ($snapshot['text'] !== null && $snapshot['data'] !== null) {
+                    $snapshot['text']->setDataForStyleSnapshot($snapshot['data']);
+                }
+
+                $snapshot['node']->parent = $snapshot['parent'];
+                $snapshot['node']->next = $snapshot['next'];
+                $snapshot['node']->prev = $snapshot['prev'];
+                $snapshot['node']->firstChild = $snapshot['firstChild'];
+                $snapshot['node']->lastChild = $snapshot['lastChild'];
+            }
+        }
+    }
+
+    /**
+     * @return list<array{node: Node, element: Element|null, attributes: array<string, string>|null, text: Text|null, data: string|null, parent: Node|null, next: Node|null, prev: Node|null, firstChild: Node|null, lastChild: Node|null}>
+     */
+    private function useProcessedSnapshots(Document $document, Element $target): array
+    {
+        $nodes = [];
+        $seen = [];
+        $this->collectNodesForProcessedSnapshots($document->headElement(), $nodes, $seen);
+        $this->collectNodesForProcessedSnapshots($document, $nodes, $seen);
+        $this->collectNodesForProcessedSnapshots($target, $nodes, $seen);
+
+        $snapshots = [];
+        foreach ($nodes as $node) {
+            $snapshots[] = [
+                'node' => $node,
+                'element' => $node instanceof Element ? $node : null,
+                'attributes' => $node instanceof Element ? $node->attributes : null,
+                'text' => $node instanceof Text ? $node : null,
+                'data' => $node instanceof Text ? $node->data : null,
+                'parent' => $node->parent,
+                'next' => $node->next,
+                'prev' => $node->prev,
+                'firstChild' => $node->firstChild,
+                'lastChild' => $node->lastChild,
+            ];
+
+            $node->parent = $node->processedParent;
+            $node->next = $node->processedNext;
+            $node->prev = $node->processedPrev;
+            $node->firstChild = $node->processedFirstChild;
+            $node->lastChild = $node->processedLastChild;
+
+            if ($node instanceof Element) {
+                $node->attributes = $node->processedAttributes;
+            }
+
+            if ($node instanceof Text) {
+                $node->setDataForStyleSnapshot($node->processedData);
+            }
+        }
+
+        return $snapshots;
+    }
+
+    private function syncProcessedTextDataForStyleEvents(Document $document, Element $target): void
+    {
+        $nodes = [];
+        $seen = [];
+        $this->collectNodesForProcessedSnapshots($document->headElement(), $nodes, $seen);
+        $this->collectNodesForProcessedSnapshots($document, $nodes, $seen);
+        $this->collectNodesForProcessedSnapshots($target, $nodes, $seen);
+
+        foreach ($nodes as $node) {
+            if ($node instanceof Text) {
+                $node->syncProcessedDataForStyleEvents();
+            }
+        }
+    }
+
+    /**
+     * @param list<Node> $nodes
+     * @param array<int, true> $seen
+     */
+    private function collectNodesForProcessedSnapshots(Node $node, array &$nodes, array &$seen): void
+    {
+        $id = spl_object_id($node);
+        if (isset($seen[$id])) {
+            return;
+        }
+
+        $seen[$id] = true;
+        $nodes[] = $node;
+
+        for ($child = $node->processedFirstChild; $child !== null; $child = $child->processedNext) {
+            $this->collectNodesForProcessedSnapshots($child, $nodes, $seen);
         }
     }
 
@@ -157,13 +271,29 @@ final class StyleEngine
         }
     }
 
+    private function isProcessedConnectedToOwnerDocument(Element $element, Document $document): bool
+    {
+        return $this->processedTreeContains($document, $element);
+    }
+
+    private function processedTreeContains(Node $root, Node $target): bool
+    {
+        for ($node = $root->processedFirstChild; $node !== null; $node = $node->processedNext) {
+            if ($node === $target || $this->processedTreeContains($node, $target)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private function textContent(Node $node): string
     {
         $content = '';
 
         for ($child = $node->firstChild; $child !== null; $child = $child->next) {
             if ($child instanceof Text) {
-                $content .= $child->data;
+                $content .= $child->processedData;
                 continue;
             }
 
@@ -500,19 +630,4 @@ final class StyleEngine
         return $serialized;
     }
 
-    private function isConnectedToOwnerDocument(Element $element): bool
-    {
-        $ownerDocument = $element->ownerDocument;
-        if (! $ownerDocument instanceof Document) {
-            return false;
-        }
-
-        for ($node = $element; $node instanceof Node; $node = $node->parent) {
-            if ($node === $ownerDocument) {
-                return true;
-            }
-        }
-
-        return false;
-    }
 }
