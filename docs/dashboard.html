@@ -205,7 +205,7 @@
     <main>
         <div class="metrics" aria-label="Project metrics">
             <div class="metric">
-                <strong>17094 / 17094</strong>
+                <strong>17139 / 17139</strong>
                 <span>PHPUnit tests passing</span>
             </div>
             <div class="metric">
@@ -213,8 +213,8 @@
                 <span>Passing rate for ported tests</span>
             </div>
             <div class="metric">
-                <strong>7 / 9</strong>
-                <span>Requested components started</span>
+                <strong>8 / 10</strong>
+                <span>Tracked components started</span>
             </div>
             <div class="metric">
                 <strong>0</strong>
@@ -235,6 +235,13 @@
                     </tr>
                 </thead>
                 <tbody>
+                    <tr>
+                        <td>Core</td>
+                        <td><span class="status done">Implemented slice</span></td>
+                        <td>45 total; 21 ported from core/array.c TEST_BEGIN blocks including the upstream-defined get block, 13 ported from core/array_obj.c TEST_BEGIN blocks including the upstream-defined get block, 2 too-small init status checks from the C implementations, plus 9 object-array slot-reuse and helper regressions</td>
+                        <td><div class="bar" aria-label="100 percent"><span style="width: 100%"></span></div></td>
+                        <td>ArrayList and ObjectArray now cover Lexbor-style create/init/destroy, capacity and length tracking, clean, expand, push, push-without-clear, push-n, pop, last, erase, sparse set/insert, deletion compaction and truncation, stable object-slot reuse, struct-size tracking, and object-null/too-small status mapping; broader Core containers remain pending.</td>
+                    </tr>
                     <tr>
                         <td>DOM</td>
                         <td><span class="status done">Implemented slice</span></td>
@@ -305,6 +312,7 @@
         <section>
             <h2>Dependency Map</h2>
             <div class="dependency-grid">
+                <div class="node"><strong>Core</strong><span>Provides Lexbor container/status primitives used by higher-level DOM, HTML, CSS, URL, Encoding, and Unicode ports.</span></div>
                 <div class="node"><strong>Encoding</strong><span>Feeds Unicode decoding, HTML prescan, URL parsing, and Punycode UTF-8 boundaries.</span></div>
                 <div class="node"><strong>Unicode</strong><span>Builds on Encoding; required for normalization, IDNA, URL hosts, and selectors.</span></div>
                 <div class="node"><strong>Punycode</strong><span>Uses Encoding UTF-8 helpers; later plugs into URL and Unicode IDNA workflows.</span></div>
