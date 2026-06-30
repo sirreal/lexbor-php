@@ -12,6 +12,7 @@ use Lexbor\Dom\Element;
 use Lexbor\Dom\Node;
 use Lexbor\Dom\NodeType;
 use Lexbor\Dom\Text;
+use Lexbor\Style\Stylesheet;
 
 final class Document extends Node
 {
@@ -25,6 +26,8 @@ final class Document extends Node
     private array $bodySuffixNodes = [];
     /** @var list<Node> */
     private array $documentSuffixNodes = [];
+    /** @var list<Stylesheet> */
+    private array $stylesheets = [];
 
     public function __construct()
     {
@@ -220,6 +223,35 @@ final class Document extends Node
     public function tags(): TagRegistry
     {
         return $this->tags;
+    }
+
+    public function attachStylesheet(Stylesheet $stylesheet): void
+    {
+        $this->stylesheets[] = $stylesheet;
+    }
+
+    public function removeStylesheet(Stylesheet $stylesheet): void
+    {
+        foreach ($this->stylesheets as $index => $candidate) {
+            if ($candidate === $stylesheet) {
+                unset($this->stylesheets[$index]);
+                $this->stylesheets = array_values($this->stylesheets);
+                return;
+            }
+        }
+    }
+
+    public function clearStylesheets(): void
+    {
+        $this->stylesheets = [];
+    }
+
+    /**
+     * @return list<Stylesheet>
+     */
+    public function stylesheets(): array
+    {
+        return $this->stylesheets;
     }
 
     public function isQuirksMode(): bool
