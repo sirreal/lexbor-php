@@ -111,6 +111,25 @@ final class CloneTest extends TestCase
         self::assertSame('<div x="abc"><span>darkness</span><xx>xXx</xx></div>', Serializer::serialize($clone));
     }
 
+    public function testFullCloneImportsDocumentRootFromAnotherDocument(): void
+    {
+        $documentOne = $this->documentWithFixture();
+        $documentTwo = $this->documentWithFixture();
+
+        $nodeOne = $documentOne->bodyElement();
+        $nodeTwo = $documentTwo->bodyElement();
+
+        self::assertNotSame($nodeOne, $nodeTwo);
+
+        $clone = $documentOne->importNode($nodeTwo, true);
+
+        self::assertInstanceOf(Element::class, $clone);
+        self::assertNotSame($nodeTwo, $clone);
+        self::assertSame($documentOne, $clone->ownerDocument);
+        self::assertSame($documentOne, $clone->firstChild?->ownerDocument);
+        self::assertSame(Serializer::serialize($nodeOne), Serializer::serialize($clone));
+    }
+
     public function testDeepCloneCopiesTextDescendants(): void
     {
         $document = $this->documentWithFixture();
