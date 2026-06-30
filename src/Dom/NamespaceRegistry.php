@@ -37,14 +37,54 @@ final class NamespaceRegistry
     /**
      * @var array<int, string>
      */
+    private const KNOWN_PREFIXES = [
+        NamespaceUri::UNDEF => '#undef',
+        NamespaceUri::ANY => '#any',
+        NamespaceUri::HTML => 'html',
+        NamespaceUri::MATH => 'math',
+        NamespaceUri::SVG => 'svg',
+        NamespaceUri::XLINK => 'xlink',
+        NamespaceUri::XML => 'xml',
+        NamespaceUri::XMLNS => 'xmlns',
+    ];
+
+    /**
+     * @var array<string, int>
+     */
+    private const KNOWN_PREFIX_IDS = [
+        '#undef' => NamespaceUri::UNDEF,
+        '#any' => NamespaceUri::ANY,
+        'html' => NamespaceUri::HTML,
+        'math' => NamespaceUri::MATH,
+        'svg' => NamespaceUri::SVG,
+        'xlink' => NamespaceUri::XLINK,
+        'xml' => NamespaceUri::XML,
+        'xmlns' => NamespaceUri::XMLNS,
+    ];
+
+    /**
+     * @var array<int, string>
+     */
     private static array $dynamicLinks = [];
 
+    /**
+     * @var array<int, string>
+     */
+    private static array $dynamicPrefixes = [];
+
     private static int $nextDynamicId = NamespaceUri::LAST_ENTRY + 1;
+
+    private static int $nextDynamicPrefixId = NamespaceUri::LAST_ENTRY + 1;
 
     /**
      * @var array<string, int>
      */
     private array $dynamicIds = [];
+
+    /**
+     * @var array<string, int>
+     */
+    private array $dynamicPrefixIds = [];
 
     public function lookupIdForLink(string $link): ?int
     {
@@ -82,8 +122,49 @@ final class NamespaceRegistry
         return $id;
     }
 
+    public function lookupIdForPrefix(string $prefix): ?int
+    {
+        if ($prefix === '') {
+            return null;
+        }
+
+        $normalized = strtolower($prefix);
+        $knownId = self::KNOWN_PREFIX_IDS[$normalized] ?? null;
+
+        if ($knownId !== null) {
+            return $knownId;
+        }
+
+        return $this->dynamicPrefixIds[$normalized] ?? null;
+    }
+
+    public function idForPrefix(string $prefix): ?int
+    {
+        if ($prefix === '') {
+            return null;
+        }
+
+        $knownId = $this->lookupIdForPrefix($prefix);
+
+        if ($knownId !== null) {
+            return $knownId;
+        }
+
+        $normalized = strtolower($prefix);
+        $id = self::$nextDynamicPrefixId++;
+        $this->dynamicPrefixIds[$normalized] = $id;
+        self::$dynamicPrefixes[$id] = $normalized;
+
+        return $id;
+    }
+
     public static function linkById(int $namespaceId): ?string
     {
         return self::KNOWN_LINKS[$namespaceId] ?? self::$dynamicLinks[$namespaceId] ?? null;
+    }
+
+    public static function prefixById(int $prefixId): ?string
+    {
+        return self::KNOWN_PREFIXES[$prefixId] ?? self::$dynamicPrefixes[$prefixId] ?? null;
     }
 }
