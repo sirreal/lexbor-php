@@ -8,6 +8,20 @@ use Lexbor\Core\Status;
 
 final class Encoding
 {
+    /** @var array<string, string> */
+    private const PRESCAN_ALIASES = [
+        'unicodefffe' => 'UTF-8',
+        'utf-16be' => 'UTF-8',
+        'csunicode' => 'UTF-8',
+        'iso-10646-ucs-2' => 'UTF-8',
+        'ucs-2' => 'UTF-8',
+        'unicode' => 'UTF-8',
+        'unicodefeff' => 'UTF-8',
+        'utf-16' => 'UTF-8',
+        'utf-16le' => 'UTF-8',
+        'x-user-defined' => 'windows-1252',
+    ];
+
     /** @var list<string> */
     private array $entries = [];
 
@@ -16,6 +30,25 @@ final class Encoding
         $this->entries = self::scanMetaEntries($html);
 
         return Status::Ok;
+    }
+
+    public function prescan(string $html): ?string
+    {
+        $signature = substr($html, 0, 6);
+        if (strlen($signature) === 6) {
+            if ($signature === "\x3C\x00\x3F\x00\x78\x00") {
+                return 'UTF-16LE';
+            }
+
+            if ($signature === "\x00\x3C\x00\x3F\x00\x78") {
+                return 'UTF-16BE';
+            }
+        }
+
+        $this->determine($html);
+        $entry = $this->metaEntry(0);
+
+        return $entry === null ? null : self::normalizePrescanName($entry);
     }
 
     public function clean(): void
@@ -46,6 +79,11 @@ final class Encoding
     public static function determineMetaEntries(string $html): array
     {
         return self::scanMetaEntries($html);
+    }
+
+    public static function prescanName(string $html): ?string
+    {
+        return (new self())->prescan($html);
     }
 
     /**
@@ -117,6 +155,13 @@ final class Encoding
         }
 
         return $entries;
+    }
+
+    private static function normalizePrescanName(string $name): string
+    {
+        $alias = strtolower($name);
+
+        return self::PRESCAN_ALIASES[$alias] ?? $name;
     }
 
     private static function skipMarkupDeclaration(string $html, int $offset): int
