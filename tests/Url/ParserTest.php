@@ -220,6 +220,60 @@ final class ParserTest extends TestCase
         self::assertSame('/', $url->path);
     }
 
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function upstreamUrlFixtureFileProvider(): iterable
+    {
+        foreach (
+            [
+                'file.ton',
+                'fragment.ton',
+                'query.ton',
+                'scheme.ton',
+                'url.ton',
+                'username_password.ton',
+            ] as $filename
+        ) {
+            foreach (self::urlFixtureEntries($filename) as $index => $entry) {
+                yield $filename . ' #' . ($index + 1) => [$entry];
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $entry
+     */
+    #[DataProvider('upstreamUrlFixtureFileProvider')]
+    public function testUpstreamUrlFixtureFiles(array $entry): void
+    {
+        $parser = new Parser();
+        $base = null;
+
+        if (isset($entry['base'])) {
+            $base = $parser->parse($entry['base']);
+            self::assertNotNull($base);
+        }
+
+        $url = $parser->parse($entry['url'], $base, $entry['encoding'] ?? 'utf-8');
+
+        if ($entry['failed'] ?? false) {
+            self::assertNull($url);
+            return;
+        }
+
+        self::assertNotNull($url);
+        self::assertSame($entry['done'], $url->serialize());
+        self::assertSame($entry['scheme'], $url->scheme);
+        self::assertSame($entry['username'] ?? '', $url->username);
+        self::assertSame($entry['password'] ?? '', $url->password);
+        self::assertSame($entry['host'] ?? '', $url->host);
+        self::assertSame($entry['port'] ?? null, $url->port);
+        self::assertSame($entry['path'] ?? '', $url->path);
+        self::assertSame($entry['query'] ?? null, $url->query);
+        self::assertSame($entry['fragment'] ?? null, $url->fragment);
+    }
+
     public function testNonSpecialNumericHostIsNotIpv4Normalized(): void
     {
         $url = (new Parser())->parse('my://16909060');
@@ -1839,13 +1893,48 @@ final class ParserTest extends TestCase
 
         $json = preg_replace('/\/\*.*?\*\//s', '', $contents);
         $json = preg_replace('/,\s*([\]}])/m', '$1', $json ?? '');
-        $entries = json_decode($json ?? '', true, flags: JSON_THROW_ON_ERROR);
+        $json = preg_replace_callback(
+            '/\\\\x([0-9A-Fa-f]{2})/',
+            static fn (array $matches): string => '\\uE0' . strtoupper($matches[1]),
+            $json ?? '',
+        );
+        $entries = self::restoreTonHexEscapes(json_decode($json ?? '', true, flags: JSON_THROW_ON_ERROR));
 
         if (! is_array($entries)) {
             throw new \RuntimeException("URL fixture did not decode to a list: {$filename}");
         }
 
         return $entries;
+    }
+
+    private static function restoreTonHexEscapes(mixed $value): mixed
+    {
+        if (is_array($value)) {
+            return array_map(self::restoreTonHexEscapes(...), $value);
+        }
+
+        if (! is_string($value)) {
+            return $value;
+        }
+
+        return preg_replace_callback(
+            '/[\x{E000}-\x{E0FF}]/u',
+            static fn (array $matches): string => chr(self::utf8CodePoint($matches[0]) & 0xff),
+            $value,
+        ) ?? $value;
+    }
+
+    private static function utf8CodePoint(string $character): int
+    {
+        $bytes = array_values(unpack('C*', $character));
+
+        return match (count($bytes)) {
+            1 => $bytes[0],
+            2 => (($bytes[0] & 0x1f) << 6) | ($bytes[1] & 0x3f),
+            3 => (($bytes[0] & 0x0f) << 12) | (($bytes[1] & 0x3f) << 6) | ($bytes[2] & 0x3f),
+            4 => (($bytes[0] & 0x07) << 18) | (($bytes[1] & 0x3f) << 12) | (($bytes[2] & 0x3f) << 6) | ($bytes[3] & 0x3f),
+            default => 0,
+        };
     }
 
     private static function pathSegmentCount(string $path): int
