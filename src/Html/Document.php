@@ -247,14 +247,15 @@ final class Document extends Node
             && $context->namespace === Element::NAMESPACE_HTML
             && $context->tagName === 'form'
         ) ? $context : null;
-        $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
+        $afterBody = false;
+        $afterHtml = false;
+        $pattern = '~(?<comment_start><!--)|(?<empty_end_tag></>)|(?<doctype><!doctype[^>]*(?:>|\z))|</(?<invalid_end_tag>[^A-Za-z>][^>]*)(?:>|\z)|<(?<bogus_comment>\?[^>]*)(?:>|\z)|<!(?!doctype)(?<bogus_declaration>[^>]*)(?:>|\z)|<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
         $offset = 0;
 
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
             $tagStart = $match[0][1];
             if ($tagStart > $offset) {
-                $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
-                $this->appendText($stack[count($stack) - 1], substr($html, $offset, $tagStart - $offset));
+                $this->appendTextToken($stack, $pendingFormattingTailClones, $afterBody, $afterHtml, substr($html, $offset, $tagStart - $offset));
                 $formattingEndTagsPoppedByScope = [];
             }
 
@@ -264,7 +265,7 @@ final class Document extends Node
             if (($match['comment_start'][1] ?? -1) !== -1) {
                 $formattingEndTagsPoppedByScope = [];
                 [$comment, $tagEnd] = self::consumeHtmlComment($html, $tagStart);
-                $this->appendComment($parent, $comment);
+                $this->appendCommentToken($parent, $root, $context, $afterBody, $afterHtml, $comment);
                 $offset = $tagEnd;
                 continue;
             }
@@ -275,16 +276,26 @@ final class Document extends Node
                 continue;
             }
 
+            if (($match['doctype'][1] ?? -1) !== -1) {
+                $formattingEndTagsPoppedByScope = [];
+                if (! ($afterBody || $afterHtml)) {
+                    $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
+                    $this->appendText($stack[count($stack) - 1], $match['doctype'][0]);
+                }
+                $offset = $tagEnd;
+                continue;
+            }
+
             if (($match['invalid_end_tag'][1] ?? -1) !== -1) {
                 $formattingEndTagsPoppedByScope = [];
-                $this->appendComment($parent, str_replace("\0", "\u{FFFD}", $match['invalid_end_tag'][0]));
+                $this->appendCommentToken($parent, $root, $context, $afterBody, $afterHtml, str_replace("\0", "\u{FFFD}", $match['invalid_end_tag'][0]));
                 $offset = $tagEnd;
                 continue;
             }
 
             if (($match['bogus_comment'][1] ?? -1) !== -1) {
                 $formattingEndTagsPoppedByScope = [];
-                $this->appendComment($parent, str_replace("\0", "\u{FFFD}", $match['bogus_comment'][0]));
+                $this->appendCommentToken($parent, $root, $context, $afterBody, $afterHtml, str_replace("\0", "\u{FFFD}", $match['bogus_comment'][0]));
                 $offset = $tagEnd;
                 continue;
             }
@@ -299,7 +310,7 @@ final class Document extends Node
                     continue;
                 }
 
-                $this->appendComment($parent, str_replace("\0", "\u{FFFD}", $declaration));
+                $this->appendCommentToken($parent, $root, $context, $afterBody, $afterHtml, str_replace("\0", "\u{FFFD}", $declaration));
                 $offset = $tagEnd;
                 continue;
             }
@@ -313,6 +324,29 @@ final class Document extends Node
             [$attributeSource, $tagEnd, $selfClosing] = $startTagEnd;
 
             if ($match['closing'][0] === '/') {
+                $documentShellEndTagContext = $this->isDocumentShellEndTagContext($root, $context, $stack);
+
+                if ($documentShellEndTagContext && $tagName === 'body') {
+                    $formattingEndTagsPoppedByScope = [];
+                    $afterBody = true;
+                    $afterHtml = false;
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                if ($documentShellEndTagContext && $tagName === 'html') {
+                    $formattingEndTagsPoppedByScope = [];
+                    $afterBody = false;
+                    $afterHtml = true;
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                if (($afterBody || $afterHtml) && ! $this->isBodyEndModeShellEndTag($root, $context, $tagName)) {
+                    $afterBody = false;
+                    $afterHtml = false;
+                }
+
                 if ($this->isDocumentShellTag($root, $context, $tagName)) {
                     $formattingEndTagsPoppedByScope = [];
                     $offset = $tagEnd;
@@ -408,14 +442,20 @@ final class Document extends Node
             }
 
             if ($this->isDocumentShellTag($root, $context, $tagName)) {
-                if ($parent === $root && $tagName === 'html') {
-                    $this->mergeMissingAttributes($this->html, $attributes);
-                } elseif ($parent === $root && $tagName === 'body') {
-                    $this->mergeMissingAttributes($this->body, $attributes);
+                $this->mergeDocumentShellStartTagAttributes($root, $context, $stack, $tagName, $attributes);
+
+                if (($afterBody || $afterHtml) && $tagName !== 'html') {
+                    $afterBody = false;
+                    $afterHtml = false;
                 }
 
                 $offset = $tagEnd;
                 continue;
+            }
+
+            if ($afterBody || $afterHtml) {
+                $afterBody = false;
+                $afterHtml = false;
             }
 
             if (
@@ -515,8 +555,14 @@ final class Document extends Node
                 $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             }
 
+            if ($tagName === 'li' && self::isHtmlInsertionContext($namespaceParent)) {
+                $formattingTailClones = array_merge($this->closeOpenListItem($stack), $formattingTailClones);
+                $parent = $stack[count($stack) - 1];
+                $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            }
+
             if (($tagName === 'dd' || $tagName === 'dt') && self::isHtmlInsertionContext($namespaceParent)) {
-                $this->closeOpenDescriptionListItem($stack);
+                $formattingTailClones = array_merge($this->closeOpenDescriptionListItem($stack), $formattingTailClones);
                 $parent = $stack[count($stack) - 1];
                 $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             }
@@ -600,8 +646,7 @@ final class Document extends Node
         }
 
         if ($offset < strlen($html)) {
-            $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
-            $this->appendText($stack[count($stack) - 1], substr($html, $offset));
+            $this->appendTextToken($stack, $pendingFormattingTailClones, $afterBody, $afterHtml, substr($html, $offset));
         }
     }
 
@@ -610,7 +655,7 @@ final class Document extends Node
         $stack = [$this->body];
         $afterFrameset = false;
         $afterHtml = false;
-        $pattern = '~(?<comment_start><!--)|(?<doctype><!doctype(?=[\t\n\f\r >])[^>]*(?:>|\z))|<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
+        $pattern = '~(?<comment_start><!--)|(?<doctype><!doctype[^>]*(?:>|\z))|<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
         $offset = 0;
 
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
@@ -742,11 +787,21 @@ final class Document extends Node
     private function appendFramesetSuffixNode(Node $node, bool $documentLevel = false): void
     {
         if ($documentLevel) {
-            $this->documentSuffixNodes[] = $node;
+            $this->appendDocumentSuffixNode($node);
             return;
         }
 
+        $this->appendBodySuffixNode($node);
+    }
+
+    private function appendBodySuffixNode(Node $node): void
+    {
         $this->bodySuffixNodes[] = $node;
+    }
+
+    private function appendDocumentSuffixNode(Node $node): void
+    {
+        $this->documentSuffixNodes[] = $node;
     }
 
     /**
@@ -891,6 +946,23 @@ final class Document extends Node
         $parent->appendChild($this->createComment($data));
     }
 
+    private function appendCommentToken(Node $parent, Node $root, ?Element $context, bool $afterBody, bool $afterHtml, string $data): void
+    {
+        if ($this->isDocumentBodyParsingContext($root, $context)) {
+            if ($afterHtml) {
+                $this->appendDocumentSuffixNode($this->createComment($data));
+                return;
+            }
+
+            if ($afterBody) {
+                $this->appendBodySuffixNode($this->createComment($data));
+                return;
+            }
+        }
+
+        $this->appendComment($parent, $data);
+    }
+
     /**
      * @return array{string, int}
      */
@@ -1030,6 +1102,69 @@ final class Document extends Node
 
             $parent->appendChild($textNode);
         }
+    }
+
+    /**
+     * @param list<Node> $stack
+     * @param list<Element> $pendingFormattingTailClones
+     */
+    private function appendTextToken(
+        array &$stack,
+        array &$pendingFormattingTailClones,
+        bool &$afterBody,
+        bool &$afterHtml,
+        string $text,
+    ): void {
+        if ($text === '') {
+            return;
+        }
+
+        if ($afterBody || $afterHtml) {
+            $whitespaceLength = $this->leadingDecodedHtmlWhitespaceSourceLength($text);
+            if ($whitespaceLength > 0) {
+                $this->appendText($stack[count($stack) - 1], substr($text, 0, $whitespaceLength));
+                if ($whitespaceLength === strlen($text)) {
+                    return;
+                }
+
+                $text = substr($text, $whitespaceLength);
+            }
+
+            $afterBody = false;
+            $afterHtml = false;
+        }
+
+        $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
+        $this->appendText($stack[count($stack) - 1], $text);
+    }
+
+    private function leadingDecodedHtmlWhitespaceSourceLength(string $data): int
+    {
+        $offset = 0;
+        $length = strlen($data);
+
+        while ($offset < $length) {
+            $character = $data[$offset];
+            if (str_contains(" \t\n\f\r", $character)) {
+                $offset++;
+                continue;
+            }
+
+            if ($character !== '&') {
+                break;
+            }
+
+            $reference = ($data[$offset + 1] ?? '') === '#'
+                ? $this->consumeNumericCharacterReference($data, $offset)
+                : $this->consumeNamedCharacterReference($data, $offset, false);
+            if ($reference === null || ! self::isHtmlWhitespaceOnly($reference['data'])) {
+                break;
+            }
+
+            $offset = $reference['offset'];
+        }
+
+        return $offset;
     }
 
     private function tableForFosterParentedText(Node $parent, string $text): ?Element
@@ -1422,6 +1557,21 @@ final class Document extends Node
 
             if ($node instanceof Element && $node->namespace === Element::NAMESPACE_HTML) {
                 return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private static function stackHasOpenForeignElement(array $stack): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if ($node instanceof Element && $node->namespace !== Element::NAMESPACE_HTML) {
+                return true;
             }
         }
 
@@ -1830,8 +1980,35 @@ final class Document extends Node
 
     /**
      * @param list<Node> $stack
+     * @return list<Element>
      */
-    private function closeOpenDescriptionListItem(array &$stack): void
+    private function closeOpenListItem(array &$stack): array
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->namespace === Element::NAMESPACE_HTML && $node->tagName === 'li') {
+                $tailClones = $this->formattingTailClonesAfterStackIndex($stack, $index);
+                array_splice($stack, $index);
+                return $tailClones;
+            }
+
+            if (self::isListItemSpecialBoundaryElement($node)) {
+                return [];
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * @param list<Node> $stack
+     * @return list<Element>
+     */
+    private function closeOpenDescriptionListItem(array &$stack): array
     {
         for ($index = count($stack) - 1; $index > 0; $index--) {
             $node = $stack[$index];
@@ -1840,17 +2017,39 @@ final class Document extends Node
             }
 
             if ($node->namespace === Element::NAMESPACE_HTML && ($node->tagName === 'dd' || $node->tagName === 'dt')) {
+                $tailClones = $this->formattingTailClonesAfterStackIndex($stack, $index);
                 array_splice($stack, $index);
-                return;
+                return $tailClones;
             }
 
-            if (self::isDescriptionListItemSpecialBoundaryElement($node)) {
-                return;
+            if (self::isListItemSpecialBoundaryElement($node)) {
+                return [];
             }
         }
+
+        return [];
     }
 
-    private static function isDescriptionListItemSpecialBoundaryElement(Element $element): bool
+    /**
+     * @param list<Node> $stack
+     * @return list<Element>
+     */
+    private function formattingTailClonesAfterStackIndex(array $stack, int $stackIndex): array
+    {
+        $tailClones = [];
+        for ($index = $stackIndex + 1; $index < count($stack); $index++) {
+            $node = $stack[$index];
+            if (! $node instanceof Element || ! self::isHtmlFormattingElement($node)) {
+                continue;
+            }
+
+            $tailClones[] = $this->cloneElementShallow($node);
+        }
+
+        return $tailClones;
+    }
+
+    private static function isListItemSpecialBoundaryElement(Element $element): bool
     {
         if ($element->namespace === Element::NAMESPACE_HTML) {
             if (in_array($element->tagName, ['address', 'div', 'p'], true)) {
@@ -1971,9 +2170,93 @@ final class Document extends Node
 
     private function isDocumentShellTag(Node $root, ?Element $context, string $tagName): bool
     {
-        return $root === $this->body
-            && $context === null
+        return $this->isDocumentBodyParsingContext($root, $context)
             && ($tagName === 'html' || $tagName === 'head' || $tagName === 'body');
+    }
+
+    private function isBodyEndModeShellEndTag(Node $root, ?Element $context, string $tagName): bool
+    {
+        return $this->isDocumentBodyParsingContext($root, $context)
+            && ($tagName === 'html' || $tagName === 'body');
+    }
+
+    /**
+     * @param list<Node> $stack
+     * @param list<array{name: string, value: string}> $attributes
+     */
+    private function mergeDocumentShellStartTagAttributes(Node $root, ?Element $context, array $stack, string $tagName, array $attributes): void
+    {
+        if (! $this->isDocumentBodyParsingContext($root, $context)) {
+            return;
+        }
+
+        if (self::stackHasOpenForeignElement($stack)) {
+            return;
+        }
+
+        if ($tagName === 'html') {
+            $this->mergeMissingAttributes($this->html, $attributes);
+            return;
+        }
+
+        if ($tagName === 'body' && self::stackHasRootInScope($root, $stack)) {
+            $this->mergeMissingAttributes($this->body, $attributes);
+        }
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function isDocumentShellEndTagContext(Node $root, ?Element $context, array $stack): bool
+    {
+        return $this->isDocumentBodyParsingContext($root, $context)
+            && self::stackHasRootInScope($root, $stack)
+            && ! self::stackHasOpenForeignElement($stack)
+            && ! self::stackHasOpenTableOrSelectElement($stack);
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private static function stackHasRootInScope(Node $root, array $stack): bool
+    {
+        for ($index = count($stack) - 1; $index >= 0; $index--) {
+            $node = $stack[$index];
+            if ($node === $root) {
+                return true;
+            }
+
+            if ($node instanceof Element && self::isNormalScopeBoundary($node)) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private static function stackHasOpenTableOrSelectElement(array $stack): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (
+                $node instanceof Element
+                && $node->namespace === Element::NAMESPACE_HTML
+                && ($node->tagName === 'table' || $node->tagName === 'select')
+            ) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function isDocumentBodyParsingContext(Node $root, ?Element $context): bool
+    {
+        return $root === $this->body
+            && $context === null;
     }
 
     /**
@@ -2606,85 +2889,14 @@ final class Document extends Node
 
             if ($tagName === 'body') {
                 if (! $mathAnnotationXmlBreakout && ! self::bodyFragmentScannerHasOpenForeignElement($stack)) {
-                    $contentEnd = $this->bodyFragmentContentEnd($html, $start);
-                    if ($contentEnd === null) {
-                        return [
-                            'attributes' => $attributes,
-                            'content' => substr($html, $start),
-                        ];
-                    }
-
                     return [
                         'attributes' => $attributes,
-                        'content' => substr($html, $start, $contentEnd - $start),
+                        'content' => substr($html, $start),
                     ];
                 }
 
                 $offset = $start;
                 continue;
-            }
-
-            if (! $selfClosing && self::isTextOnlyTagName($tagName, $this->isScriptingEnabled())) {
-                $offset = self::skipTextOnlyElementContent($tagName, $html, $start);
-                continue;
-            }
-
-            if (! $selfClosing && ! VoidElements::is($tagName)) {
-                $namespace = self::bodyFragmentScannerNamespaceForElement($stack, $tagName);
-                $stack[] = [
-                    'tagName' => $tagName,
-                    'namespace' => $namespace,
-                    'htmlIntegration' => self::bodyFragmentScannerIsMathAnnotationXmlHtmlIntegrationPoint($namespace, $tagName, $parsedAttributes),
-                ];
-            }
-
-            $offset = $start;
-        }
-
-        return null;
-    }
-
-    private function bodyFragmentContentEnd(string $html, int $offset): ?int
-    {
-        $pattern = '~<(?<closing>/)?(?<tag>[A-Za-z][^\t\n\f\r />]*)~si';
-        $stack = [];
-
-        while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
-            $tagStart = $match[0][1];
-            $ignoredMarkupEnd = self::bodyFragmentScannerIgnoredMarkupEnd(
-                $html,
-                $offset,
-                $tagStart,
-                self::bodyFragmentScannerHasOpenForeignElement($stack),
-            );
-            if ($ignoredMarkupEnd !== null) {
-                $offset = $ignoredMarkupEnd;
-                continue;
-            }
-
-            $tagName = self::normalizeTagTokenName($match['tag'][0]);
-            $tagEnd = $tagStart + strlen($match[0][0]);
-
-            if ($match['closing'][0] === '/') {
-                if ($tagName === 'body' && ! self::bodyFragmentScannerHasOpenForeignElement($stack)) {
-                    return $tagStart;
-                }
-
-                self::popBodyFragmentScannerStack($stack, $tagName);
-                $offset = self::consumeBodyFragmentScannerEndTag($html, $tagEnd);
-                continue;
-            }
-
-            $startTag = self::consumeStartTag($html, $tagEnd);
-            if ($startTag === null) {
-                return null;
-            }
-
-            [$attributes, $start, $selfClosing] = $startTag;
-            $parsedAttributes = $this->parseAttributes($attributes);
-            $namespaceParent = $stack[count($stack) - 1] ?? null;
-            if (self::bodyFragmentScannerIsMathAnnotationXmlHtmlBreakoutStartTag($namespaceParent, $tagName, $parsedAttributes)) {
-                self::popBodyFragmentScannerUntilHtmlInsertionContext($stack);
             }
 
             if (! $selfClosing && self::isTextOnlyTagName($tagName, $this->isScriptingEnabled())) {
@@ -4098,6 +4310,11 @@ REGEX;
     private static function rtrimHtmlWhitespace(string $data): string
     {
         return rtrim($data, " \t\n\r\f");
+    }
+
+    private static function isHtmlWhitespaceOnly(string $data): bool
+    {
+        return strspn($data, " \t\n\f\r") === strlen($data);
     }
 
     private function decodeCharacterReferences(string $data, bool $attribute = false): string

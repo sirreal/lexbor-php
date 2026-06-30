@@ -22354,6 +22354,20 @@ final class SerializeTest extends TestCase
             ],
         ];
 
+        yield 'html5_test/tests1.ton #34 list item body-end comment placement' => [
+            34,
+            '<!DOCTYPE html><li>hello<li>world<ul>how<li>do</ul>you</body><!--do-->',
+            '<!DOCTYPE html><html><head></head><body><li>hello</li><li>world<ul>how<li>do</li></ul>you</li></body><!--do--></html>',
+            '<li>hello</li><li>world<ul>how<li>do</li></ul>you</li>',
+            [
+                "            <!DOCTYPE html><li>hello<li>world<ul>how<li>do</ul>you</body><!--do-->\n",
+                "                <li>\n",
+                '                  "hello"',
+                "                  <ul>\n",
+                "              <!-- do -->\n",
+            ],
+        ];
+
         yield 'html5_test/tests1.ton #35 option optgroup select text recovery' => [
             35,
             '<!DOCTYPE html>A<option>B<optgroup>C<select>D</option>E',
@@ -23087,6 +23101,45 @@ final class SerializeTest extends TestCase
                 "                <noframes>\n",
                 "              <!-- 3 -->\n",
                 "            <!-- 5 -->\n",
+            ],
+        ];
+    }
+
+    /**
+     * @return iterable<string, array{int, string, string, string, list<string>}>
+     */
+    public static function html5TestWebkit01BodyTailProvider(): iterable
+    {
+        yield 'html5_test/webkit01.ton #22 comment after html end stays after html' => [
+            22,
+            '<html><body></body></html><!-- Hi there -->',
+            '<html><head></head><body></body></html><!-- Hi there -->',
+            '',
+            [
+                "            <html><body></body></html><!-- Hi there -->\n",
+                "            <!--  Hi there  -->\n",
+            ],
+        ];
+        yield 'html5_test/webkit01.ton #24 text after html end returns to body' => [
+            24,
+            '<html><body></body></html>x<!-- Hi there -->',
+            '<html><head></head><body>x<!-- Hi there --></body></html>',
+            'x<!-- Hi there -->',
+            [
+                "            <html><body></body></html>x<!-- Hi there -->\n",
+                '                "x"',
+                "                <!--  Hi there  -->\n",
+            ],
+        ];
+        yield 'html5_test/webkit01.ton #25 second html end moves following comment after html' => [
+            25,
+            '<html><body></body></html>x<!-- Hi there --></html><!-- Again -->',
+            '<html><head></head><body>x<!-- Hi there --></body></html><!-- Again -->',
+            'x<!-- Hi there -->',
+            [
+                "            <html><body></body></html>x<!-- Hi there --></html><!-- Again -->\n",
+                "                <!--  Hi there  -->\n",
+                "            <!--  Again  -->\n",
             ],
         ];
     }
@@ -23874,6 +23927,368 @@ final class SerializeTest extends TestCase
 
         self::assertSame('frameset', $document->bodyElement()->tagName);
         self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+    }
+
+    /**
+     * @param list<string> $fixtureSnippets
+     */
+    #[DataProvider('html5TestWebkit01BodyTailProvider')]
+    public function testHtml5TestWebkit01BodyTailFixtures(
+        int $testNumber,
+        string $html,
+        string $expectedDocument,
+        string $expectedBody,
+        array $fixtureSnippets,
+    ): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/webkit01.ton');
+        self::assertIsString($contents);
+        $testMarker = "/* Test number: {$testNumber} */";
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        self::assertStringContainsString($testMarker, $fixtureBlock);
+        foreach ($fixtureSnippets as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse($html));
+
+        self::assertSame($expectedDocument, Serializer::serializeDeep($document, fullDoctype: true));
+        self::assertSame($expectedBody, Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testCharacterReferenceWhitespaceAfterBodyEndPreservesAfterBodyMode(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('</body>&#32;<!--c-->'));
+
+        self::assertSame('<html><head></head><body> </body><!--c--></html>', Serializer::serializeDeep($document));
+        self::assertSame('<body> </body>', Serializer::serialize($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><body><b><p><i>x</b></body>&#32;<!--c-->'));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body><b></b><p><b><i>x</i></b> </p></body><!--c--></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<body><b></b><p><b><i>x</i></b> </p></body>', Serializer::serialize($document->bodyElement()));
+    }
+
+    public function testDuplicateHtmlEndTagPreservesAfterHtmlMode(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<html></html><!--a--></html><!--b-->'));
+
+        self::assertSame(
+            '<html><head></head><body></body></html><!--a--><!--b-->',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testEndTagsAfterBodyAndHtmlReprocessInBodyMode(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<html><body></body></html><!--a--></body><!--b-->'));
+
+        self::assertSame(
+            '<html><head></head><body></body><!--b--></html><!--a-->',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<html><body></body></html></p><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body><p></p><!--c--></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<p></p><!--c-->', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('</body></div><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body><!--c--></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<!--c-->', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('</body></head><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body><!--c--></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<!--c-->', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<body>x</body></head><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body>x<!--c--></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('x<!--c-->', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<html><body></body></html></div><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body><!--c--></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<!--c-->', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<html><body></body></html></head><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body><!--c--></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<!--c-->', Serializer::serializeDeep($document->bodyElement()));
+    }
+
+    public function testTokensAfterBodyEndPreserveOpenStackAndIgnoreDoctype(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<li><b><li>x'));
+
+        self::assertSame(
+            '<html><head></head><body><li><b></b></li><li><b>x</b></li></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<li><b></b></li><li><b>x</b></li>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<li><b><p><i>x<li>y'));
+
+        self::assertSame(
+            '<html><head></head><body><li><b><p><i>x</i></p></b></li><li><b><i>y</i></b></li></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<li><b><p><i>x</i></p></b></li><li><b><i>y</i></b></li>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<dt><b><dd>x'));
+
+        self::assertSame(
+            '<html><head></head><body><dt><b></b></dt><dd><b>x</b></dd></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<dt><b></b></dt><dd><b>x</b></dd>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<dt><b><p><i>x<dd>y'));
+
+        self::assertSame(
+            '<html><head></head><body><dt><b><p><i>x</i></p></b></dt><dd><b><i>y</i></b></dd></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<dt><b><p><i>x</i></p></b></dt><dd><b><i>y</i></b></dd>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<li>a</body><span>b'));
+
+        self::assertSame(
+            '<html><head></head><body><li>a<span>b</span></li></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<li>a<span>b</span></li>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<li>a</body> <span>b'));
+
+        self::assertSame(
+            '<html><head></head><body><li>a <span>b</span></li></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<li>a <span>b</span></li>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<li>a</body>&#32;<span>b'));
+
+        self::assertSame(
+            '<html><head></head><body><li>a <span>b</span></li></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<li>a <span>b</span></li>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<b>x</body> <!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body><b>x </b></body><!--c--></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<b>x </b>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<font><p>hello<b>cruel</font></body><span>world'));
+
+        self::assertSame(
+            '<html><head></head><body><font></font><p><font>hello<b>cruel</b></font><b><span>world</span></b></p></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<font></font><p><font>hello<b>cruel</b></font><b><span>world</span></b></p>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<font><p>hello<b>cruel</font></body>&#32;<span>world'));
+
+        self::assertSame(
+            '<html><head></head><body><font></font><p><font>hello<b>cruel</b></font> <b><span>world</span></b></p></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<font></font><p><font>hello<b>cruel</b></font> <b><span>world</span></b></p>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<font><p>hello<b>cruel</font></body> world'));
+
+        self::assertSame(
+            '<html><head></head><body><font></font><p><font>hello<b>cruel</b></font> <b>world</b></p></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<font></font><p><font>hello<b>cruel</b></font> <b>world</b></p>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<font><p>hello<b>cruel</font></body>&#32;world'));
+
+        self::assertSame(
+            '<html><head></head><body><font></font><p><font>hello<b>cruel</b></font> <b>world</b></p></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<font></font><p><font>hello<b>cruel</b></font> <b>world</b></p>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<font><p>hello<b>cruel</font></html> world'));
+
+        self::assertSame(
+            '<html><head></head><body><font></font><p><font>hello<b>cruel</b></font> <b>world</b></p></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<font></font><p><font>hello<b>cruel</b></font> <b>world</b></p>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><object></body><!--c-->'));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body><object><!--c--></object></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<object><!--c--></object>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><object></html><!--c-->'));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body><object><!--c--></object></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<object><!--c--></object>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<body id=old><li>a</body><html lang=en><!--c-->'));
+
+        self::assertSame(
+            '<html lang="en"><head></head><body id="old"><li>a</li></body><!--c--></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<body id="old"><li>a</li></body>', Serializer::serialize($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<body id=old><li>a</body><body class=new><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body id="old" class="new"><li>a<!--c--></li></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<body id="old" class="new"><li>a<!--c--></li></body>', Serializer::serialize($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<li>a</body><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body><li>a</li></body><!--c--></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('<li>a</li>', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<html><body></body></html><!doctype html><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body></body></html><!--c-->',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('</body><!DOCTYPEhtml>'));
+
+        self::assertSame(
+            '<html><head></head><body></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<body>x</body><!doctype html><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body>x</body><!--c--></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('x', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<body>x</body><!DOCTYPEhtml><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body>x</body><!--c--></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('x', Serializer::serializeDeep($document->bodyElement()));
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<html><body></body></html><!DOCTYPEfoo><!--c-->'));
+
+        self::assertSame(
+            '<html><head></head><body></body></html><!--c-->',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame('', Serializer::serializeDeep($document->bodyElement()));
     }
 
     public function testNormalParsePreservesBodyElementIdentity(): void
@@ -24915,6 +25330,22 @@ final class SerializeTest extends TestCase
             '<svg><foreignobject>y</foreignobject></svg>',
             Serializer::serializeDeep($document->bodyElement()),
         );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><foreignObject>x</body><!--c--></foreignObject></svg>'));
+
+        self::assertSame(
+            '<svg><foreignobject>x<!--c--></foreignobject></svg>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<svg><foreignObject>x</html><!--c--></foreignObject></svg>'));
+
+        self::assertSame(
+            '<svg><foreignobject>x<!--c--></foreignobject></svg>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
     }
 
     public function testBodyFragmentScannerIgnoresForeignTagsInsideComments(): void
@@ -25569,6 +26000,53 @@ final class SerializeTest extends TestCase
 
         self::assertSame(
             '<table><thead><tr><th>x</th></tr></thead></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testShellEndTagsInsideTableDoNotEnterAfterBodyMode(): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tables01.ton');
+        self::assertIsString($contents);
+        $testMarker = '/* Test number: 11 */';
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ([
+            "            <table><td></body></caption></col></colgroup></html>foo\n",
+            "                <table>\n",
+            "                      <td>\n",
+            '                        "foo"',
+        ] as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<table><td></body></caption></col></colgroup></html>foo'));
+
+        self::assertSame(
+            '<html><head></head><body><table><tbody><tr><td>foo</td></tr></tbody></table></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<table><tbody><tr><td>foo</td></tr></tbody></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<!DOCTYPE html><table></body><!--c--><tr><td>x'));
+
+        self::assertSame(
+            '<!DOCTYPE html><html><head></head><body><table><!--c--><tbody><tr><td>x</td></tr></tbody></table></body></html>',
+            Serializer::serializeDeep($document, fullDoctype: true),
+        );
+        self::assertSame(
+            '<table><!--c--><tbody><tr><td>x</td></tr></tbody></table>',
             Serializer::serializeDeep($document->bodyElement()),
         );
     }
