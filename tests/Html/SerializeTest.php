@@ -22638,6 +22638,14 @@ final class SerializeTest extends TestCase
             ["            <head></html><meta><p>\n", "                <meta>\n", "                <p>\n"],
         ];
 
+        yield 'html5_test/tests1.ton #94 b table cell formatting recovery' => [
+            94,
+            '<b><table><td></b><i></table>',
+            '<html><head></head><body><b><table><tbody><tr><td><i></i></td></tr></tbody></table></b></body></html>',
+            '<b><table><tbody><tr><td><i></i></td></tr></tbody></table></b>',
+            ["            <b><table><td></b><i></table>\n", "                <b>\n", "                  <table>\n", "                          <i>\n"],
+        ];
+
         yield 'html5_test/tests1.ton #95 empty heading auto-close' => [
             95,
             '<h1><h2>',
@@ -22670,12 +22678,52 @@ final class SerializeTest extends TestCase
             ["            <script></script></div><title></title><p><p>\n", "                <script>\n", "                <title>\n", "                <p>\n"],
         ];
 
+        yield 'html5_test/tests1.ton #100 select nested option recovery' => [
+            100,
+            '<select><b><option><select><option></b></select>',
+            '<html><head></head><body><select><b><option></option></b></select><b><option></option></b></body></html>',
+            '<select><b><option></option></b></select><b><option></option></b>',
+            ["            <select><b><option><select><option></b></select>\n", "                <select>\n", "                  <b>\n", "                    <option>\n", "                <b>\n"],
+        ];
+
         yield 'html5_test/tests1.ton #101 explicit shell with title' => [
             101,
             '<html><head><title></title><body></body></html>',
             '<html><head><title></title></head><body></body></html>',
             '',
             ["            <html><head><title></title><body></body></html>\n", "                <title>\n", "              <body>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #103 list item block recovery' => [
+            103,
+            '<ul><li></li><div><li></div><li><li><div><li><address><li><b><em></b><li></ul>',
+            '<html><head></head><body><ul><li></li><div><li></li></div><li></li><li><div></div></li><li><address></address></li><li><b><em></em></b></li><li></li></ul></body></html>',
+            '<ul><li></li><div><li></li></div><li></li><li><div></div></li><li><address></address></li><li><b><em></em></b></li><li></li></ul>',
+            ["            <ul><li></li><div><li></div><li><li><div><li><address><li><b><em></b><li></ul>\n", "                <ul>\n", "                  <div>\n", "                    <li>\n", "                    <b>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #105 nested frameset with noframes' => [
+            105,
+            '<frameset><frame><frameset><frame></frameset><noframes></noframes></frameset>',
+            '<html><head></head><frameset><frame><frameset><frame></frameset><noframes></noframes></frameset></html>',
+            '<frameset><frame><frameset><frame></frameset><noframes></noframes></frameset>',
+            ["            <frameset><frame><frameset><frame></frameset><noframes></noframes></frameset>\n", "              <frameset>\n", "                <frame>\n", "                <noframes>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #106 heading table recovery' => [
+            106,
+            '<h1><table><td><h3></table><h3></h1>',
+            '<html><head></head><body><h1><table><tbody><tr><td><h3></h3></td></tr></tbody></table></h1><h3></h3></body></html>',
+            '<h1><table><tbody><tr><td><h3></h3></td></tr></tbody></table></h1><h3></h3>',
+            ["            <h1><table><td><h3></table><h3></h1>\n", "                <h1>\n", "                  <table>\n", "                <h3>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #112 empty frameset at EOF' => [
+            112,
+            '<frameset>',
+            '<html><head></head><frameset></frameset></html>',
+            '<frameset></frameset>',
+            ["            <frameset>\n", "              <frameset>\n"],
         ];
     }
 
