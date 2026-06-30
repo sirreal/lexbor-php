@@ -205,7 +205,7 @@
     <main>
         <div class="metrics" aria-label="Project metrics">
             <div class="metric">
-                <strong>17139 / 17139</strong>
+                <strong>17166 / 17166</strong>
                 <span>PHPUnit tests passing</span>
             </div>
             <div class="metric">
@@ -238,9 +238,9 @@
                     <tr>
                         <td>Core</td>
                         <td><span class="status done">Implemented slice</span></td>
-                        <td>45 total; 21 ported from core/array.c TEST_BEGIN blocks including the upstream-defined get block, 13 ported from core/array_obj.c TEST_BEGIN blocks including the upstream-defined get block, 2 too-small init status checks from the C implementations, plus 9 object-array slot-reuse and helper regressions</td>
+                        <td>72 total; 17 ported from core/mem.c, 21 ported from core/array.c TEST_BEGIN blocks including the upstream-defined get block, 13 ported from core/array_obj.c TEST_BEGIN blocks including the upstream-defined get block, 2 too-small init status checks from the C implementations, plus 19 memory alignment/overflow/large-allocation/lifecycle and object-array slot-reuse/helper regressions</td>
                         <td><div class="bar" aria-label="100 percent"><span style="width: 100%"></span></div></td>
-                        <td>ArrayList and ObjectArray now cover Lexbor-style create/init/destroy, capacity and length tracking, clean, expand, push, push-without-clear, push-n, pop, last, erase, sparse set/insert, deletion compaction and truncation, stable object-slot reuse, struct-size tracking, and object-null/too-small status mapping; broader Core containers remain pending.</td>
+                        <td>Memory, ArrayList, and ObjectArray now cover Lexbor-style create/init/destroy, aligned chunk sizing with large-size overflow guards, pooled allocation/calloc, chunk init/make/destroy, capacity and length tracking, clean, expand, push, push-without-clear, push-n, pop, last, erase, sparse set/insert, deletion compaction and truncation, stable object-slot reuse, struct-size tracking, and object-null/wrong-args/too-small status mapping; broader Core containers remain pending.</td>
                     </tr>
                     <tr>
                         <td>DOM</td>
