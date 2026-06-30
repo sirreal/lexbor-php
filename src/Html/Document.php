@@ -255,7 +255,7 @@ final class Document extends Node
         while (preg_match($pattern, $html, $match, PREG_OFFSET_CAPTURE | PREG_UNMATCHED_AS_NULL, $offset) === 1) {
             $tagStart = $match[0][1];
             if ($tagStart > $offset) {
-                $this->appendTextToken($stack, $pendingFormattingTailClones, $afterBody, $afterHtml, substr($html, $offset, $tagStart - $offset));
+                $this->appendTextToken($stack, $pendingFormattingTailClones, $afterBody, $afterHtml, $root, $context, substr($html, $offset, $tagStart - $offset));
                 $formattingEndTagsPoppedByScope = [];
             }
 
@@ -278,6 +278,11 @@ final class Document extends Node
 
             if (($match['doctype'][1] ?? -1) !== -1) {
                 $formattingEndTagsPoppedByScope = [];
+                if ($this->currentNodeIsHtmlColgroup($stack) || $this->isHtmlColgroupFragmentContext($root, $context, $stack)) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
                 if (! ($afterBody || $afterHtml)) {
                     $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
                     $this->appendText($stack[count($stack) - 1], $match['doctype'][0]);
@@ -324,6 +329,14 @@ final class Document extends Node
             [$attributeSource, $tagEnd, $selfClosing] = $startTagEnd;
 
             if ($match['closing'][0] === '/') {
+                if ($this->isHtmlColgroupFragmentContext($root, $context, $stack)) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                $this->closeCurrentColgroupBeforeOtherEndTag($stack, $tagName);
+                $parent = $stack[count($stack) - 1];
+
                 $documentShellEndTagContext = $this->isDocumentShellEndTagContext($root, $context, $stack);
 
                 if ($documentShellEndTagContext && $tagName === 'body') {
@@ -353,9 +366,14 @@ final class Document extends Node
                     continue;
                 }
 
-                if ($tagName === 'p' && ! $this->hasOpenElementInScope($stack, 'p')) {
+                if ($tagName === 'p' && ! $this->hasOpenElementInScopeAboveHtmlTemplateBoundary($stack, 'p')) {
                     $formattingEndTagsPoppedByScope = [];
                     $parent->appendChild($this->createElement('p'));
+                    $offset = $tagEnd;
+                    continue;
+                }
+
+                if ($tagName !== 'template' && $this->endTagWouldCrossOpenHtmlTemplateBoundary($stack, $tagName)) {
                     $offset = $tagEnd;
                     continue;
                 }
@@ -428,6 +446,15 @@ final class Document extends Node
                 continue;
             }
 
+            if (
+                $this->isHtmlColgroupFragmentContext($root, $context, $stack)
+                && $tagName !== 'col'
+                && $tagName !== 'template'
+            ) {
+                $offset = $tagEnd;
+                continue;
+            }
+
             $formattingEndTagsPoppedByScope = [];
             $attributes = $this->parseAttributes($attributeSource);
 
@@ -439,6 +466,14 @@ final class Document extends Node
                 $parent = $stack[count($stack) - 1];
                 $mathAnnotationXmlBreakout = true;
                 $namespaceParent = $parent;
+            }
+
+            $htmlTreeConstructionStartTagContext = self::isHtmlTreeConstructionStartTagContext($namespaceParent, $tagName);
+            if ($htmlTreeConstructionStartTagContext && $tagName !== 'html') {
+                $this->closeCurrentColgroupBeforeNonColumnStartTag($stack, $tagName);
+                $parent = $stack[count($stack) - 1];
+                $namespaceParent = ($parent === $root && $context !== null && ! $mathAnnotationXmlBreakout) ? $context : $parent;
+                $htmlTreeConstructionStartTagContext = self::isHtmlTreeConstructionStartTagContext($namespaceParent, $tagName);
             }
 
             if ($this->isDocumentShellTag($root, $context, $tagName)) {
@@ -495,6 +530,7 @@ final class Document extends Node
             $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
             $parent = $stack[count($stack) - 1];
             $namespaceParent = ($parent === $root && $context !== null && ! $mathAnnotationXmlBreakout) ? $context : $parent;
+            $htmlTreeConstructionStartTagContext = self::isHtmlTreeConstructionStartTagContext($namespaceParent, $tagName);
 
             if ($tagName === 'form' && self::isHtmlInsertionContext($namespaceParent)) {
                 $inTableFormInsertionMode = $namespaceParent instanceof Element
@@ -541,8 +577,6 @@ final class Document extends Node
                 $namespaceParent = ($parent === $root && $context !== null && ! $mathAnnotationXmlBreakout) ? $context : $parent;
             }
 
-            $htmlTreeConstructionStartTagContext = self::isHtmlTreeConstructionStartTagContext($namespaceParent, $tagName);
-
             if ($tagName === 'option' && $htmlTreeConstructionStartTagContext) {
                 $this->closeOpenOptionForOptionStart($stack);
                 $parent = $stack[count($stack) - 1];
@@ -563,6 +597,16 @@ final class Document extends Node
 
             if (($tagName === 'dd' || $tagName === 'dt') && self::isHtmlInsertionContext($namespaceParent)) {
                 $formattingTailClones = array_merge($this->closeOpenDescriptionListItem($stack), $formattingTailClones);
+                $parent = $stack[count($stack) - 1];
+                $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
+            }
+
+            if ($htmlTreeConstructionStartTagContext) {
+                if (! $this->prepareTableColumnStartTag($stack, $tagName, $root, $context)) {
+                    $offset = $tagEnd;
+                    continue;
+                }
+
                 $parent = $stack[count($stack) - 1];
                 $namespaceParent = ($parent === $root && $context !== null) ? $context : $parent;
             }
@@ -646,7 +690,7 @@ final class Document extends Node
         }
 
         if ($offset < strlen($html)) {
-            $this->appendTextToken($stack, $pendingFormattingTailClones, $afterBody, $afterHtml, substr($html, $offset));
+            $this->appendTextToken($stack, $pendingFormattingTailClones, $afterBody, $afterHtml, $root, $context, substr($html, $offset));
         }
     }
 
@@ -1113,6 +1157,8 @@ final class Document extends Node
         array &$pendingFormattingTailClones,
         bool &$afterBody,
         bool &$afterHtml,
+        Node $root,
+        ?Element $context,
         string $text,
     ): void {
         if ($text === '') {
@@ -1134,8 +1180,36 @@ final class Document extends Node
             $afterHtml = false;
         }
 
+        if ($this->isHtmlColgroupFragmentContext($root, $context, $stack)) {
+            $this->appendHtmlWhitespaceFromTextToken($stack[count($stack) - 1], $text);
+            return;
+        }
+
+        $this->closeCurrentColgroupBeforeNonWhitespaceText($stack, $text);
+
         $this->reconstructPendingFormattingTail($stack, $pendingFormattingTailClones);
         $this->appendText($stack[count($stack) - 1], $text);
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeCurrentColgroupBeforeNonWhitespaceText(array &$stack, string &$text): void
+    {
+        if (! $this->currentNodeIsHtmlColgroup($stack)) {
+            return;
+        }
+
+        $current = $stack[count($stack) - 1];
+        $whitespaceLength = $this->leadingDecodedHtmlWhitespaceSourceLength($text);
+        if ($whitespaceLength > 0) {
+            $this->appendText($current, substr($text, 0, $whitespaceLength));
+            $text = substr($text, $whitespaceLength);
+        }
+
+        if ($text !== '') {
+            array_pop($stack);
+        }
     }
 
     private function leadingDecodedHtmlWhitespaceSourceLength(string $data): int
@@ -1784,6 +1858,25 @@ final class Document extends Node
     /**
      * @param list<Node> $stack
      */
+    private function openHtmlElementIndex(array $stack, string $tagName): ?int
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (
+                $node instanceof Element
+                && $node->namespace === Element::NAMESPACE_HTML
+                && $node->tagName === $tagName
+            ) {
+                return $index;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
     private function hasOpenElement(array $stack, string $tagName): bool
     {
         for ($index = count($stack) - 1; $index > 0; $index--) {
@@ -1812,6 +1905,32 @@ final class Document extends Node
             }
 
             if (self::isHtmlScopeBoundaryElement($node)) {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function hasOpenElementInScopeAboveHtmlTemplateBoundary(array $stack, string $tagName): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->tagName === $tagName) {
+                return true;
+            }
+
+            if (
+                ($node->namespace === Element::NAMESPACE_HTML && $node->tagName === 'template')
+                || self::isHtmlScopeBoundaryElement($node)
+            ) {
                 return false;
             }
         }
@@ -1941,6 +2060,246 @@ final class Document extends Node
         return $tagName === 'tbody'
             || $tagName === 'tfoot'
             || $tagName === 'thead';
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function prepareTableColumnStartTag(array &$stack, string $tagName, Node $root, ?Element $context): bool
+    {
+        if ($tagName !== 'col' && $tagName !== 'colgroup') {
+            return true;
+        }
+
+        if ($this->hasOpenHtmlSelectAboveTable($stack)) {
+            return false;
+        }
+
+        if ($this->hasOpenHtmlTemplateAboveTable($stack)) {
+            return true;
+        }
+
+        $current = $stack[count($stack) - 1] ?? null;
+        if (
+            $current instanceof Element
+            && $current->namespace === Element::NAMESPACE_HTML
+            && $current->tagName === 'colgroup'
+        ) {
+            if ($tagName === 'col') {
+                return true;
+            }
+
+            array_pop($stack);
+        }
+
+        $tableIndex = $this->openHtmlElementIndex($stack, 'table');
+        if ($tableIndex === null) {
+            return $this->prepareTableContextFragmentColumnStartTag($stack, $tagName, $root, $context);
+        }
+
+        if ($tableIndex < count($stack) - 1) {
+            array_splice($stack, $tableIndex + 1);
+        }
+
+        $table = $stack[count($stack) - 1] ?? null;
+        if (! $table instanceof Element || $table->namespace !== Element::NAMESPACE_HTML || $table->tagName !== 'table') {
+            return false;
+        }
+
+        if ($tagName === 'col') {
+            $colgroup = $this->createElement('colgroup');
+            $table->appendChild($colgroup);
+            $stack[] = $colgroup;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function prepareTableContextFragmentColumnStartTag(array &$stack, string $tagName, Node $root, ?Element $context): bool
+    {
+        if (
+            $context === null
+            || $context->namespace !== Element::NAMESPACE_HTML
+            || $context->tagName !== 'table'
+        ) {
+            return $tagName === 'col'
+                && $context !== null
+                && $context->namespace === Element::NAMESPACE_HTML
+                && $context->tagName === 'colgroup';
+        }
+
+        if (count($stack) > 1) {
+            array_splice($stack, 1);
+        }
+
+        if ($tagName === 'col') {
+            $colgroup = $this->createElement('colgroup');
+            $root->appendChild($colgroup);
+            $stack[] = $colgroup;
+        }
+
+        return true;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeCurrentColgroupBeforeNonColumnStartTag(array &$stack, string $tagName): void
+    {
+        if ($tagName === 'col' || $tagName === 'template') {
+            return;
+        }
+
+        if ($this->currentNodeIsHtmlColgroup($stack)) {
+            array_pop($stack);
+        }
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function closeCurrentColgroupBeforeOtherEndTag(array &$stack, string $tagName): void
+    {
+        if ($tagName === 'col' || $tagName === 'colgroup' || $tagName === 'template') {
+            return;
+        }
+
+        if ($this->currentNodeIsHtmlColgroup($stack)) {
+            array_pop($stack);
+        }
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function currentNodeIsHtmlColgroup(array $stack): bool
+    {
+        $current = $stack[count($stack) - 1] ?? null;
+
+        return $current instanceof Element
+            && $current->namespace === Element::NAMESPACE_HTML
+            && $current->tagName === 'colgroup';
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function hasOpenHtmlTemplateAboveTable(array $stack): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element || $node->namespace !== Element::NAMESPACE_HTML) {
+                continue;
+            }
+
+            if ($node->tagName === 'template') {
+                return true;
+            }
+
+            if ($node->tagName === 'table') {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function hasOpenHtmlSelectAboveTable(array $stack): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element || $node->namespace !== Element::NAMESPACE_HTML) {
+                continue;
+            }
+
+            if ($node->tagName === 'select') {
+                return true;
+            }
+
+            if ($node->tagName === 'table') {
+                return false;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function endTagWouldCrossOpenHtmlTemplateBoundary(array $stack, string $tagName): bool
+    {
+        for ($index = count($stack) - 1; $index > 0; $index--) {
+            $node = $stack[$index];
+            if (! $node instanceof Element) {
+                continue;
+            }
+
+            if ($node->tagName === $tagName) {
+                return false;
+            }
+
+            if ($node->namespace === Element::NAMESPACE_HTML && $node->tagName === 'template') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<Node> $stack
+     */
+    private function isHtmlColgroupFragmentContext(Node $root, ?Element $context, array $stack): bool
+    {
+        return ($stack[count($stack) - 1] ?? null) === $root
+            && $context instanceof Element
+            && $context->namespace === Element::NAMESPACE_HTML
+            && $context->tagName === 'colgroup';
+    }
+
+    private function appendHtmlWhitespaceFromTextToken(Node $parent, string $data): void
+    {
+        $offset = 0;
+        $whitespace = '';
+        $length = strlen($data);
+
+        while ($offset < $length) {
+            $character = $data[$offset];
+            if (str_contains(" \t\n\f\r", $character)) {
+                $whitespace .= $character;
+                $offset++;
+                continue;
+            }
+
+            if ($character === '&') {
+                $reference = ($data[$offset + 1] ?? '') === '#'
+                    ? $this->consumeNumericCharacterReference($data, $offset)
+                    : $this->consumeNamedCharacterReference($data, $offset, false);
+                if ($reference !== null && self::isHtmlWhitespaceOnly($reference['data'])) {
+                    $whitespace .= substr($data, $offset, $reference['offset'] - $offset);
+                    $offset = $reference['offset'];
+                    continue;
+                }
+            }
+
+            if ($whitespace !== '') {
+                $this->appendText($parent, $whitespace);
+                $whitespace = '';
+            }
+
+            $offset++;
+        }
+
+        if ($whitespace !== '') {
+            $this->appendText($parent, $whitespace);
+        }
     }
 
     private static function isTableFosterParentingContext(string $tagName): bool

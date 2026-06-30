@@ -22718,6 +22718,30 @@ final class SerializeTest extends TestCase
             ["            <h1><table><td><h3></table><h3></h1>\n", "                <h1>\n", "                  <table>\n", "                <h3>\n"],
         ];
 
+        yield 'html5_test/tests1.ton #107 sibling colgroups before table head' => [
+            107,
+            '<table><colgroup><col><colgroup><col><col><col><colgroup><col><col><thead><tr><td></table>',
+            '<html><head></head><body><table><colgroup><col></colgroup><colgroup><col><col><col></colgroup><colgroup><col><col></colgroup><thead><tr><td></td></tr></thead></table></body></html>',
+            '<table><colgroup><col></colgroup><colgroup><col><col><col></colgroup><colgroup><col><col></colgroup><thead><tr><td></td></tr></thead></table>',
+            ["            <table><colgroup><col><colgroup><col><col><col><colgroup><col><col><thead><tr><td></table>\n", "                  <colgroup>\n", "                  <thead>\n", "                      <td>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #108 col tokens reprocess through table contexts' => [
+            108,
+            '<table><col><tbody><col><tr><col><td><col></table><col>',
+            '<html><head></head><body><table><colgroup><col></colgroup><tbody></tbody><colgroup><col></colgroup><tbody><tr></tr></tbody><colgroup><col></colgroup><tbody><tr><td></td></tr></tbody><colgroup><col></colgroup></table></body></html>',
+            '<table><colgroup><col></colgroup><tbody></tbody><colgroup><col></colgroup><tbody><tr></tr></tbody><colgroup><col></colgroup><tbody><tr><td></td></tr></tbody><colgroup><col></colgroup></table>',
+            ["            <table><col><tbody><col><tr><col><td><col></table><col>\n", "                  <colgroup>\n", "                  <tbody>\n", "                      <td>\n"],
+        ];
+
+        yield 'html5_test/tests1.ton #109 colgroup tokens reprocess through table contexts' => [
+            109,
+            '<table><colgroup><tbody><colgroup><tr><colgroup><td><colgroup></table><colgroup>',
+            '<html><head></head><body><table><colgroup></colgroup><tbody></tbody><colgroup></colgroup><tbody><tr></tr></tbody><colgroup></colgroup><tbody><tr><td></td></tr></tbody><colgroup></colgroup></table></body></html>',
+            '<table><colgroup></colgroup><tbody></tbody><colgroup></colgroup><tbody><tr></tr></tbody><colgroup></colgroup><tbody><tr><td></td></tr></tbody><colgroup></colgroup></table>',
+            ["            <table><colgroup><tbody><colgroup><tr><colgroup><td><colgroup></table><colgroup>\n", "                  <colgroup>\n", "                  <tbody>\n", "                      <td>\n"],
+        ];
+
         yield 'html5_test/tests1.ton #112 empty frameset at EOF' => [
             112,
             '<frameset>',
@@ -25933,6 +25957,47 @@ final class SerializeTest extends TestCase
         );
     }
 
+    public function testTableColumnStartTagsInsideSvgStayForeign(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<table><svg><col></col><path></path></svg><tbody></tbody></table>'));
+
+        self::assertSame(
+            '<svg><col><path></path></svg><table><tbody></tbody></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testTableColumnStartTagsInsideMathFragmentStayForeign(): void
+    {
+        $document = new Document();
+        $math = $document->createElement('math', Element::NAMESPACE_MATH);
+        $fragment = $document->createFragmentForElement($math, '<col><colgroup>');
+
+        self::assertSame('<col><colgroup></colgroup>', Serializer::serializeDeep($fragment));
+    }
+
+    public function testTableColumnStartTagsInsideSelectInTableAreIgnored(): void
+    {
+        foreach (['col', 'colgroup'] as $tagName) {
+            $document = new Document();
+            self::assertSame(Status::Ok, $document->parse("<table><select><{$tagName}><option>x</select></table>"));
+
+            self::assertSame(
+                '<select><option>x</option></select><table></table>',
+                Serializer::serializeDeep($document->bodyElement()),
+            );
+
+            $templateDocument = new Document();
+            self::assertSame(Status::Ok, $templateDocument->parse("<table><template><select><{$tagName}><option>x</select></template></table>"));
+
+            self::assertSame(
+                '<table><template><select><option>x</option></select></template></table>',
+                Serializer::serializeDeep($templateDocument->bodyElement()),
+            );
+        }
+    }
+
     public function testPureForeignEndTagClosesThroughSvgNormalScopeBoundary(): void
     {
         $document = new Document();
@@ -26050,6 +26115,163 @@ final class SerializeTest extends TestCase
             '<table><thead><tr><th>x</th></tr></thead></table>',
             Serializer::serializeDeep($document->bodyElement()),
         );
+    }
+
+    public function testNonColumnStartTagAfterImplicitColgroupIsReprocessedInTable(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<table><col><div>x</div></table>'));
+
+        self::assertSame(
+            '<div>x</div><table><colgroup><col></colgroup></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testEarlyStartTagBranchAfterImplicitColgroupIsReprocessedInTable(): void
+    {
+        foreach ([
+            '<form><table><col><form><col></table>' => '<form><table><colgroup><col></colgroup><colgroup><col></colgroup></table></form>',
+            '<form><table><col><frame><col></table>' => '<form><table><colgroup><col></colgroup><colgroup><col></colgroup></table></form>',
+            '<form><table><col><head><col></table>' => '<form><table><colgroup><col></colgroup><colgroup><col></colgroup></table></form>',
+        ] as $html => $expected) {
+            $document = new Document();
+            self::assertSame(Status::Ok, $document->parse($html));
+            self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+        }
+    }
+
+    public function testTemplateStartTagAfterImplicitColgroupStaysInColgroup(): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/template.ton');
+        self::assertIsString($contents);
+        $testMarker = '/* Test number: 39 */';
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ([
+            $testMarker,
+            "            <table><colgroup><template><col>\n",
+            "                  <colgroup>\n",
+            "                    <template>\n",
+            "                        <col>\n",
+        ] as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        foreach ([
+            '<table><colgroup><template><col>' => '<table><colgroup><template><col></template></colgroup></table>',
+            '<table><col><template></template><col></table>' => '<table><colgroup><col><template></template><col></colgroup></table>',
+            '<table><col></template><col></table>' => '<table><colgroup><col><col></colgroup></table>',
+            '<table><colgroup><template></colgroup><col></template><col></table>' => '<table><colgroup><template><col></template><col></colgroup></table>',
+        ] as $html => $expected) {
+            $document = new Document();
+            self::assertSame(Status::Ok, $document->parse($html));
+            self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+        }
+    }
+
+    public function testEndTagsInsideTemplateUnderTableCloseTemplateDescendants(): void
+    {
+        foreach ([
+            '<template><div></div><span>x</span></template>' => '<template><div></div><span>x</span></template>',
+            '<table><template><b>x</b>y</template></table>' => '<table><template><b>x</b>y</template></table>',
+            '<table><colgroup><template><div></div><span></span></template></colgroup></table>' => '<table><colgroup><template><div></div><span></span></template></colgroup></table>',
+            '<table><colgroup><template><p>x</p><span>y</span></template></colgroup></table>' => '<table><colgroup><template><p>x</p><span>y</span></template></colgroup></table>',
+            '<template><table><colgroup></div><col></table></template>' => '<template><table><colgroup></colgroup><colgroup><col></colgroup></table></template>',
+            '<template><span></p></span></template>' => '<template><span><p></p></span></template>',
+            '<p><template><span></p></span></template>' => '<p><template><span><p></p></span></template></p>',
+            '<template><svg><g></g></svg><span>x</span></template>' => '<template><svg><g></g></svg><span>x</span></template>',
+        ] as $html => $expected) {
+            $document = new Document();
+            self::assertSame(Status::Ok, $document->parse($html));
+            self::assertSame($expected, Serializer::serializeDeep($document->bodyElement()));
+        }
+    }
+
+    public function testNonWhitespaceTextAfterImplicitColgroupIsReprocessedInTable(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<table><col>x</table>'));
+
+        self::assertSame(
+            'x<table><colgroup><col></colgroup></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testOtherEndTagAfterImplicitColgroupIsReprocessedInTable(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<table><col></div><!--c--><tbody></tbody></table>'));
+
+        self::assertSame(
+            '<table><colgroup><col></colgroup><!--c--><tbody></tbody></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testDoctypeInsideImplicitColgroupIsIgnored(): void
+    {
+        $document = new Document();
+        self::assertSame(Status::Ok, $document->parse('<table><col><!doctype html><tbody></tbody></table>'));
+
+        self::assertSame(
+            '<table><colgroup><col></colgroup><tbody></tbody></table>',
+            Serializer::serializeDeep($document->bodyElement()),
+        );
+    }
+
+    public function testHtml5TestTests6ColgroupFragmentTextFixture(): void
+    {
+        $contents = file_get_contents(dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5_test/tests6.ton');
+        self::assertIsString($contents);
+        $testMarker = '/* Test number: 27 */';
+        $testOffset = strpos($contents, $testMarker);
+        self::assertNotFalse($testOffset);
+
+        $nextTestOffset = strpos($contents, '/* Test number:', $testOffset + strlen($testMarker));
+        $fixtureBlock = $nextTestOffset === false
+            ? substr($contents, $testOffset)
+            : substr($contents, $testOffset, $nextTestOffset - $testOffset);
+
+        foreach ([
+            $testMarker,
+            '"fragment": {"tag": "colgroup", "ns": "html"}',
+            "            foo<col>\n",
+            "            <col>\n",
+        ] as $snippet) {
+            self::assertStringContainsString($snippet, $fixtureBlock);
+        }
+
+        $document = new Document();
+        $colgroup = $document->createElement('colgroup');
+        $fragment = $document->createFragmentForElement($colgroup, 'foo<col>');
+
+        self::assertSame('<col>', Serializer::serializeDeep($fragment));
+    }
+
+    public function testColgroupFragmentIgnoresAnythingElseTokens(): void
+    {
+        $document = new Document();
+        $colgroup = $document->createElement('colgroup');
+        $fragment = $document->createFragmentForElement($colgroup, " \n<!doctype html></div><div>x</div><!--c--><span></span><col>");
+
+        self::assertSame(" \n<!--c--><col>", Serializer::serializeDeep($fragment));
+
+        $templateFragment = $document->createFragmentForElement($colgroup, '<template><col></template><col>');
+        self::assertSame('<template><col></template><col>', Serializer::serializeDeep($templateFragment));
+
+        $templateDescendantFragment = $document->createFragmentForElement($colgroup, '<template><p>x</p><span>y</span></template><col>');
+        self::assertSame('<template><p>x</p><span>y</span></template><col>', Serializer::serializeDeep($templateDescendantFragment));
+
+        $whitespaceFragment = $document->createFragmentForElement($colgroup, 'foo <col>');
+        self::assertSame(' <col>', Serializer::serializeDeep($whitespaceFragment));
     }
 
     public function testShellEndTagsInsideTableDoNotEnterAfterBodyMode(): void
