@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Lexbor\Html;
 
 use Lexbor\Core\Status;
+use Lexbor\Encoding\Encoding as CoreEncoding;
 
 final class Encoding
 {
@@ -84,6 +85,23 @@ final class Encoding
     public static function prescanName(string $html): ?string
     {
         return (new self())->prescan($html);
+    }
+
+    public static function determineName(string $html): string
+    {
+        $bom = CoreEncoding::bomSniff($html);
+        if ($bom !== CoreEncoding::DEFAULT) {
+            return $bom;
+        }
+
+        foreach (self::determineMetaEntries($html) as $entry) {
+            $encoding = CoreEncoding::dataPrescanValidate($entry);
+            if ($encoding !== null) {
+                return $encoding;
+            }
+        }
+
+        return CoreEncoding::WINDOWS_1252;
     }
 
     /**

@@ -336,6 +336,43 @@ final class EncodingTest extends TestCase
         self::assertSame($expected, Encoding::prescanName($html));
     }
 
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function html5libEncodingProvider(): iterable
+    {
+        $directory = dirname(__DIR__, 2) . '/upstream/lexbor/test/files/lexbor/html/html5lib_encoding';
+        $files = glob($directory . '/*.dat');
+
+        if ($files === false || $files === []) {
+            throw new \RuntimeException('Unable to load upstream html5lib encoding fixtures.');
+        }
+
+        sort($files);
+
+        foreach ($files as $file) {
+            $contents = file_get_contents($file);
+            if ($contents === false) {
+                throw new \RuntimeException("Unable to read upstream html5lib encoding fixture: {$file}");
+            }
+
+            preg_match_all('/^#data\n(.*?)\n#encoding\n([^\n]*)/ms', $contents, $matches, PREG_SET_ORDER);
+            if ($matches === []) {
+                throw new \RuntimeException("No upstream html5lib encoding fixtures found in: {$file}");
+            }
+
+            foreach ($matches as $index => $match) {
+                yield basename($file) . ' #' . ($index + 1) => [$match[1], $match[2]];
+            }
+        }
+    }
+
+    #[DataProvider('html5libEncodingProvider')]
+    public function testHtml5libEncodingFixtures(string $html, string $expected): void
+    {
+        self::assertSame(0, strcasecmp($expected, Encoding::determineName($html)));
+    }
+
     private static function assertMetaEntry(string $html, ?string $expected, int $index): void
     {
         $encoding = new Encoding();
